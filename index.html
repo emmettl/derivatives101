@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A practical short course in structured products, with lessons, specimen term sheets and an interactive payoff explorer.">
+  <meta name="theme-color" content="#0b1e2d">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Derivatives 101">
+  <meta property="og:title" content="Derivatives 101 — See the payoff. Understand the trade.">
+  <meta property="og:description" content="Six concise lessons, specimen term sheets and an interactive lab for building intuition about structured products.">
+  <meta property="og:url" content="https://emmettl.github.io/derivatives101/">
+  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Derivatives 101 — See the payoff. Understand the trade.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Derivatives 101 — See the payoff. Understand the trade.">
+  <meta name="twitter:description" content="A practical short course in structured products with an interactive payoff lab.">
+  <meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <title>Derivatives 101 — A practical course in structured products</title>
+  <link rel="stylesheet" href="course.css">
+</head>
+<body>
+  <header class="hero">
+    <nav class="topbar" aria-label="Course navigation">
+      <a class="brand" href="./" aria-current="page">Derivatives 101</a>
+      <a class="toplink" href="payoff-explorer.html">Open payoff explorer <span aria-hidden="true">↗</span></a>
+    </nav>
+    <div class="hero-grid">
+      <div>
+        <p class="eyebrow">A short course for practitioners</p>
+        <h1>See the payoff.<br><span>Understand the trade.</span></h1>
+        <p class="intro">Six concise lessons, real-world specimen term sheets, and an interactive lab for building intuition about structured products—without hiding the risk behind product names.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="lessons/0_Foundations.pdf">Start with foundations</a>
+          <a class="button secondary" href="payoff-explorer.html">Explore the payoffs</a>
+        </div>
+      </div>
+      <aside class="hero-card" aria-label="Course overview">
+        <p class="card-label">Course at a glance</p>
+        <div class="metric"><strong>6</strong><span>short lessons</span></div>
+        <div class="metric"><strong>8</strong><span>interactive structures</span></div>
+        <div class="metric"><strong>3</strong><span>specimen term sheets</span></div>
+        <p class="hero-note">Designed for discussion at the desk—not for certification or pricing.</p>
+      </aside>
+    </div>
+  </header>
+
+  <main>
+    <section class="section course-section" aria-labelledby="course-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow dark">The learning path</p>
+          <h2 id="course-heading">From building blocks to leverage</h2>
+        </div>
+        <p>Each lesson is self-contained. Read the deck, then use the linked experiment to make the key risk visible.</p>
+      </div>
+
+      <ol class="lesson-grid">
+        <li class="lesson-card featured">
+          <div class="lesson-number">00</div>
+          <p class="lesson-kicker">Foundations</p>
+          <h3>Payoffs before product names</h3>
+          <p>Calls, puts, bonds and the option-selling trade underneath yield enhancement.</p>
+          <div class="lesson-links">
+            <a href="lessons/0_Foundations.pdf">Read lesson</a>
+            <a href="payoff-explorer.html#blocks">Run experiment</a>
+          </div>
+        </li>
+        <li class="lesson-card">
+          <div class="lesson-number">01</div>
+          <p class="lesson-kicker">Path dependency</p>
+          <h3>KODA &amp; KODD</h3>
+          <p>Accumulation, gearing, knock-outs and why a daily obligation becomes a large position.</p>
+          <div class="lesson-links">
+            <a href="lessons/1_KODA_KODD.pdf">Read lesson</a>
+            <a href="payoff-explorer.html#acc">Run experiment</a>
+          </div>
+        </li>
+        <li class="lesson-card">
+          <div class="lesson-number">02</div>
+          <p class="lesson-kicker">Yield enhancement</p>
+          <h3>Reverse convertibles</h3>
+          <p>Coupons, barriers, autocalls and the equity downside the investor is being paid to accept.</p>
+          <div class="lesson-links">
+            <a href="lessons/2_Reverse_Convertibles.pdf">Read lesson</a>
+            <a href="payoff-explorer.html#rc">Run experiment</a>
+          </div>
+        </li>
+        <li class="lesson-card">
+          <div class="lesson-number">03</div>
+          <p class="lesson-kicker">Baskets</p>
+          <h3>Worst-of fixed coupon notes</h3>
+          <p>Why more names and lower correlation make an unconditional coupon anything but free.</p>
+          <div class="lesson-links">
+            <a href="lessons/Derivatives-101-full-series.pdf#page=45">Read in full series</a>
+            <a href="payoff-explorer.html#fcn">Run experiment</a>
+          </div>
+        </li>
+        <li class="lesson-card">
+          <div class="lesson-number">04</div>
+          <p class="lesson-kicker">Conditional protection</p>
+          <h3>Discount &amp; bonus certificates</h3>
+          <p>Small certain cushions, large conditional cushions and the dividend budget behind a bonus.</p>
+          <div class="lesson-links">
+            <a href="lessons/4_Discount_and_Bonus.pdf">Read lesson</a>
+            <a href="payoff-explorer.html#disc">Run experiment</a>
+          </div>
+        </li>
+        <li class="lesson-card">
+          <div class="lesson-number">05</div>
+          <p class="lesson-kicker">Protection &amp; leverage</p>
+          <h3>Capital protection &amp; mini futures</h3>
+          <p>How rates fund protection—and how financing levels turn small buffers into large leverage.</p>
+          <div class="lesson-links">
+            <a href="lessons/5_Protection_and_Leverage.pdf">Read lesson</a>
+            <a href="payoff-explorer.html#cpn">Run experiment</a>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="lab-band" aria-labelledby="lab-heading">
+      <div class="lab-copy">
+        <p class="eyebrow">Interactive lab</p>
+        <h2 id="lab-heading">Change one term.<br>Watch the risk move.</h2>
+        <p>The payoff explorer combines expiry diagrams with 2,000 simulated markets. Use guided scenarios to surface the most important intuition, then share the exact setup with the room.</p>
+        <a class="button primary" href="payoff-explorer.html">Launch the payoff explorer</a>
+      </div>
+      <div class="mini-chart" aria-hidden="true">
+        <div class="chart-label top">capped upside</div>
+        <div class="chart-axis x"></div>
+        <div class="chart-axis y"></div>
+        <div class="chart-loss"></div>
+        <div class="chart-gain"></div>
+        <div class="chart-dot"></div>
+        <div class="chart-label bottom">equity downside</div>
+      </div>
+    </section>
+
+    <section class="section resources" aria-labelledby="resources-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow dark">Apply the concepts</p>
+          <h2 id="resources-heading">Specimen term sheets</h2>
+        </div>
+        <p>Use these fictional examples to practise identifying the payoff, the conditions and the risk transfer.</p>
+      </div>
+      <div class="resource-grid">
+        <a class="resource" href="termsheets/Specimen-1-Yield-Enhancement-Note.pdf">
+          <span class="file-tag">PDF · 01</span>
+          <strong>Yield enhancement note</strong>
+          <span>Find the short option →</span>
+        </a>
+        <a class="resource" href="termsheets/Specimen-2-Capital-Protected-Note.pdf">
+          <span class="file-tag">PDF · 02</span>
+          <strong>Capital protected note</strong>
+          <span>Rebuild the option budget →</span>
+        </a>
+        <a class="resource" href="termsheets/Specimen-3-OTC-Accumulator.pdf">
+          <span class="file-tag">PDF · 03</span>
+          <strong>OTC accumulator</strong>
+          <span>Trace the daily obligation →</span>
+        </a>
+      </div>
+      <div class="series-link">
+        <div>
+          <span class="file-tag">Complete reference</span>
+          <strong>Prefer one document?</strong>
+          <p>Open the complete Derivatives 101 series as a single PDF.</p>
+        </div>
+        <a class="button outline" href="lessons/Derivatives-101-full-series.pdf">Open full series</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <strong>Derivatives 101</strong>
+    <p>Educational material only. Illustrative models are not pricing tools or investment advice.</p>
+    <a href="https://github.com/emmettl/derivatives101">View source on GitHub</a>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A visual, interactive introduction to option value, Greeks and Monte Carlo simulation.">
+  <meta name="theme-color" content="#071620">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Derivatives 101">
+  <meta property="og:title" content="Derivatives 101 — Option Lab">
+  <meta property="og:description" content="See option value across spot and time, explore the shapes of the Greeks and watch simulated paths converge to a price.">
+  <meta property="og:url" content="https://emmettl.github.io/derivatives101/option-lab.html">
+  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Derivatives 101 — Option Lab">
+  <meta name="twitter:description" content="An interactive visual lab for option value, Greeks and Monte Carlo simulation.">
+  <meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <title>Derivatives 101 — Option Lab</title>
+  <link rel="stylesheet" href="option-lab.css">
+</head>
+<body>
+  <header class="site-head">
+    <nav aria-label="Course navigation">
+      <a class="brand" href="./">Derivatives 101</a>
+      <div class="nav-links">
+        <a href="payoff-explorer.html">Payoff Explorer</a>
+        <button type="button" id="share-link">Copy setup link</button>
+      </div>
+    </nav>
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Interactive option mechanics</p>
+        <h1>Option Lab</h1>
+        <p class="lede">A price is only one point on a much richer landscape. Move the inputs to see how value bends across spot and time, where each Greek lives, and how thousands of possible paths become one expectation.</p>
+      </div>
+      <div class="model-note">
+        <span>Model</span>
+        <strong>Black–Scholes–Merton</strong>
+        <p>European exercise · continuous rates and dividends · constant volatility · illustrative only</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="price-strip" aria-label="Current option values">
+      <div class="primary-price">
+        <span>Theoretical value</span>
+        <strong id="price">—</strong>
+      </div>
+      <div><span>Intrinsic</span><strong id="intrinsic">—</strong></div>
+      <div><span>Time value</span><strong id="time-value">—</strong></div>
+      <div><span>Delta</span><strong id="delta">—</strong></div>
+      <div><span>Gamma</span><strong id="gamma">—</strong></div>
+      <div><span>Vega / vol pt</span><strong id="vega">—</strong></div>
+      <div><span>Theta / day</span><strong id="theta">—</strong></div>
+    </section>
+
+    <div class="lab-layout">
+      <aside class="controls" aria-label="Option inputs">
+        <div class="control-head">
+          <div>
+            <p class="eyebrow dark">The contract</p>
+            <h2>Inputs</h2>
+          </div>
+          <button type="button" class="quiet-button" id="reset">Reset</button>
+        </div>
+        <div class="segmented" id="option-type" role="group" aria-label="Option type">
+          <button type="button" class="on" data-value="call" aria-pressed="true">Call</button>
+          <button type="button" data-value="put" aria-pressed="false">Put</button>
+        </div>
+        <label class="slider-row" for="spot"><span>Spot <output id="spot-out">100</output></span><input id="spot" type="range" min="50" max="150" value="100" step="1"></label>
+        <label class="slider-row" for="strike"><span>Strike <output id="strike-out">100</output></span><input id="strike" type="range" min="50" max="150" value="100" step="1"></label>
+        <label class="slider-row" for="vol"><span>Volatility <output id="vol-out">25%</output></span><input id="vol" type="range" min="5" max="100" value="25" step="1"></label>
+        <label class="slider-row" for="expiry"><span>Time to expiry <output id="expiry-out">1.00y</output></span><input id="expiry" type="range" min="0.05" max="3" value="1" step="0.05"></label>
+        <label class="slider-row" for="rate"><span>Interest rate <output id="rate-out">3.0%</output></span><input id="rate" type="range" min="-2" max="12" value="3" step="0.25"></label>
+        <label class="slider-row" for="dividend"><span>Dividend yield <output id="dividend-out">1.0%</output></span><input id="dividend" type="range" min="0" max="10" value="1" step="0.25"></label>
+        <div class="try-box">
+          <p class="eyebrow dark">Teaching moves</p>
+          <button type="button" data-preset="expiry">Approach expiry at the strike</button>
+          <button type="button" data-preset="vol">Double volatility</button>
+          <button type="button" data-preset="deep">Move deep in the money</button>
+          <p id="preset-note" aria-live="polite"></p>
+        </div>
+      </aside>
+
+      <div class="visuals">
+        <section class="visual-card surface-card" aria-labelledby="surface-title">
+          <div class="visual-head">
+            <div>
+              <p class="eyebrow dark">01 · The landscape</p>
+              <h2 id="surface-title">Value across spot and time</h2>
+              <p>The far edge is today. The near edge is expiry, where the smooth surface collapses into the kinked payoff.</p>
+            </div>
+            <span class="gesture">Drag to rotate</span>
+          </div>
+          <div class="canvas-wrap surface-wrap">
+            <canvas id="surface" role="img" aria-label="Three-dimensional option value surface across spot and time"></canvas>
+            <div class="surface-legend" aria-hidden="true"><span>less time value</span><i></i><span>more time value</span></div>
+          </div>
+          <div class="insight"><span>Look for</span><p>Time value is tallest around the strike. Far in or out of the money, there is less uncertainty left for the option to monetise.</p></div>
+        </section>
+
+        <section class="visual-card" aria-labelledby="greeks-title">
+          <div class="visual-head">
+            <div>
+              <p class="eyebrow dark">02 · The sensitivities</p>
+              <h2 id="greeks-title">Greeks are shapes, not constants</h2>
+              <p>Choose a sensitivity, then move time or volatility and watch its profile reshape across spot.</p>
+            </div>
+          </div>
+          <div class="greek-picker" id="greek-picker" role="group" aria-label="Greek to display">
+            <button type="button" class="on" data-greek="delta"><b>Δ</b><span>Delta</span></button>
+            <button type="button" data-greek="gamma"><b>Γ</b><span>Gamma</span></button>
+            <button type="button" data-greek="vega"><b>ν</b><span>Vega</span></button>
+            <button type="button" data-greek="theta"><b>Θ</b><span>Theta</span></button>
+            <button type="button" data-greek="rho"><b>ρ</b><span>Rho</span></button>
+          </div>
+          <div class="canvas-wrap"><canvas id="greeks" role="img" aria-label="Selected option Greek plotted across spot"></canvas><div class="hover-readout" id="greek-readout" aria-live="polite"></div></div>
+          <div class="insight"><span id="greek-insight-label">Delta</span><p id="greek-insight">Delta is the slope of the value curve: near zero for an out-of-the-money call, near one when it is deep in the money.</p></div>
+        </section>
+
+        <section class="visual-card" aria-labelledby="paths-title">
+          <div class="visual-head paths-head">
+            <div>
+              <p class="eyebrow dark">03 · The expectation</p>
+              <h2 id="paths-title">Many paths, one price</h2>
+              <p>Each line is one risk-neutral market. The option price is the discounted average payoff across all simulated endings.</p>
+            </div>
+            <button type="button" class="action-button" id="resample">Resample paths</button>
+          </div>
+          <div class="mc-stats">
+            <div><span>Monte Carlo estimate</span><strong id="mc-price">—</strong></div>
+            <div><span>Closed-form value</span><strong id="bs-price">—</strong></div>
+            <div><span>Sampling difference</span><strong id="mc-diff">—</strong></div>
+            <div><span>Paths in estimate</span><strong>4,000</strong></div>
+          </div>
+          <div class="canvas-wrap"><canvas id="paths" role="img" aria-label="Simulated option price paths and terminal distribution"></canvas></div>
+          <div class="insight"><span>Look for</span><p>Only the ending payoff is averaged for a European option. The drama of an individual path matters less than the distribution of all endings.</p></div>
+        </section>
+      </div>
+    </div>
+
+    <section class="method">
+      <p class="eyebrow dark">What this teaches—and what it does not</p>
+      <div>
+        <h2>A model is a lens.</h2>
+        <p>Black–Scholes is powerful because it turns a handful of assumptions into a complete value surface and a hedge. Real markets add changing volatility, jumps, liquidity, discrete hedging and transaction costs. Use this lab to build intuition, not to infer a tradeable price.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer><strong>Derivatives 101</strong><span>Independent educational project · illustrative models only</span><a href="./">Course home</a></footer>
+  <script src="option-lab.js"></script>
+</body>
+</html>

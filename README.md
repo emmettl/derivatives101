@@ -1,11 +1,12 @@
 # Derivatives 101
 
-A practical short course in structured products for colleagues and practitioners.
+An independent, generally useful short course in options and structured products.
 
 ## Course contents
 
 - Six concise lesson decks, from option foundations to protection and leverage
 - An interactive payoff explorer covering eight product families
+- An Option Lab for value surfaces, Greeks and Monte Carlo paths
 - Guided teaching scenarios and shareable setups
 - Three fictional specimen term sheets for discussion and practice
 - A single PDF containing the full lesson series
@@ -19,3 +20,5 @@ Every push to `main` publishes the static site through GitHub Pages. The site ha
 ## Important note
 
 This material is educational. The simulations use simplified illustrative models and are not pricing tools, investment advice, or a substitute for reviewing final legal terms.
+
+The project is institution-neutral: examples are drawn from public market conventions or are explicitly fictional, and no private or organisation-specific material belongs in the repository.

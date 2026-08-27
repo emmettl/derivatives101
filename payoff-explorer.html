@@ -77,6 +77,7 @@
            color:#B9C8D1;padding:9px 32px;border-bottom:1px solid rgba(255,255,255,.09);font-size:12px}
   .utility a{color:#fff;text-decoration:none;font-weight:700}
   .utility a:hover{color:var(--amber)}
+  .utility-links{display:flex;align-items:center;gap:14px}
   .utility-actions{display:flex;align-items:center;gap:8px}
   .utility button{border:1px solid #3C5362;border-radius:6px;background:transparent;color:#D8E1E6;
                   padding:6px 10px;font:inherit;font-weight:700;cursor:pointer}
@@ -117,7 +118,7 @@
   <p>Move the sliders and watch the payoff change. Every structure in the six decks is here. The simulations use a simple lognormal price model with zero drift — they are for building intuition, not for pricing.</p>
 </header>
 <div class="utility">
-  <a href="./">← Course home</a>
+  <span class="utility-links"><a href="./">← Course home</a><a href="option-lab.html">Option Lab</a></span>
   <span class="utility-status" id="utility-status">Structure 1 of 8 · Building blocks</span>
   <div class="utility-actions">
     <button type="button" id="reset-setup">Reset</button>
@@ -138,7 +139,7 @@
 
 <!-- ============ TAB 0 ============ -->
 <section class="panel on" id="p-blocks">
-  <p class="lede">The four shapes that everything else is built from. Notice that <b>selling</b> an option gives a flat, capped payoff on one side and a payoff that slides all the way down to zero on the other — that is the trade every client on this desk is making.</p>
+  <p class="lede">The four shapes that everything else is built from. Notice that <b>selling</b> an option gives a flat, capped payoff on one side and a payoff that slides all the way down to zero on the other — that is the trade every yield-seeking investor is making.</p>
   <div class="grid">
     <div class="card">
       <h3>Position</h3>
@@ -907,7 +908,7 @@ function histogram(svg,vals,opts){
       "The risk is entirely in the redemption: the note settled into shares <b>"+pct(R.deliv/R.paths,0)+
       "</b> of the time, and the worst 5% of markets returned <b>"+fmt(q(0.05),0)+" per 100</b>. "+
       "Adding names raises the loss probability from <b>"+fmt(sweep[0][1],0)+"%</b> with one name to <b>"+
-      fmt(sweep[4][1],0)+"%</b> with five, at an unchanged coupon — which is exactly why the desk pays more for a "+
+      fmt(sweep[4][1],0)+"%</b> with five, at an unchanged coupon — which is exactly why the market typically pays more for a "+
       "bigger basket. Drop the correlation slider and watch it get worse still.";
   }
   run();

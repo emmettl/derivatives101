@@ -250,6 +250,7 @@ h1 span { color: var(--amber); }
 }
 
 .lab-copy > p:not(.eyebrow) { max-width: 560px; margin: 24px 0 30px; color: #a9bbc6; }
+.lab-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
 .mini-chart {
   position: relative;

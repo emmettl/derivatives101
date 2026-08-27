@@ -63,7 +63,13 @@ function updateReadouts(){
 }
 
 function drawSurface(){
-  const canvas=$("surface"),{ctx,w,h}=resize(canvas),p=params();ctx.clearRect(0,0,w,h);
+  const canvas=$("surface"),p=params();
+  if(surfaceWorker){
+    const rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);
+    surfaceWorker.postMessage({action:"draw",frame:++surfaceVersion,p,type:state.type,yaw:state.yaw,pitch:state.pitch,width:rect.width,height:rect.height,dpr});
+    canvas.setAttribute("aria-label",`${state.type} option value surface with spot ${p.S}, strike ${p.K}, volatility ${fmt(p.v*100,0)} percent and ${fmt(p.T,2)} years to expiry`);return;
+  }
+  const {ctx,w,h}=resize(canvas);ctx.clearRect(0,0,w,h);
   const nx=34,nt=20,sLo=p.K*.4,sHi=p.K*1.6,scale=Math.min(w*.43,h*.48),cx=w*.51,cy=h*.74;
   const maxZ=Math.max(p.K*.72,1),yaw=state.yaw,cosYaw=Math.cos(yaw),sinYaw=Math.sin(yaw),depth=.2+state.pitch*.52;
   function project(x,y,z){
@@ -151,11 +157,11 @@ function drawPaths(sim){
   canvas.setAttribute("aria-label",`${sim.samples.length} visible simulated paths and terminal distribution; Monte Carlo estimate ${fmt(sim.estimate)} versus closed-form value ${fmt(bs)}`);
 }
 
-let fastFrame,plotFrame,plotTimer,settledPlotTimer,lastPlotAt=0,surfaceFrame,resizeFrame,mcTimer,mcVersion=0,lastSimulation=null;
+let fastFrame,plotFrame,plotTimer,settledPlotTimer,lastPlotAt=0,surfaceFrame,surfaceVersion=0,resizeFrame,mcTimer,mcVersion=0,lastSimulation=null,surfaceWorker=null;
 const mcWorker=typeof Worker!=="undefined"?new Worker("option-worker.js"):null;
 function setMCStatus(message,busy=false){const status=$("mc-status");status.textContent=message;status.classList.toggle("busy",busy)}
 function renderFast(){updateReadouts();drawSurface();drawGreeks();lastPlotAt=performance.now()}
-function renderPlots(){drawSurface();drawGreeks();lastPlotAt=performance.now()}
+function renderPlots(){if(!surfaceWorker)drawSurface();drawGreeks();lastPlotAt=performance.now()}
 function queuePlotRender(force=false){
   if(force){clearTimeout(plotTimer);plotTimer=null;cancelAnimationFrame(plotFrame);plotFrame=requestAnimationFrame(()=>{plotFrame=null;renderPlots()});return}
   if(plotTimer||plotFrame)return;
@@ -163,7 +169,7 @@ function queuePlotRender(force=false){
   plotTimer=setTimeout(()=>{plotTimer=null;plotFrame=requestAnimationFrame(()=>{plotFrame=null;renderPlots()})},wait);
 }
 function scheduleFastRender(){
-  cancelAnimationFrame(fastFrame);fastFrame=requestAnimationFrame(updateReadouts);queuePlotRender();
+  cancelAnimationFrame(fastFrame);fastFrame=requestAnimationFrame(()=>{updateReadouts();if(surfaceWorker)drawSurface()});queuePlotRender();
   clearTimeout(settledPlotTimer);settledPlotTimer=setTimeout(()=>queuePlotRender(true),100);
 }
 function finishSimulation(sim){
@@ -191,6 +197,10 @@ document.querySelectorAll("#option-type button").forEach(button=>button.addEvent
 document.querySelectorAll("#greek-picker button").forEach(button=>button.addEventListener("click",()=>{state.greek=button.dataset.greek;document.querySelectorAll("#greek-picker button").forEach(x=>x.classList.toggle("on",x===button));scheduleFastRender()}));
 
 const surface=$("surface");
+if(typeof Worker!=="undefined"&&typeof surface.transferControlToOffscreen==="function"){
+  try{surfaceWorker=new Worker("surface-worker.js");const offscreen=surface.transferControlToOffscreen();surfaceWorker.postMessage({action:"init",canvas:offscreen},[offscreen]);surfaceWorker.onmessage=event=>{if(event.data.action==="rendered")surface.dataset.frame=event.data.frame};surface.dataset.renderer="worker"}catch(error){surfaceWorker=null}
+}
+if(!surfaceWorker)surface.dataset.renderer="main";
 surface.addEventListener("pointerdown",e=>{state.drag={x:e.clientX,y:e.clientY,yaw:state.yaw,pitch:state.pitch};surface.setPointerCapture(e.pointerId)});
 surface.addEventListener("pointermove",e=>{if(!state.drag)return;state.yaw=state.drag.yaw+(e.clientX-state.drag.x)/220;state.pitch=Math.max(.18,Math.min(1,state.drag.pitch+(e.clientY-state.drag.y)/300));cancelAnimationFrame(surfaceFrame);surfaceFrame=requestAnimationFrame(drawSurface)});
 surface.addEventListener("pointerup",()=>state.drag=null);surface.addEventListener("pointercancel",()=>state.drag=null);

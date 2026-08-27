@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id);
 const inputs=["spot","strike","vol","expiry","rate","dividend"];
 const state={type:"call",greek:"delta",seed:481516,sample:1,yaw:-0.72,pitch:0.62,drag:null};
-const palette={ink:"#0b1e2d",deep:"#123b54",steel:"#2c5670",amber:"#e4a340",jade:"#3e8e7e",brick:"#b5443a",muted:"#8ba0ad",line:"#294352",white:"#edf3f6"};
+const palette={ink:"#0b1e2d",night:"#071620",deep:"#123b54",steel:"#2c5670",amber:"#e4a340",jade:"#3e8e7e",brick:"#b5443a",muted:"#8ba0ad",line:"#294352",white:"#edf3f6"};
 
 function normPdf(x){return Math.exp(-.5*x*x)/Math.sqrt(2*Math.PI)}
 function normCdf(x){
@@ -147,7 +147,7 @@ function drawPaths(sim){
   const X=i=>m.l+i/sim.steps*pathW,Y=s=>m.t+(yhi-s)/(yhi-ylo)*(h-m.t-m.b);
   ctx.clearRect(0,0,w,h);ctx.fillStyle=palette.night;ctx.fillRect(0,0,w,h);ctx.font="10px Segoe UI, sans-serif";
   for(let i=0;i<=4;i++){const s=ylo+(yhi-ylo)*i/4;ctx.strokeStyle="rgba(190,211,220,.1)";ctx.beginPath();ctx.moveTo(m.l,Y(s));ctx.lineTo(split-16,Y(s));ctx.stroke();ctx.fillStyle=palette.muted;ctx.textAlign="right";ctx.fillText(fmt(s,0),m.l-7,Y(s)+3)}
-  sim.samples.forEach(path=>{const itm=sim.type==="call"?path.at(-1)>p.K:path.at(-1)<p.K;ctx.beginPath();path.forEach((s,i)=>i?ctx.lineTo(X(i),Y(s)):ctx.moveTo(X(i),Y(s)));ctx.strokeStyle=itm?"rgba(62,142,126,.36)":"rgba(117,148,166,.22)";ctx.lineWidth=1;ctx.stroke()});
+  sim.samples.forEach((path,index)=>{const itm=sim.type==="call"?path.at(-1)>p.K:path.at(-1)<p.K,focus=index<10;ctx.beginPath();path.forEach((s,i)=>i?ctx.lineTo(X(i),Y(s)):ctx.moveTo(X(i),Y(s)));ctx.strokeStyle=itm?(focus?"rgba(91,190,169,.78)":"rgba(62,142,126,.46)"):(focus?"rgba(159,191,209,.68)":"rgba(117,148,166,.34)");ctx.lineWidth=focus?1.35:1;ctx.stroke()});
   ctx.strokeStyle=palette.amber;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(m.l,Y(p.K));ctx.lineTo(split-16,Y(p.K));ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=palette.amber;ctx.textAlign="left";ctx.fillText("strike",m.l+5,Y(p.K)-6);
   ctx.fillStyle=palette.muted;ctx.textAlign="center";ctx.fillText("today",m.l,h-15);ctx.fillText("expiry",split-22,h-15);
   const bins=26,eLo=Math.min(...sim.ends),eHi=Math.max(...sim.ends),counts=new Array(bins).fill(0);sim.ends.forEach(s=>counts[Math.min(bins-1,Math.floor((s-eLo)/(eHi-eLo)*bins))]++);const max=Math.max(...counts),hx=split+10,hw=w-hx-12,bh=(h-m.t-m.b)/bins;

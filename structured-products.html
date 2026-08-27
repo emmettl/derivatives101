@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Interactive labs for reverse convertibles, conditional coupons, memory and lock-in features.">
+  <meta name="theme-color" content="#f7f9fa">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Derivatives 101">
+  <meta property="og:title" content="Derivatives 101 — Structured Product Labs">
+  <meta property="og:description" content="Follow individual market paths through barriers, coupon tests, early redemption and lock-in events.">
+  <meta property="og:url" content="https://emmettl.github.io/derivatives101/structured-products.html">
+  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Derivatives 101 — Structured Product Labs">
+  <meta name="twitter:description" content="Follow market paths through barriers, coupon tests, early redemption and lock-in events.">
+  <meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <title>Derivatives 101 — Structured Product Labs</title>
+  <link rel="stylesheet" href="structured-labs.css">
+</head>
+<body>
+  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="payoff-explorer.html">Payoff Explorer</a><a href="option-lab.html">Option Lab</a></div></nav></header>
+  <div class="hero">
+    <p class="eyebrow">Path-dependent products</p>
+    <h1>Structured Product Labs</h1>
+    <p class="lede">A terminal payoff chart cannot explain a contract whose state changes along the way. These labs follow one market path event by event, then put that example back into a distribution of simulated outcomes.</p>
+  </div>
+  <main>
+    <div class="sequence" aria-label="Shared evaluation sequence">
+      <div><span>01</span><b>Observe the underlying</b></div>
+      <div><span>02</span><b>Update contract state</b></div>
+      <div><span>03</span><b>Test cash flows and calls</b></div>
+      <div><span>04</span><b>Determine redemption</b></div>
+    </div>
+    <section class="hub" aria-label="Structured product labs">
+      <a class="hub-card" href="reverse-convertible-lab.html"><span class="number">LAB 01</span><h2>Reverse Convertible Lifecycle</h2><p>Compare plain, barrier, issuer-callable and autocallable structures. See why callability is a decision while autocallability is a rule.</p><strong>Follow the lifecycle →</strong></a>
+      <a class="hub-card" href="coupon-memory-lab.html"><span class="number">LAB 02</span><h2>Conditional Coupons &amp; Memory</h2><p>Watch coupons become paid, lost or banked, and see exactly what happens to the memory balance when the note later recovers or redeems.</p><strong>Trace the coupon ledger →</strong></a>
+      <a class="hub-card" href="lock-in-lab.html"><span class="number">LAB 03</span><h2>Lock-In Mechanics</h2><p>Separate a par lock-in from a step-up minimum repayment. A lock-in changes the future payoff state; it does not normally end the note.</p><strong>See the floor change →</strong></a>
+    </section>
+    <section class="explain" aria-label="Why three views are needed">
+      <article><h3>Payoff</h3><p>What redemption follows from a terminal level, given the contract state already established.</p></article>
+      <article><h3>One path</h3><p>Which observation or breach changed the contract, and in what order the rules fired.</p></article>
+      <article><h3>Many paths</h3><p>How frequently early redemption, missed income or principal loss occurs under the illustrative model.</p></article>
+    </section>
+  </main>
+  <footer><strong>Derivatives 101</strong><span>Independent educational project · illustrative models only</span><a href="./">Course home</a></footer>
+</body>
+</html>

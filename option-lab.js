@@ -47,6 +47,9 @@ function mix(a,b,t){
   const pa=a.match(/\w\w/g).map(x=>parseInt(x,16)),pb=b.match(/\w\w/g).map(x=>parseInt(x,16));
   return "#"+pa.map((x,i)=>Math.round(x+(pb[i]-x)*t).toString(16).padStart(2,"0")).join("");
 }
+const surfaceColors=Array.from({length:64},(_,i)=>{
+  const t=i/63;return t<.55?mix(palette.deep,palette.jade,t/.55):mix(palette.jade,palette.amber,(t-.55)/.45);
+});
 
 function updateReadouts(){
   const p=params(),m=optionMetrics(p.S,p.K,p.T,p.r,p.q,p.v);
@@ -62,9 +65,9 @@ function updateReadouts(){
 function drawSurface(){
   const canvas=$("surface"),{ctx,w,h}=resize(canvas),p=params();ctx.clearRect(0,0,w,h);
   const nx=34,nt=20,sLo=p.K*.4,sHi=p.K*1.6,scale=Math.min(w*.43,h*.48),cx=w*.51,cy=h*.74;
-  const maxZ=Math.max(p.K*.72,1),yaw=state.yaw,depth=.2+state.pitch*.52;
+  const maxZ=Math.max(p.K*.72,1),yaw=state.yaw,cosYaw=Math.cos(yaw),sinYaw=Math.sin(yaw),depth=.2+state.pitch*.52;
   function project(x,y,z){
-    const rx=x*Math.cos(yaw)-y*Math.sin(yaw),ry=x*Math.sin(yaw)+y*Math.cos(yaw);
+    const rx=x*cosYaw-y*sinYaw,ry=x*sinYaw+y*cosYaw;
     return [cx+rx*scale,cy+ry*scale*depth-z*scale*1.35];
   }
   const points=[];
@@ -81,7 +84,7 @@ function drawSurface(){
   cells.forEach(({i,j})=>{
     const q=[points[j][i],points[j][i+1],points[j+1][i+1],points[j+1][i]],tv=(q[0].tv+q[1].tv+q[2].tv+q[3].tv)/4;
     const t=Math.min(1,tv/(p.K*.14));ctx.beginPath();q.forEach((x,k)=>k?ctx.lineTo(...x.pt):ctx.moveTo(...x.pt));ctx.closePath();
-    ctx.fillStyle=t<.55?mix(palette.deep,palette.jade,t/.55):mix(palette.jade,palette.amber,(t-.55)/.45);ctx.globalAlpha=.82;ctx.fill();
+    ctx.fillStyle=surfaceColors[Math.round(t*63)];ctx.globalAlpha=.82;ctx.fill();
     ctx.globalAlpha=.42;ctx.strokeStyle="#6f919e";ctx.lineWidth=.45;ctx.stroke();ctx.globalAlpha=1;
   });
   [0,nt].forEach(j=>{ctx.beginPath();points[j].forEach((x,i)=>i?ctx.lineTo(...x.pt):ctx.moveTo(...x.pt));ctx.strokeStyle=j?palette.amber:palette.white;ctx.lineWidth=j?2:2.5;ctx.stroke()});
@@ -148,11 +151,21 @@ function drawPaths(sim){
   canvas.setAttribute("aria-label",`${sim.samples.length} visible simulated paths and terminal distribution; Monte Carlo estimate ${fmt(sim.estimate)} versus closed-form value ${fmt(bs)}`);
 }
 
-let fastFrame,surfaceFrame,resizeFrame,mcTimer,mcVersion=0,lastSimulation=null;
+let fastFrame,plotFrame,plotTimer,settledPlotTimer,lastPlotAt=0,surfaceFrame,resizeFrame,mcTimer,mcVersion=0,lastSimulation=null;
 const mcWorker=typeof Worker!=="undefined"?new Worker("option-worker.js"):null;
 function setMCStatus(message,busy=false){const status=$("mc-status");status.textContent=message;status.classList.toggle("busy",busy)}
-function renderFast(){updateReadouts();drawSurface();drawGreeks()}
-function scheduleFastRender(){cancelAnimationFrame(fastFrame);fastFrame=requestAnimationFrame(renderFast)}
+function renderFast(){updateReadouts();drawSurface();drawGreeks();lastPlotAt=performance.now()}
+function renderPlots(){drawSurface();drawGreeks();lastPlotAt=performance.now()}
+function queuePlotRender(force=false){
+  if(force){clearTimeout(plotTimer);plotTimer=null;cancelAnimationFrame(plotFrame);plotFrame=requestAnimationFrame(()=>{plotFrame=null;renderPlots()});return}
+  if(plotTimer||plotFrame)return;
+  const wait=Math.max(0,45-(performance.now()-lastPlotAt));
+  plotTimer=setTimeout(()=>{plotTimer=null;plotFrame=requestAnimationFrame(()=>{plotFrame=null;renderPlots()})},wait);
+}
+function scheduleFastRender(){
+  cancelAnimationFrame(fastFrame);fastFrame=requestAnimationFrame(updateReadouts);queuePlotRender();
+  clearTimeout(settledPlotTimer);settledPlotTimer=setTimeout(()=>queuePlotRender(true),100);
+}
 function finishSimulation(sim){
   if(sim.id!==mcVersion)return;
   lastSimulation=sim;drawPaths(sim);$("paths").classList.remove("refreshing");setMCStatus(`Sample ${sim.sample} · current`);
@@ -171,7 +184,7 @@ function scheduleSimulation(delay=180){
 function scheduleUpdate(delay=180){scheduleFastRender();scheduleSimulation(delay)}
 if(mcWorker)mcWorker.onmessage=event=>finishSimulation(event.data);
 
-inputs.forEach(id=>$(id).addEventListener("input",()=>{history.replaceState(null,"",location.pathname+location.hash);scheduleUpdate()}));
+inputs.forEach(id=>$(id).addEventListener("input",()=>{if(location.search)history.replaceState(null,"",location.pathname+location.hash);scheduleUpdate()}));
 document.querySelectorAll("#option-type button").forEach(button=>button.addEventListener("click",()=>{
   state.type=button.dataset.value;document.querySelectorAll("#option-type button").forEach(x=>{const on=x===button;x.classList.toggle("on",on);x.setAttribute("aria-pressed",String(on))});scheduleUpdate(0);
 }));

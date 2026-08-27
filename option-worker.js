@@ -13,7 +13,7 @@ function normal(random){
 }
 
 self.onmessage=event=>{
-  const {id,p,type,seed,paths=4000,drawN=64,steps=80}=event.data;
+  const {id,sample,p,type,seed,paths=4000,drawN=64,steps=80}=event.data;
   const random=seeded(seed),dt=p.T/steps,drift=(p.r-p.q-.5*p.v*p.v)*dt;
   const shock=p.v*Math.sqrt(dt),samples=[],ends=new Float64Array(paths);
   let payoffSum=0;
@@ -28,5 +28,5 @@ self.onmessage=event=>{
     payoffSum+=payoff;ends[pathIndex]=spot;if(path)samples.push(path);
   }
   const estimate=Math.exp(-p.r*p.T)*payoffSum/paths;
-  self.postMessage({id,samples,ends,estimate,steps,p,type});
+  self.postMessage({id,sample,samples,ends,estimate,steps,p,type});
 };

@@ -2,7 +2,7 @@
 
 const $=id=>document.getElementById(id);
 const inputs=["spot","strike","vol","expiry","rate","dividend"];
-const state={type:"call",greek:"delta",seed:481516,yaw:-0.72,pitch:0.62,drag:null};
+const state={type:"call",greek:"delta",seed:481516,sample:1,yaw:-0.72,pitch:0.62,drag:null};
 const palette={ink:"#0b1e2d",deep:"#123b54",steel:"#2c5670",amber:"#e4a340",jade:"#3e8e7e",brick:"#b5443a",muted:"#8ba0ad",line:"#294352",white:"#edf3f6"};
 
 function normPdf(x){return Math.exp(-.5*x*x)/Math.sqrt(2*Math.PI)}
@@ -124,13 +124,13 @@ function drawGreeks(){
 
 function seeded(seed){let s=seed>>>0;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296}}
 function normal(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
-function simulateFallback(p,type,seed,id){
+function simulateFallback(p,type,seed,id,sample){
   const rgen=seeded(seed),steps=80,paths=4000,drawN=64,dt=p.T/steps,drift=(p.r-p.q-.5*p.v*p.v)*dt,shock=p.v*Math.sqrt(dt),samples=[],ends=[],sum=0;
   for(let j=0;j<paths;j++){
     let S=p.S,path=j<drawN?[S]:null;for(let i=1;i<=steps;i++){S*=Math.exp(drift+shock*normal(rgen));if(path)path.push(S)}
     const payoff=type==="call"?Math.max(S-p.K,0):Math.max(p.K-S,0);sum+=payoff;ends.push(S);if(path)samples.push(path);
   }
-  return {id,samples,ends,estimate:Math.exp(-p.r*p.T)*sum/paths,steps,p,type};
+  return {id,sample,samples,ends,estimate:Math.exp(-p.r*p.T)*sum/paths,steps,p,type};
 }
 function drawPaths(sim){
   const canvas=$("paths"),{ctx,w,h}=resize(canvas),p=sim.p,m={l:48,r:25,t:24,b:38},split=w*.73,pathW=split-m.l-18;
@@ -155,17 +155,17 @@ function renderFast(){updateReadouts();drawSurface();drawGreeks()}
 function scheduleFastRender(){cancelAnimationFrame(fastFrame);fastFrame=requestAnimationFrame(renderFast)}
 function finishSimulation(sim){
   if(sim.id!==mcVersion)return;
-  lastSimulation=sim;drawPaths(sim);setMCStatus("Current");
+  lastSimulation=sim;drawPaths(sim);$("paths").classList.remove("refreshing");setMCStatus(`Sample ${sim.sample} · current`);
 }
 function startSimulation(id){
   if(id!==mcVersion)return;
-  setMCStatus("Calculating…",true);
-  const payload={id,p:params(),type:state.type,seed:state.seed,paths:4000,drawN:64,steps:80};
+  setMCStatus(`Sample ${state.sample} · calculating…`,true);
+  const payload={id,sample:state.sample,p:params(),type:state.type,seed:state.seed,paths:4000,drawN:64,steps:80};
   if(mcWorker)mcWorker.postMessage(payload);
-  else setTimeout(()=>finishSimulation(simulateFallback(payload.p,payload.type,payload.seed,id)),0);
+  else setTimeout(()=>finishSimulation(simulateFallback(payload.p,payload.type,payload.seed,id,payload.sample)),0);
 }
 function scheduleSimulation(delay=180){
-  const id=++mcVersion;clearTimeout(mcTimer);setMCStatus(delay?"Waiting for input…":"Calculating…",true);
+  const id=++mcVersion;clearTimeout(mcTimer);$("paths").classList.add("refreshing");setMCStatus(`Sample ${state.sample} · ${delay?"waiting…":"calculating…"}`,true);
   mcTimer=setTimeout(()=>startSimulation(id),delay);
 }
 function scheduleUpdate(delay=180){scheduleFastRender();scheduleSimulation(delay)}
@@ -188,7 +188,12 @@ $("greeks").addEventListener("pointermove",e=>{
   read.textContent=`Spot ${fmt(S,1)} · ${greekInfo[state.greek][0]} ${fmt(value,4)}`;read.style.display="block";read.style.left=Math.min(x+10,p.w-180)+"px";read.style.top="18px";
 });
 $("greeks").addEventListener("pointerleave",()=>$("greek-readout").style.display="none");
-$("resample").addEventListener("click",()=>{state.seed=(state.seed*1664525+1013904223)>>>0;scheduleSimulation(0)});
+$("resample").addEventListener("click",()=>{
+  const freshSeed=new Uint32Array(1);
+  if(globalThis.crypto?.getRandomValues)crypto.getRandomValues(freshSeed);
+  state.seed=freshSeed[0]||((state.seed*1664525+1013904223)>>>0)||1;
+  state.sample+=1;scheduleSimulation(0);
+});
 
 const defaults={spot:100,strike:100,vol:25,expiry:1,rate:3,dividend:1};
 function apply(values,note=""){

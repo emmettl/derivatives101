@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Separate a structured note's contractual promise, issuer-credit value, executable bid and recovery scenario.">
+  <meta name="theme-color" content="#f7f9fa">
+  <meta property="og:type" content="website"><meta property="og:site_name" content="Derivatives 101">
+  <meta property="og:title" content="Derivatives 101 — Promise, Price & Recovery">
+  <meta property="og:description" content="See why capital protection, current value, liquidity and recovery are different questions.">
+  <meta property="og:url" content="https://emmettl.github.io/derivatives101/credit-liquidity.html">
+  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Derivatives 101 — Promise, Price & Recovery"><meta name="twitter:description" content="Contractual protection does not remove issuer credit or liquidity risk."><meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <title>Derivatives 101 — Promise, Price &amp; Recovery</title>
+  <link rel="stylesheet" href="structured-labs.css?v=10">
+</head>
+<body>
+  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="structured-products.html">Structured Product Labs</a><a href="value-before-maturity.html">Valuation Lab</a></div></nav></header>
+  <div class="hero"><p class="eyebrow">Lab 10 · Issuer credit &amp; liquidity</p><h1>Promise, Price &amp; Recovery</h1><p class="lede">A payoff formula says what the issuer promises. It does not guarantee the issuer can pay, that somebody will quote today, or that an early exit will occur at model value.</p></div>
+  <p class="scope-note"><b>Scope:</b><span>A fictional unsecured note with a user-set contractual amount. Discounting and recovery are deliberately simplified scenarios—not a credit model, executable quote or prediction of insolvency proceeds.</span></p>
+  <main>
+    <section class="variant-summary" aria-live="polite"><strong id="credit-headline">Performing issuer · quote available</strong><p id="credit-summary"></p></section>
+    <div class="lab-grid">
+      <aside class="controls" aria-label="Credit and liquidity inputs"><div class="controls-head"><h2>Scenario</h2><button type="button" class="reset-button" id="credit-reset">Reset</button></div><div class="controls-body"><div class="control-block"><span class="control-title">Preset</span><div class="radio-set credit-presets" id="credit-presets"></div></div><div id="credit-controls"></div></div></aside>
+      <div class="content">
+        <section class="panel" aria-labelledby="credit-waterfall-title"><div class="panel-head"><div><p class="eyebrow">Four different numbers</p><h2 id="credit-waterfall-title">From contractual promise to cash today</h2><p>The same note can have a maturity promise, a model value, an executable bid—or no bid at all.</p></div></div><div class="credit-stats" id="credit-stats"></div><div class="credit-waterfall" id="credit-waterfall"></div><p class="credit-message" id="credit-message"></p></section>
+        <section class="panel" aria-labelledby="credit-curve-title"><div class="panel-head"><div><p class="eyebrow">Credit repricing before default</p><h2 id="credit-curve-title">Wider issuer spread, lower present value</h2><p>This is a discounting illustration. A spread is not itself a probability of default and can reflect liquidity and other market effects.</p></div></div><div class="chart-wrap"><svg class="path-chart credit-curve" id="credit-curve" viewBox="0 0 900 350" role="img" aria-label="Issuer-adjusted model value and indicative bid across issuer spreads"></svg></div><div class="payoff-legend credit-legend"><span><i class="legend-credit-model"></i>Issuer-adjusted model value</span><span><i class="legend-credit-bid"></i>Illustrative bid, when available</span><span><i class="legend-credit-point"></i>Selected spread</span></div></section>
+        <section class="panel" aria-labelledby="credit-path-title"><div class="panel-head"><div><p class="eyebrow">Cash depends on the route</p><h2 id="credit-path-title">What can the holder actually end up with?</h2><p>These routes are alternatives, not amounts to add together. Timing is as important as the headline number.</p></div></div><div class="credit-paths" id="credit-paths" aria-live="polite"></div></section>
+        <section class="panel" aria-labelledby="credit-rules-title"><div class="panel-head"><div><p class="eyebrow">Specification discipline</p><h2 id="credit-rules-title">Keep the concepts separate</h2><p>Each number answers a different question and needs different evidence.</p></div></div><div class="ledger-wrap"><table class="ledger credit-rules"><thead><tr><th>Concept</th><th>Question answered</th><th>What it is not</th></tr></thead><tbody id="credit-rules"></tbody></table></div></section>
+      </div>
+    </div>
+    <section class="explain"><article><h3>Protection is conditional on payment</h3><p>“100% capital protected” describes the contractual redemption if the issuer performs. The note is still an unsecured obligation.</p></article><article><h3>Model value is not a quote</h3><p>A valuation can exist when no dealer is willing or obliged to transact. A quote may also include an exit cost.</p></article><article><h3>Recovery is a separate process</h3><p>After default, legal claim, ranking, resolution timing and realised recovery replace the original payoff timetable.</p></article></section>
+    <section class="sources"><h2>Credit and liquidity references</h2><p>The <a href="https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins-76">SEC’s structured-notes investor bulletin</a> explains that principal protection is subject to issuer credit risk, structured notes are unsecured obligations, and secondary-market trading may be very limited. <a href="https://www.finra.org/investors/insights/structured-notes-principal-protection">FINRA’s principal-protection guidance</a> similarly distinguishes the issuer’s promise from its financial strength and notes that an issuer may be willing—but is not obliged—to provide an indicative bid. Actual legal ranking, claim amount, recovery and timing depend on the specific issuer and documentation.</p></section>
+  </main>
+  <footer><strong>Derivatives 101</strong><span>Independent educational project · illustrative scenarios only</span><a href="structured-products.html">All structured labs</a></footer>
+  <script src="credit-liquidity-engine.js?v=1"></script><script src="credit-liquidity-lab.js?v=1"></script>
+</body>
+</html>

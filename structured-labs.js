@@ -148,12 +148,23 @@ function outcomeText(result){
   return `${result.lockCount?`${result.lockCount} lock-in event${result.lockCount===1?"":"s"} raised the floor to ${result.lockedFloor.toFixed(1)}.`:state.params.style==="par"?"No observation established a lock-in floor.":"No observation improved the initial floor."} Final underlying level is ${result.finalLevel.toFixed(1)} and principal redemption is ${result.principal.toFixed(1)}${state.params.style==="par"?`, plus ${result.coupons.toFixed(1)} of coupons`:""}.`;
 }
 function renderLedger(result){
-  const body=$("ledger-body");body.innerHTML="";result.events.forEach(event=>{const row=document.createElement("tr"),cells=[];
+  const body=$("ledger-body"),total=$("ledger-total");body.innerHTML="";total.innerHTML="";result.events.forEach(event=>{const row=document.createElement("tr"),cells=[];
     if(mode==="rc")cells.push(year(event.day),event.level.toFixed(1),state.params.variant==="plain"?"Not applicable":event.barrierState?"Breached":"Clear",event.coupon.toFixed(2),event.decision,event.state);
     if(mode==="coupon")cells.push(year(event.day),event.level.toFixed(1),event.couponTest,event.coupon.toFixed(2),String(event.memoryBank),event.decision);
     if(mode==="lock")cells.push(year(event.day),event.level.toFixed(1),event.lockChanged?"Passed":"No new lock",event.lockedFloor.toFixed(1),event.coupon.toFixed(2),event.state);
     cells.forEach((value,index)=>{const cell=document.createElement("td");cell.textContent=value;if(/Breached|Miss|Redeemed|No new/.test(value))cell.className="event-negative";if(/Clear|Pass|New floor|Autocall|exercises/.test(value))cell.className="event-positive";if(index===0)cell.className="event-neutral";row.append(cell)});body.append(row)
   });
+  const first=document.createElement("th");first.scope="row";first.textContent="Totals";total.append(first);
+  const endingLevel=result.events.at(-1)?.level??result.finalLevel;let cells;
+  if(mode==="rc")cells=[`${result.events.length} observations · end ${endingLevel.toFixed(1)}`,state.params.variant==="plain"?"Not applicable":result.barrierBreached?"Breached":"Clear",result.coupons.toFixed(2),result.called?result.callKind:"No early redemption",`Principal ${result.principal.toFixed(1)}`];
+  if(mode==="coupon"){
+    const passed=result.events.filter(event=>event.couponTest==="Pass").length;
+    const tests=state.params.style==="fixed"?`${result.events.length} unconditional`:`${passed} passed · ${result.missed} missed`;
+    const memory=state.params.style==="memory"?`${result.memoryUnpaid} unpaid`:"Not applicable";
+    cells=[`${result.events.length} observations · end ${endingLevel.toFixed(1)}`,tests,result.coupons.toFixed(2),memory,result.called?"Autocalled":"Reached maturity"];
+  }
+  if(mode==="lock")cells=[`${result.events.length} observations · end ${endingLevel.toFixed(1)}`,`${result.lockCount} new floor${result.lockCount===1?"":"s"}`,state.params.style==="par"&&!result.lockCount?"Not established":result.lockedFloor.toFixed(1),result.coupons.toFixed(2),`Principal ${result.principal.toFixed(1)}`];
+  cells.forEach(value=>{const cell=document.createElement("td");cell.textContent=value;total.append(cell)});
 }
 function renderRules(){const steps=mode==="rc"?["Observe level","Update barrier state","Pay fixed coupon",state.params.variant==="issuer"?"Issuer decides":state.params.variant==="autocall"?"Test autocall":"Continue","Determine redemption"]:mode==="coupon"?["Observe level","Test current coupon","Update / pay memory","Test autocall","Determine redemption"]:["Observe level","Test lock-in","Raise floor if eligible","Continue note","Compare maturity payoffs"];
   const host=$("rule-strip");host.innerHTML="<b>Illustrative order</b>";steps.forEach(step=>{const arrow=document.createElement("i");arrow.textContent="→";const span=document.createElement("span");span.textContent=step;host.append(arrow,span)});

@@ -4,7 +4,7 @@ const $=id=>document.getElementById(id),mode=document.body.dataset.lab;
 const colors={ink:"#0b1e2d",deep:"#123b54",steel:"#2c5670",amber:"#e4a340",amberD:"#a96f19",jade:"#3e8e7e",brick:"#b5443a",muted:"#64798a",line:"#d3dbe2",tint:"#f2f5f7"};
 const configs={
   rc:{
-    defaults:{variant:"barrier",coupon:8,barrier:65,barrierObservation:"daily",callLevel:100,callPolicy:"above",tenor:3,frequency:4,vol:30},
+    defaults:{variant:"barrier",coupon:8,barrier:65,barrierObservation:"daily",settlement:"physical",callLevel:100,callPolicy:"above",tenor:3,frequency:4,vol:30},
     variants:{
       plain:["Plain reverse convertible","No barrier condition: at maturity the investor receives 100 if the underlying is at or above the strike, otherwise the underlying level, plus fixed coupons."],
       barrier:["Barrier reverse convertible","The short-put downside is conditional. Principal falls with the underlying only if the barrier condition has occurred and the final level is below the strike."],
@@ -17,6 +17,7 @@ const configs={
       {key:"coupon",type:"range",label:"Fixed coupon",min:0,max:20,step:.5,format:v=>v.toFixed(1)+"% p.a."},
       {key:"barrier",type:"range",label:"Downside barrier",min:40,max:95,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.variant!=="plain"},
       {key:"barrierObservation",type:"radio",label:"Barrier observation",options:[["maturity","Maturity only"],["daily","Daily close"]],show:p=>p.variant!=="plain"},
+      {key:"settlement",type:"radio",label:"Downside settlement",options:[["cash","Cash amount"],["physical","Underlying units"]],help:"Physical delivery applies only when downside redemption is activated; par and early-call redemption remain cash."},
       {key:"callLevel",type:"range",label:"Early-redemption level",min:80,max:130,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.variant==="issuer"||p.variant==="autocall"},
       {key:"callPolicy",type:"select",label:"Issuer exercise assumption",options:[["above","Exercise if level meets threshold"],["first","Exercise at first eligible date"],["never","Never exercise"]],show:p=>p.variant==="issuer",help:"This is a modelling assumption, not a contractual market trigger."},
       {key:"tenor",type:"range",label:"Scheduled tenor",min:1,max:5,step:1,format:v=>v.toFixed(0)+" years"},
@@ -25,7 +26,7 @@ const configs={
     ]
   },
   coupon:{
-    defaults:{style:"memory",coupon:10,couponLevel:75,autocall:true,callLevel:100,barrier:60,tenor:3,frequency:4,vol:32},
+    defaults:{style:"memory",coupon:10,couponLevel:75,autocall:true,callLevel:100,barrier:60,settlement:"physical",tenor:3,frequency:4,vol:32},
     variants:{
       fixed:["Fixed coupon","Every scheduled coupon is paid while the note is alive. The underlying affects early redemption and final principal, but not the coupon test."],
       conditional:["Conditional coupon without memory","A coupon is paid only when the underlying meets the coupon level on that observation date. A failed coupon is permanently lost."],
@@ -39,13 +40,14 @@ const configs={
       {key:"autocall",type:"radio",label:"Early redemption",boolean:true,options:[[false,"No autocall"],[true,"Autocall"]]},
       {key:"callLevel",type:"range",label:"Autocall trigger",min:80,max:130,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.autocall},
       {key:"barrier",type:"range",label:"European downside barrier",min:40,max:90,step:1,format:v=>v.toFixed(0)+"%"},
+      {key:"settlement",type:"radio",label:"Downside settlement",options:[["cash","Cash amount"],["physical","Underlying units"]],help:"Physical delivery applies only below the maturity barrier. Coupons and any early redemption remain cash."},
       {key:"tenor",type:"range",label:"Scheduled tenor",min:1,max:5,step:1,format:v=>v.toFixed(0)+" years"},
       {key:"frequency",type:"select",numeric:true,label:"Coupon observations",options:[[4,"Quarterly"],[12,"Monthly"]]},
       {key:"vol",type:"range",label:"Annualised volatility",min:10,max:70,step:1,format:v=>v.toFixed(0)+"%"}
     ]
   },
   lock:{
-    defaults:{style:"par",lockLevel:110,coupon:7,barrier:65,initialFloor:80,capture:80,tenor:4,frequency:4,vol:30},
+    defaults:{style:"par",lockLevel:110,coupon:7,barrier:65,settlement:"physical",initialFloor:80,capture:80,tenor:4,frequency:4,vol:30},
     variants:{
       par:["Par lock-in","A qualifying observation raises the minimum principal redemption to 100. The note remains alive and continues paying its fixed coupon."],
       step:["Step-up minimum repayment","A qualifying observation can raise the maturity floor to a percentage of the observed underlying level. Final payment is the greater of that locked floor and final participation."]
@@ -56,6 +58,7 @@ const configs={
       {key:"lockLevel",type:"range",label:"Lock-in trigger",min:95,max:140,step:1,format:v=>v.toFixed(0)+"%"},
       {key:"coupon",type:"range",label:"Fixed coupon",min:0,max:18,step:.5,format:v=>v.toFixed(1)+"% p.a.",show:p=>p.style==="par"},
       {key:"barrier",type:"range",label:"European downside barrier",min:40,max:90,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.style==="par"},
+      {key:"settlement",type:"radio",label:"Downside settlement",options:[["cash","Cash amount"],["physical","Underlying units"]],show:p=>p.style==="par",help:"Physical delivery is possible only if no par lock-in protects redemption and downside is activated."},
       {key:"initialFloor",type:"range",label:"Initial minimum payment",min:50,max:95,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.style==="step"},
       {key:"capture",type:"range",label:"Lock-in factor",min:50,max:100,step:5,format:v=>v.toFixed(0)+"% of observed level",show:p=>p.style==="step",help:"A 120 observation with an 80% factor locks a minimum payment of 96."},
       {key:"tenor",type:"range",label:"Scheduled tenor",min:1,max:6,step:1,format:v=>v.toFixed(0)+" years"},
@@ -136,16 +139,28 @@ function drawPath(result){
 }
 function outcomeText(result){
   if(mode==="rc"){
-    if(result.called)return `${result.callKind} occurred after ${result.life.toFixed(2)} years. The investor receives principal 100 and ${result.coupons.toFixed(1)} of coupons: total return ${money(result.totalReturn)} per 100 invested.`;
-    if(state.params.variant==="plain"&&result.finalLevel<100)return `There is no barrier test. The final level ${result.finalLevel.toFixed(1)} determines principal redemption directly; coupons of ${result.coupons.toFixed(1)} leave a total return of ${money(result.totalReturn)}.`;
-    if(result.barrierBreached&&result.finalLevel<100)return `The barrier condition occurred and the final level is below the strike. Principal falls to ${result.principal.toFixed(1)}; after ${result.coupons.toFixed(1)} of coupons, total return is ${money(result.totalReturn)}.`;
-    return `The note reaches maturity with principal redemption 100 and ${result.coupons.toFixed(1)} of coupons. ${result.barrierBreached?"The barrier was breached, but the final level recovered above the strike.":"The downside condition never activated."}`;
+    if(result.called)return `${result.callKind} occurred after ${result.life.toFixed(2)} years. The investor receives cash principal 100 and ${result.coupons.toFixed(1)} of cash coupons: total return ${money(result.totalReturn)} per 100 invested.`;
+    if(state.params.variant==="plain"&&result.finalLevel<100)return `There is no barrier test. The final level ${result.finalLevel.toFixed(1)} determines redemption directly. The investor receives ${result.physicalDelivery?`1.000 underlying unit worth ${result.deliveryValue.toFixed(1)}`:`cash principal ${result.cashPrincipal.toFixed(1)}`}, plus ${result.coupons.toFixed(1)} of cash coupons.`;
+    if(result.barrierBreached&&result.finalLevel<100)return `The barrier condition occurred and the final level is below the strike. The investor receives ${result.physicalDelivery?`1.000 underlying unit worth ${result.deliveryValue.toFixed(1)}`:`cash principal ${result.cashPrincipal.toFixed(1)}`}, plus ${result.coupons.toFixed(1)} of cash coupons.`;
+    return `The note reaches maturity with cash principal 100 and ${result.coupons.toFixed(1)} of cash coupons. ${result.barrierBreached?"The barrier was breached, but the final level recovered above the strike.":"The downside condition never activated."}`;
   }
   if(mode==="coupon"){
     const couponState=state.params.style==="fixed"?"Every scheduled coupon while the note was alive was paid.":state.params.style==="conditional"?`${result.missed} failed coupon${result.missed===1?" was":"s were"} permanently lost.`:result.memoryUnpaid?`${result.memoryUnpaid} coupon period${result.memoryUnpaid===1?" remains":"s remain"} unpaid in memory.`:"No memory balance remains.";
-    return `${result.called?`The note autocalled after ${result.life.toFixed(2)} years.`:"The note reached maturity."} Coupons actually paid total ${result.coupons.toFixed(1)}. ${couponState} Principal redemption is ${result.principal.toFixed(1)}.`;
+    const redemption=result.physicalDelivery?`1.000 underlying unit worth ${result.deliveryValue.toFixed(1)}`:`cash principal ${result.cashPrincipal.toFixed(1)}`;
+    return `${result.called?`The note autocalled after ${result.life.toFixed(2)} years.`:"The note reached maturity."} Cash coupons actually paid total ${result.coupons.toFixed(1)}. ${couponState} The investor receives ${redemption}.`;
   }
-  return `${result.lockCount?`${result.lockCount} lock-in event${result.lockCount===1?"":"s"} raised the floor to ${result.lockedFloor.toFixed(1)}.`:state.params.style==="par"?"No observation established a lock-in floor.":"No observation improved the initial floor."} Final underlying level is ${result.finalLevel.toFixed(1)} and principal redemption is ${result.principal.toFixed(1)}${state.params.style==="par"?`, plus ${result.coupons.toFixed(1)} of coupons`:""}.`;
+  const redemption=result.physicalDelivery?`1.000 underlying unit worth ${result.deliveryValue.toFixed(1)}`:`cash principal ${result.cashPrincipal.toFixed(1)}`;
+  return `${result.lockCount?`${result.lockCount} lock-in event${result.lockCount===1?"":"s"} raised the floor to ${result.lockedFloor.toFixed(1)}.`:state.params.style==="par"?"No observation established a lock-in floor.":"No observation improved the initial floor."} Final underlying level is ${result.finalLevel.toFixed(1)}. The investor receives ${redemption}${state.params.style==="par"?`, plus ${result.coupons.toFixed(1)} of cash coupons`:""}.`;
+}
+function renderSettlement(result){
+  const host=$("settlement-breakdown"),cashReceived=result.cashPrincipal+result.coupons,packageValue=cashReceived+result.deliveryValue;
+  const items=[
+    ["Cash received",cashReceived.toFixed(1),`Coupons ${result.coupons.toFixed(2)} + cash principal ${result.cashPrincipal.toFixed(1)}`],
+    ["Assets delivered",result.physicalDelivery?`${result.deliveredUnits.toFixed(3)} unit`:"None",result.physicalDelivery?`Underlying value ${result.deliveryValue.toFixed(1)} · 100 nominal ÷ strike 100`:result.settlement==="physical"?"Physical downside delivery was not triggered":"Cash settlement applies"],
+    ["Package value",packageValue.toFixed(1),"Cash plus delivered assets per 100 nominal"]
+  ];
+  host.innerHTML="";items.forEach(([label,value,detail])=>{const item=document.createElement("div"),small=document.createElement("span"),strong=document.createElement("strong"),p=document.createElement("p");small.textContent=label;strong.textContent=value;p.textContent=detail;item.append(small,strong,p);host.append(item)});
+  host.setAttribute("aria-label",`Settlement: cash ${cashReceived.toFixed(1)}, ${result.physicalDelivery?result.deliveredUnits.toFixed(3)+" underlying unit delivered":"no assets delivered"}, package value ${packageValue.toFixed(1)} per 100 nominal`);
 }
 function renderLedger(result){
   const body=$("ledger-body"),total=$("ledger-total");body.innerHTML="";total.innerHTML="";result.events.forEach(event=>{const row=document.createElement("tr"),cells=[];
@@ -156,20 +171,20 @@ function renderLedger(result){
   });
   const first=document.createElement("th");first.scope="row";first.textContent="Totals";total.append(first);
   const endingLevel=result.events.at(-1)?.level??result.finalLevel;let cells;
-  if(mode==="rc")cells=[`${result.events.length} observations · end ${endingLevel.toFixed(1)}`,state.params.variant==="plain"?"Not applicable":result.barrierBreached?"Breached":"Clear",result.coupons.toFixed(2),result.called?result.callKind:"No early redemption",`Principal ${result.principal.toFixed(1)}`];
+  if(mode==="rc")cells=[`${result.events.length} observations · end ${endingLevel.toFixed(1)}`,state.params.variant==="plain"?"Not applicable":result.barrierBreached?"Breached":"Clear",result.coupons.toFixed(2),result.called?result.callKind:"No early redemption",result.physicalDelivery?`1.000 unit · value ${result.deliveryValue.toFixed(1)}`:`Cash principal ${result.cashPrincipal.toFixed(1)}`];
   if(mode==="coupon"){
     const passed=result.events.filter(event=>event.couponTest==="Pass").length;
     const tests=state.params.style==="fixed"?`${result.events.length} unconditional`:`${passed} passed · ${result.missed} missed`;
     const memory=state.params.style==="memory"?`${result.memoryUnpaid} unpaid`:"Not applicable";
     cells=[`${result.events.length} observations · end ${endingLevel.toFixed(1)}`,tests,result.coupons.toFixed(2),memory,result.called?"Autocalled":"Reached maturity"];
   }
-  if(mode==="lock")cells=[`${result.events.length} observations · end ${endingLevel.toFixed(1)}`,`${result.lockCount} new floor${result.lockCount===1?"":"s"}`,state.params.style==="par"&&!result.lockCount?"Not established":result.lockedFloor.toFixed(1),result.coupons.toFixed(2),`Principal ${result.principal.toFixed(1)}`];
+  if(mode==="lock")cells=[`${result.events.length} observations · end ${endingLevel.toFixed(1)}`,`${result.lockCount} new floor${result.lockCount===1?"":"s"}`,state.params.style==="par"&&!result.lockCount?"Not established":result.lockedFloor.toFixed(1),result.coupons.toFixed(2),result.physicalDelivery?`1.000 unit · value ${result.deliveryValue.toFixed(1)}`:`Cash principal ${result.cashPrincipal.toFixed(1)}`];
   cells.forEach(value=>{const cell=document.createElement("td");cell.textContent=value;total.append(cell)});
 }
-function renderRules(){const steps=mode==="rc"?["Observe level","Update barrier state","Pay fixed coupon",state.params.variant==="issuer"?"Issuer decides":state.params.variant==="autocall"?"Test autocall":"Continue","Determine redemption"]:mode==="coupon"?["Observe level","Test current coupon","Update / pay memory","Test autocall","Determine redemption"]:["Observe level","Test lock-in","Raise floor if eligible","Continue note","Compare maturity payoffs"];
+function renderRules(){const steps=mode==="rc"?["Observe level","Update barrier state","Pay fixed coupon",state.params.variant==="issuer"?"Issuer decides":state.params.variant==="autocall"?"Test autocall":"Continue","Determine redemption","Settle cash / units"]:mode==="coupon"?["Observe level","Test current coupon","Update / pay memory","Test autocall","Determine redemption","Settle cash / units"]:["Observe level","Test lock-in","Raise floor if eligible","Continue note","Compare maturity payoffs","Settle cash / units"];
   const host=$("rule-strip");host.innerHTML="<b>Illustrative order</b>";steps.forEach(step=>{const arrow=document.createElement("i");arrow.textContent="→";const span=document.createElement("span");span.textContent=step;host.append(arrow,span)});
 }
-function renderPath(){updateVariant();updateOutputs();const result=pathData();drawPath(result);$("path-outcome").textContent=outcomeText(result);renderLedger(result);renderRules();scheduleSimulation()}
+function renderPath(){updateVariant();updateOutputs();const result=pathData();drawPath(result);$("path-outcome").textContent=outcomeText(result);renderSettlement(result);renderLedger(result);renderRules();scheduleSimulation()}
 
 function statDefinitions(stats){
   if(mode==="rc")return [{label:state.params.variant==="issuer"?"Called under policy":"Redeemed early",value:pct(stats.called)},{label:"Barrier condition",value:state.params.variant==="plain"?"None":pct(stats.barrier)},{label:"Lost money",value:pct(stats.loss)},{label:"Average life",value:stats.averageLife.toFixed(2)+" yr"}];

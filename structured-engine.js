@@ -40,6 +40,10 @@
     const finalLevel=path.at(-1),totalReturn=principal+coupons-100;
     return {path,events,principal,coupons,totalReturn,finalLevel,loss:totalReturn<0,...extra};
   }
+  function deliveryDetails(p,called,principal,eligible=true){
+    const settlement=eligible?(p.settlement||"cash"):"cash",physicalDelivery=settlement==="physical"&&!called&&principal<100;
+    return {settlement,physicalDelivery,deliveredUnits:physicalDelivery?1:0,cashPrincipal:physicalDelivery?0:principal,deliveryValue:physicalDelivery?principal:0};
+  }
 
   function evaluateRC(path,p){
     const obs=observations(p.tenor,p.frequency),end=path.length-1,variant=p.variant||"barrier",hasBarrier=variant!=="plain";
@@ -62,7 +66,7 @@
       if(called){terminationDay=day;break}
     }
     if(!called){const final=path[end];principal=variant==="plain"?Math.min(100,final):(barrierBreached&&final<100?final:100)}
-    return baseResult(path,events,principal,coupons,{called,callKind,terminationDay,barrierBreached,life:terminationDay/DAYS,variant});
+    return baseResult(path,events,principal,coupons,{called,callKind,terminationDay,barrierBreached,life:terminationDay/DAYS,variant,...deliveryDetails(p,called,principal)});
   }
 
   function evaluateCoupon(path,p){
@@ -80,7 +84,7 @@
       previous=day;if(called)break;
     }
     const final=path[end],barrierBreached=!called&&final<p.barrier;if(!called)principal=barrierBreached?final:100;
-    return baseResult(path,events,principal,coupons,{called,callKind:called?"Automatic call":"",terminationDay,barrierBreached,life:terminationDay/DAYS,missed,recovered,memoryUnpaid:bank,style:p.style});
+    return baseResult(path,events,principal,coupons,{called,callKind:called?"Automatic call":"",terminationDay,barrierBreached,life:terminationDay/DAYS,missed,recovered,memoryUnpaid:bank,style:p.style,...deliveryDetails(p,called,principal)});
   }
 
   function evaluateLock(path,p){
@@ -100,7 +104,7 @@
     if(p.style==="par"){barrierBreached=final<p.barrier;basePrincipal=barrierBreached?final:100}
     else basePrincipal=final;
     const principal=Math.max(basePrincipal,lockedFloor);
-    return baseResult(path,events,principal,coupons,{called:false,callKind:"",terminationDay:end,barrierBreached,life:p.tenor,lockCount,lockedFloor,style:p.style});
+    return baseResult(path,events,principal,coupons,{called:false,callKind:"",terminationDay:end,barrierBreached,life:p.tenor,lockCount,lockedFloor,style:p.style,...deliveryDetails(p,false,principal,p.style==="par")});
   }
 
   function evaluate(mode,path,p){return mode==="rc"?evaluateRC(path,p):mode==="coupon"?evaluateCoupon(path,p):evaluateLock(path,p)}

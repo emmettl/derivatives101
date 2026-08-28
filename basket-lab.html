@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Compare an equal-weight basket with a worst-of multi-underlying structured note path by path.">
+  <meta name="theme-color" content="#f7f9fa">
+  <meta property="og:type" content="website"><meta property="og:site_name" content="Derivatives 101">
+  <meta property="og:title" content="Derivatives 101 — Basket and Worst-Of Lab">
+  <meta property="og:description" content="See when gains in one underlying offset losses in another—and when the contract ignores that diversification.">
+  <meta property="og:url" content="https://emmettl.github.io/derivatives101/basket-lab.html">
+  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Derivatives 101 — Basket and Worst-Of Lab">
+  <meta name="twitter:description" content="Compare equal-weight basket and worst-of mechanics across three correlated underlyings.">
+  <meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <title>Derivatives 101 — Basket and Worst-Of Lab</title>
+  <link rel="stylesheet" href="structured-labs.css?v=4">
+</head>
+<body>
+  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="structured-products.html">Structured Product Labs</a><a href="reverse-convertible-lab.html">Lifecycle Lab</a></div></nav></header>
+  <div class="hero"><p class="eyebrow">Lab 04 · Multiple underlyings</p><h1>Baskets &amp; Worst-Of</h1><p class="lede">Three names do not automatically create diversification. Compare a true equal-weight basket, where gains and losses offset, with a worst-of reference set, where one weak name controls every test.</p></div>
+  <p class="scope-note"><b>Scope:</b><span>Three equally normalised underlyings, common volatility and equicorrelation, zero-drift lognormal paths, conditional coupons without memory, one initial non-call observation and a European downside barrier. Names are fictional labels; custom weights, quanto effects, dividends, issuer default and fees are omitted.</span></p>
+  <main>
+    <section class="variant-summary" aria-live="polite"><strong id="basis-name">Worst-of reference</strong><p id="basis-description"></p></section>
+    <div class="lab-grid">
+      <aside class="controls" aria-label="Basket terms"><div class="controls-head"><h2>Terms</h2><button type="button" class="reset-button" id="reset">Reset</button></div><div class="controls-body" id="basket-controls"></div></aside>
+      <div class="content">
+        <section class="panel" aria-labelledby="basket-path-title"><div class="panel-head"><div><p class="eyebrow">Three markets, one contract value</p><h2 id="basket-path-title">Which underlying controls the outcome?</h2><p>The thicker reference line is recalculated from the same three paths. Switch the basis to see whether strong names can offset the weak one.</p></div><div class="path-actions"><div class="scenario-set" id="basket-scenarios" aria-label="Basket path scenarios"></div><button type="button" class="resample" id="basket-resample">New random basket</button></div></div><div class="chart-wrap"><svg class="path-chart basket-path-chart" id="basket-path-chart" viewBox="0 0 900 380" role="img" aria-label="Three underlying paths and the contractual reference level"></svg></div><div class="terminal-ranking" id="terminal-ranking" aria-label="Terminal underlying ranking"></div><div class="outcome"><strong>Path outcome</strong><p id="basket-outcome" aria-live="polite"></p></div><div class="settlement-breakdown" id="basket-settlement" aria-live="polite"></div></section>
+        <section class="panel" aria-labelledby="basket-distribution-title"><div class="panel-head"><div><p class="eyebrow">Two thousand correlated baskets</p><h2 id="basket-distribution-title">What does correlation change?</h2><p>Low correlation creates more dispersion between names. That can help an average basket while making it easier for a worst-of structure to find one weak constituent.</p></div></div><div class="stats" id="basket-stats"></div><div class="chart-wrap"><svg class="histogram" id="basket-histogram" viewBox="0 0 900 210" role="img" aria-label="Distribution of simulated basket-note returns"></svg></div><p class="simulation-status" id="basket-simulation-status" role="status" aria-live="polite">Calculating illustrative outcomes…</p></section>
+        <section class="panel" aria-labelledby="basket-ledger-title"><div class="panel-head"><div><p class="eyebrow">The contract test at each date</p><h2 id="basket-ledger-title">Observation ledger</h2><p>Coupon and call tests use the contractual reference—not whichever individual path looks representative.</p></div></div><div class="rule-strip" id="basket-rule-strip"></div><div class="ledger-wrap"><table class="ledger basket-ledger"><thead><tr><th>Date</th><th>Asset A</th><th>Asset B</th><th>Asset C</th><th>Reference</th><th>Coupon</th><th>Outcome</th></tr></thead><tbody id="basket-ledger-body"></tbody><tfoot><tr id="basket-ledger-total"></tr></tfoot></table></div></section>
+      </div>
+    </div>
+    <section class="explain"><article><h3>Equal-weight basket</h3><p>The reference is the arithmetic average of the three normalised levels. Appreciation in one name can offset depreciation in another.</p></article><article><h3>Worst-of reference</h3><p>The lowest-performing name controls the coupon, call and maturity tests. Gains in the other two names do not compensate for it.</p></article><article><h3>Correlation</h3><p>Correlation describes co-movement, not identical outcomes. Lower correlation usually creates a wider gap between the strongest and weakest constituent.</p></article></section>
+    <section class="sources"><h2>Mechanics references</h2><p>The distinction between a least-performing reference set and an averaged basket follows this <a href="https://www.sec.gov/Archives/edgar/data/70858/000191870426014777/form424b2.htm">SEC-filed worst-of example</a>, which explicitly notes that appreciation in other names does not offset the least performer. Physical delivery of the least-performing name is illustrated in an <a href="https://www.sec.gov/Archives/edgar/data/83246/000110465926039203/tm2610868d34_424b2.pdf">SEC-filed delivery example</a>. Exact terms remain product-specific.</p></section>
+  </main>
+  <footer><strong>Derivatives 101</strong><span>Independent educational project · illustrative models only</span><a href="structured-products.html">All structured labs</a></footer>
+  <script src="basket-engine.js?v=1"></script><script src="basket-lab.js?v=1"></script>
+</body>
+</html>

@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Interactive labs for reverse convertibles, conditional coupons, memory and lock-in features.">
+  <meta name="description" content="Interactive labs for reverse convertibles, baskets, conditional coupons, memory and lock-in features.">
   <meta name="theme-color" content="#f7f9fa">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Derivatives 101">
   <meta property="og:title" content="Derivatives 101 — Structured Product Labs">
-  <meta property="og:description" content="Follow individual market paths through barriers, coupon tests, early redemption and lock-in events.">
+  <meta property="og:description" content="Follow one or more market paths through barriers, coupon tests, early redemption and lock-in events.">
   <meta property="og:url" content="https://emmettl.github.io/derivatives101/structured-products.html">
   <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Derivatives 101 — Structured Product Labs">
-  <meta name="twitter:description" content="Follow market paths through barriers, coupon tests, early redemption and lock-in events.">
+  <meta name="twitter:description" content="Follow one or more market paths through barriers, coupon tests, early redemption and lock-in events.">
   <meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
   <title>Derivatives 101 — Structured Product Labs</title>
-  <link rel="stylesheet" href="structured-labs.css?v=3">
+  <link rel="stylesheet" href="structured-labs.css?v=4">
 </head>
 <body>
   <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="payoff-explorer.html">Payoff Explorer</a><a href="option-lab.html">Option Lab</a></div></nav></header>
@@ -27,7 +27,7 @@
   </div>
   <main>
     <div class="sequence" aria-label="Shared evaluation sequence">
-      <div><span>01</span><b>Observe the underlying</b></div>
+      <div><span>01</span><b>Observe the underlying(s)</b></div>
       <div><span>02</span><b>Update contract state</b></div>
       <div><span>03</span><b>Test cash flows and calls</b></div>
       <div><span>04</span><b>Determine redemption</b></div>
@@ -36,6 +36,7 @@
       <a class="hub-card" href="reverse-convertible-lab.html"><span class="number">LAB 01</span><h2>Reverse Convertible Lifecycle</h2><p>Compare plain, barrier, callable and autocallable structures, then see whether the investor ends with cash principal or delivered underlying units.</p><strong>Follow the lifecycle →</strong></a>
       <a class="hub-card" href="coupon-memory-lab.html"><span class="number">LAB 02</span><h2>Conditional Coupons &amp; Memory</h2><p>Watch coupons become paid, lost or banked, then separate the cash received from any underlying delivered at maturity.</p><strong>Trace the coupon ledger →</strong></a>
       <a class="hub-card" href="lock-in-lab.html"><span class="number">LAB 03</span><h2>Lock-In Mechanics</h2><p>Separate a par lock-in from a step-up minimum repayment. A lock-in changes the future payoff state; it does not normally end the note.</p><strong>See the floor change →</strong></a>
+      <a class="hub-card" href="basket-lab.html"><span class="number">LAB 04</span><h2>Baskets &amp; Worst-Of</h2><p>Compare averaging with a least-performing reference across the same three paths, then see how correlation changes the distribution of outcomes.</p><strong>Compare the underlyings →</strong></a>
     </section>
     <section class="explain" aria-label="Why three views are needed">
       <article><h3>Payoff</h3><p>What redemption follows from a terminal level, given the contract state already established.</p></article>

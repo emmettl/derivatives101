@@ -7,7 +7,7 @@ An independent, generally useful short course in options and structured products
 - Six concise lesson decks, from option foundations to protection and leverage
 - An interactive payoff explorer covering eight product families
 - An Option Lab for value surfaces, Greeks and Monte Carlo paths
-- Ten path-by-path, design, valuation and specification labs for participation products, accumulators, decumulators, reverse convertibles, baskets, conditional coupons, memory, lock-in features, early-exit value, structured-product Greeks, issuer credit, liquidity and term-sheet analysis
+- Eleven path-by-path, design, valuation and specification labs for participation products, accumulators, decumulators, reverse convertibles, baskets, conditional coupons, memory, lock-in features, early-exit value, structured-product Greeks, dynamic hedging, issuer credit, liquidity and term-sheet analysis
 - Guided teaching scenarios and shareable setups
 - Three fictional specimen term sheets for discussion and practice
 - A single PDF containing the full lesson series

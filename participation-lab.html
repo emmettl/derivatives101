@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Compare outperformance, bonus and bonus-outperformance certificates through barrier paths, payoff states and their shared option budget.">
+  <meta name="theme-color" content="#f7f9fa">
+  <meta property="og:type" content="website"><meta property="og:site_name" content="Derivatives 101">
+  <meta property="og:title" content="Derivatives 101 — Outperformance &amp; Bonus Lab">
+  <meta property="og:description" content="See how one forgone-dividend budget can fund leveraged upside, a barrier-dependent floor, or both.">
+  <meta property="og:url" content="https://emmettl.github.io/derivatives101/participation-lab.html">
+  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Derivatives 101 — Outperformance &amp; Bonus Lab"><meta name="twitter:description" content="Compare barrier state, bonus floors and disproportionate upside in one interactive design lab."><meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
+  <title>Derivatives 101 — Outperformance &amp; Bonus Lab</title>
+  <link rel="stylesheet" href="structured-labs.css?v=6">
+</head>
+<body>
+  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="structured-products.html">Structured Product Labs</a><a href="lessons/4_Discount_and_Bonus.pdf">Read the lesson</a></div></nav></header>
+  <div class="hero"><p class="eyebrow">Lab 06 · Participation products</p><h1>Outperformance &amp; Bonus</h1><p class="lede">A bonus spends the dividend budget on a conditional floor. Outperformance spends it on extra upside. The combined product tries to buy both—and the terms reveal how that budget was divided.</p></div>
+  <p class="scope-note"><b>Scope:</b><span>Normalised spot, strike and issue price of 100; a single underlying; European maturity; continuous monitoring represented by daily closes. Dividends, fees and volatility feed an illustrative zero-rate option budget, not a tradable price. Taxes, funding spreads, issuer credit, secondary-market value and corporate actions are omitted.</span></p>
+  <main>
+    <section class="variant-summary" aria-live="polite"><strong id="participation-name">Bonus Outperformance · 1330</strong><p id="participation-description"></p></section>
+    <div class="lab-grid">
+      <aside class="controls" aria-label="Participation product terms"><div class="controls-head"><h2>Terms</h2><button type="button" class="reset-button" id="reset">Reset</button></div><div class="controls-body" id="participation-controls"></div></aside>
+      <div class="content">
+        <section class="panel" aria-labelledby="paired-path-title">
+          <div class="panel-head"><div><p class="eyebrow">Same destination, different journey</p><h2 id="paired-path-title">Did the barrier survive?</h2><p>Both paths finish at exactly the same level. One stays above the barrier; the other touches it and recovers. Switch to maturity-only monitoring and the mid-life touch is deliberately forgotten.</p></div></div>
+          <div class="chart-wrap"><svg class="path-chart participation-path-chart" id="paired-path-chart" viewBox="0 0 900 350" role="img" aria-label="Two underlying paths with the same final level and different barrier histories"></svg></div>
+          <div class="paired-outcomes" id="paired-outcomes" aria-live="polite"></div>
+        </section>
+        <section class="panel" aria-labelledby="participation-payoff-title">
+          <div class="panel-head"><div><p class="eyebrow">One payoff, two possible states</p><h2 id="participation-payoff-title">What survives a barrier breach?</h2><p>A plain bonus becomes a tracker after breach. A bonus-outperformance certificate loses only its floor: disproportionate upside above the strike remains.</p></div></div>
+          <div class="payoff-budget-grid">
+            <div><div class="chart-wrap"><svg class="path-chart participation-payoff-chart" id="participation-payoff-chart" viewBox="0 0 760 350" role="img" aria-label="Terminal redemption with the bonus barrier intact or breached"></svg></div><div class="payoff-legend" id="participation-payoff-legend" aria-label="Payoff chart legend"></div></div>
+            <aside class="budget-pane" aria-labelledby="budget-title"><p class="eyebrow">Illustrative build cost</p><h3 id="budget-title">Where did the dividend budget go?</h3><div class="budget-bar" id="budget-bar" role="img" aria-label="Dividend budget allocation"></div><div class="budget-key" aria-hidden="true"><span><i class="budget-upside"></i>Extra upside</span><span><i class="budget-protection"></i>Bonus floor</span><span><i class="budget-unused"></i>Unspent</span></div><p class="budget-message" id="budget-message" aria-live="polite"></p><div class="budget-metrics" id="budget-metrics"></div><p class="budget-method" id="budget-method"></p></aside>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="participation-distribution-title">
+          <div class="panel-head"><div><p class="eyebrow">Two thousand possible markets</p><h2 id="participation-distribution-title">Which branch usually determines redemption?</h2><p>The simulated paths use zero drift and daily steps. The budget inputs affect the illustrative build cost; volatility, tenor and barrier convention affect the outcome distribution.</p></div></div>
+          <div class="stats" id="participation-stats"></div>
+          <div class="chart-wrap"><svg class="histogram" id="participation-histogram" viewBox="0 0 900 210" role="img" aria-label="Distribution of simulated participation-product returns"></svg></div>
+          <p class="simulation-status" id="participation-simulation-status" role="status" aria-live="polite">Calculating illustrative outcomes…</p>
+        </section>
+        <section class="panel" aria-labelledby="participation-rules-title">
+          <div class="panel-head"><div><p class="eyebrow">Turn the name into executable rules</p><h2 id="participation-rules-title">Specification view</h2><p>The product name selects a family. The observation convention and final legal terms still determine which state exists and how it settles.</p></div></div>
+          <div class="rule-strip" id="participation-rule-strip"></div>
+          <div class="ledger-wrap"><table class="ledger participation-rules"><thead><tr><th>Rule</th><th>Condition</th><th>Result</th></tr></thead><tbody id="participation-rules-body"></tbody></table></div>
+        </section>
+      </div>
+    </div>
+    <section class="explain"><article><h3>The breach changes state</h3><p>The historical low and the final level are separate data. Once a continuously monitored bonus barrier is touched, a later recovery does not restore the floor.</p></article><article><h3>1330 does not become a tracker</h3><p>After breach, a bonus-outperformance certificate becomes an outperformance certificate. Its leveraged upside remains; only the conditional minimum redemption disappears.</p></article><article><h3>One budget, two purchases</h3><p>Forgone dividends fund extra call exposure, barrier-dependent protection, or both. Stronger terms consume more of the same finite budget.</p></article></section>
+    <section class="sources"><h2>Mechanics references</h2><p>The product-state distinctions follow the <a href="https://sspa.ch/wp-content/uploads/2023/12/en_sspaswissmap_2024-1.pdf">SSPA Swiss Derivative Map</a>: 1310 reflects downside one-for-one and disproportionate upside; 1320 becomes a tracker after breach; 1330 becomes an outperformance certificate. <a href="https://www.six-structured-products.com/en/know-how/product-know-how/participation-products/outperformance-bonus-certificate">SIX’s worked explanation</a> also shows why combining the bonus and outperformance features generally weakens each headline term. Exact settlement and observation language remains product-specific.</p></section>
+  </main>
+  <footer><strong>Derivatives 101</strong><span>Independent educational project · illustrative models only</span><a href="structured-products.html">All structured labs</a></footer>
+  <script src="participation-engine.js?v=1"></script><script src="participation-lab.js?v=1"></script>
+</body>
+</html>

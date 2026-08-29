@@ -16,7 +16,9 @@ An independent, generally useful short course in options and structured products
 
 The course is published at [emmettl.github.io/derivatives101](https://emmettl.github.io/derivatives101/).
 
-Every push to `main` publishes the static site through GitHub Pages. The site has no build step or external runtime dependencies: `index.html` is the course home, `payoff-explorer.html` is the quick payoff explorer, and `structured-products.html` is the entry point for the lifecycle labs.
+Every push to `main` builds and publishes the multi-page site through GitHub Pages. `index.html` is the course home, `payoff-explorer.html` is the quick payoff explorer, and `structured-products.html` is the entry point for the lifecycle labs. Most labs remain dependency-free browser JavaScript; Vite provides the shared development server and production packaging, while the multi-leg strategy lab is written in TypeScript.
+
+Run `npm install` once, then use `npm run dev` for local development, `npm test` for the strategy-engine checks, and `npm run build` for a type-checked production bundle of the multi-leg lab plus the complete legacy site.
 
 ## Important note
 

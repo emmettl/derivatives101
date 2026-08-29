@@ -23,12 +23,21 @@ jobs:
     steps:
       - name: Check out the course
         uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build and test the course
+        run: npm run build && npm test
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-      - name: Package the static site
+      - name: Package the built site
         uses: actions/upload-pages-artifact@v4
         with:
-          path: .
+          path: dist
       - name: Publish to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

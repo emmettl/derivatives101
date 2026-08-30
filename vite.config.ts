@@ -16,6 +16,14 @@ const bundledEntries = [
   "koda-kodd-lab.html",
   "specification-capstone.html",
   "term-sheet-decoder.html",
+  "credit-liquidity.html",
+  "currency-risk.html",
+  "dynamic-hedging.html",
+  "forward-carry.html",
+  "risk-fingerprints.html",
+  "stepdown-autocall.html",
+  "value-before-maturity.html",
+  "volatility-skew.html",
 ];
 
 const buildOnly = new Set([

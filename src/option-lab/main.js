@@ -578,7 +578,7 @@ document.querySelectorAll("#greek-picker button").forEach((button) =>
 const surface = $("surface");
 if (typeof Worker !== "undefined" && typeof surface.transferControlToOffscreen === "function") {
   try {
-    surfaceWorker = new Worker(new URL("./surface-worker.js", import.meta.url), { type: "module" });
+    surfaceWorker = new Worker(new URL("./surface-worker.ts", import.meta.url), { type: "module" });
     const offscreen = surface.transferControlToOffscreen();
     surfaceWorker.postMessage({ action: "init", canvas: offscreen }, [offscreen]);
     surfaceWorker.onmessage = (event) => {

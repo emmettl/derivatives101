@@ -28,9 +28,10 @@ Run `npm install` once, then use `npm run dev` for local development and `npm ru
 - `src/structured/` shares one lifecycle engine and controller across reverse-convertible, coupon-memory and lock-in pages.
 - `src/basket/`, `src/participation/` and `src/koda-kodd/` keep each product engine independent from its page controller and worker.
 - `src/specification/` and `src/decoder/` separate contract rules and case data from presentation.
+- `src/legacy/` contains the older standalone labs, now split into strict TypeScript calculation engines and JavaScript presentation modules without browser globals.
 - `src/shared/` contains deterministic simulation primitives used across product engines.
 
-Add a rich interactive page to `bundledEntries` in `vite.config.ts`. Keep financial rules in a pure engine module where they can be tested without a browser, and keep DOM rendering in the page entry module.
+Add an interactive page to `bundledEntries` in `vite.config.ts`. Keep financial rules in a strict TypeScript engine module where they can be tested without a browser, and keep DOM rendering in the page entry module. Presentation-only JavaScript remains appropriate where TypeScript would add assertions without improving the underlying design.
 
 ## Important note
 

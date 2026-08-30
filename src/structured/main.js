@@ -1,6 +1,6 @@
 "use strict";
 
-import * as StructuredEngine from "./engine.js";
+import * as StructuredEngine from "./engine.ts";
 import { colors, configs } from "./config.js";
 
 const $ = (id) => document.getElementById(id),
@@ -665,7 +665,7 @@ let simulationTimer,
   simulationVersion = 0;
 const simulationWorker =
   typeof Worker !== "undefined"
-    ? new Worker(new URL("./worker.js", import.meta.url), { type: "module" })
+    ? new Worker(new URL("./worker.ts", import.meta.url), { type: "module" })
     : null;
 function finishSimulation(message) {
   if (message.id !== simulationVersion) return;

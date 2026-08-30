@@ -1,6 +1,6 @@
 "use strict";
 
-import { clauses } from "./clauses.js";
+import { clauses } from "./clauses.ts";
 
 const defaults = [0, 0, 0, 0, 0];
 const state = { selected: 0, choices: defaults.slice() };

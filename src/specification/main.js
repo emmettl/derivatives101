@@ -1,6 +1,6 @@
 "use strict";
 
-import * as engine from "./engine.js";
+import * as engine from "./engine.ts";
 
 const byId = (id) => document.getElementById(id);
 const choiceOptions = {

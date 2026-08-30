@@ -1,6 +1,6 @@
 "use strict";
 
-import * as KodaKoddEngine from "./engine.js";
+import * as KodaKoddEngine from "./engine.ts";
 
 const $ = (id) => document.getElementById(id),
   colors = {
@@ -718,7 +718,7 @@ function postPayload(payload) {
     return;
   }
   if (!worker) {
-    worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
+    worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
     worker.onmessage = (event) => {
       workerBusy = false;
       renderSimulation(event.data);

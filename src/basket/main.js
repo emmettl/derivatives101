@@ -1,6 +1,6 @@
 "use strict";
 
-import * as BasketEngine from "./engine.js";
+import * as BasketEngine from "./engine.ts";
 
 const $ = (id) => document.getElementById(id),
   colors = {
@@ -724,7 +724,7 @@ function scheduleSimulation() {
     const payload = { id, params: { ...state.params }, seed: state.seed, count: 2000 };
     if (typeof Worker !== "undefined") {
       if (worker) worker.terminate();
-      worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
+      worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
       worker.onmessage = (event) => finishSimulation(event.data);
       worker.postMessage(payload);
     } else

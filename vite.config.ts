@@ -15,7 +15,7 @@ const bundledEntries = [
   "participation-lab.html",
   "koda-kodd-lab.html",
   "specification-capstone.html",
-  "term-sheet-decoder.html"
+  "term-sheet-decoder.html",
 ];
 
 const buildOnly = new Set([
@@ -28,7 +28,7 @@ const buildOnly = new Set([
   "package.json",
   "package-lock.json",
   "tsconfig.json",
-  "vite.config.ts"
+  "vite.config.ts",
 ]);
 
 function copyLegacySiteAssets(): Plugin {
@@ -38,13 +38,18 @@ function copyLegacySiteAssets(): Plugin {
     writeBundle(options) {
       const outputDirectory = resolve(projectRoot, String(options.dir ?? "dist"));
       mkdirSync(outputDirectory, { recursive: true });
-      readdirSync(projectRoot).forEach(name => {
-        if (buildOnly.has(name) || bundledEntries.includes(name) || (name.startsWith(".") && name !== ".nojekyll")) return;
+      readdirSync(projectRoot).forEach((name) => {
+        if (
+          buildOnly.has(name) ||
+          bundledEntries.includes(name) ||
+          (name.startsWith(".") && name !== ".nojekyll")
+        )
+          return;
         const source = join(projectRoot, name);
         if (!existsSync(source)) return;
         cpSync(source, join(outputDirectory, name), { recursive: true });
       });
-    }
+    },
   };
 }
 
@@ -55,8 +60,10 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     rolldownOptions: {
-      input: Object.fromEntries(bundledEntries.map(name => [name.slice(0, -5), resolve(projectRoot, name)]))
-    }
+      input: Object.fromEntries(
+        bundledEntries.map((name) => [name.slice(0, -5), resolve(projectRoot, name)]),
+      ),
+    },
   },
-  plugins: [copyLegacySiteAssets()]
+  plugins: [copyLegacySiteAssets()],
 });

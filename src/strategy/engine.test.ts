@@ -6,14 +6,17 @@ import type { Market, OptionLeg } from "./types";
 const market: Market = { spot: 100, volatility: 0.25, tenor: 1, rate: 0.03, dividend: 0.01 };
 
 describe("strategy presets", () => {
-  it.each(Object.values(presets).map(preset => [preset.name, preset] as const))("produces finite results for %s", (_name, preset) => {
-    const strategy = clonePreset(preset, market.spot);
-    const result = metrics(market, strategy.legs, 88, 114, 100);
-    const risk = riskMeasures(market, strategy.legs);
-    expect(strategy.legs).toHaveLength(MAX_LEGS);
-    expect(Number.isFinite(result.selected.pnl)).toBe(true);
-    expect(Object.values(risk).every(Number.isFinite)).toBe(true);
-  });
+  it.each(Object.values(presets).map((preset) => [preset.name, preset] as const))(
+    "produces finite results for %s",
+    (_name, preset) => {
+      const strategy = clonePreset(preset, market.spot);
+      const result = metrics(market, strategy.legs, 88, 114, 100);
+      const risk = riskMeasures(market, strategy.legs);
+      expect(strategy.legs).toHaveLength(MAX_LEGS);
+      expect(Number.isFinite(result.selected.pnl)).toBe(true);
+      expect(Object.values(risk).every(Number.isFinite)).toBe(true);
+    },
+  );
 
   it("models the default iron condor as a bounded credit strategy", () => {
     const condor = clonePreset(presets.ironCondor, market.spot).legs;
@@ -39,7 +42,16 @@ describe("risk and path mechanics", () => {
   });
 
   it("counts both path history and terminal spot for knock-in activation", () => {
-    const downIn: OptionLeg = { id: 1, enabled: true, side: "long", quantity: 1, type: "put", strike: 90, barrierType: "down-in", barrier: 75 };
+    const downIn: OptionLeg = {
+      id: 1,
+      enabled: true,
+      side: "long",
+      quantity: 1,
+      type: "put",
+      strike: 90,
+      barrierType: "down-in",
+      barrier: 75,
+    };
     expect(legOutcome(market, downIn, 70, 70, 110).active).toBe(true);
     expect(legOutcome(market, downIn, 70, 80, 110).active).toBe(true);
     expect(legOutcome(market, downIn, 85, 80, 110).active).toBe(false);

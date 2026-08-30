@@ -21,9 +21,8 @@ export function normalRandom(random: () => number): number {
 export function observationDays(tenor: number, frequency: number): number[] {
   const end = Math.round(tenor * TRADING_DAYS);
   const count = Math.max(1, Math.round(tenor * frequency));
-  const days = Array.from(
-    { length: count },
-    (_, index) => Math.min(end, Math.round(((index + 1) * end) / count))
+  const days = Array.from({ length: count }, (_, index) =>
+    Math.min(end, Math.round(((index + 1) * end) / count)),
   );
   return [...new Set(days)];
 }

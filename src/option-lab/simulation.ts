@@ -12,7 +12,8 @@ function seeded(seed: number): () => number {
 }
 
 function normal(random: () => number): number {
-  let u = 0, v = 0;
+  let u = 0,
+    v = 0;
   while (!u) u = random();
   while (!v) v = random();
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
@@ -39,5 +40,14 @@ export function simulatePaths(request: SimulationRequest): SimulationResult {
     ends[pathIndex] = spot;
     if (path) samples.push(path);
   }
-  return { id, sample, samples, ends, estimate: Math.exp(-p.r * p.T) * payoffSum / paths, steps, p, type };
+  return {
+    id,
+    sample,
+    samples,
+    ends,
+    estimate: (Math.exp(-p.r * p.T) * payoffSum) / paths,
+    steps,
+    p,
+    type,
+  };
 }

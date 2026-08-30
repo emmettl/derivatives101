@@ -14,7 +14,7 @@ describe("structured product lifecycle engine", () => {
       coupon: 8,
       settlement: "cash",
       tenor: 1,
-      frequency: 4
+      frequency: 4,
     });
 
     expect(result.principal).toBe(72);
@@ -36,7 +36,7 @@ describe("structured product lifecycle engine", () => {
       barrier: 60,
       settlement: "cash",
       tenor: 1,
-      frequency: 4
+      frequency: 4,
     });
 
     expect(result.missed).toBe(2);
@@ -53,10 +53,10 @@ describe("structured product lifecycle engine", () => {
       capture: 80,
       tenor: 1,
       frequency: 4,
-      vol: 30
+      vol: 30,
     };
     expect(simulate("lock", params, 42, 20).returns).toEqual(
-      simulate("lock", params, 42, 20).returns
+      simulate("lock", params, 42, 20).returns,
     );
   });
 });

@@ -18,7 +18,7 @@ The course is published at [emmettl.github.io/derivatives101](https://emmettl.gi
 
 Every push to `main` builds and publishes the multi-page site through GitHub Pages. `index.html` is the course home, `payoff-explorer.html` is the quick payoff explorer, and `structured-products.html` is the entry point for the lifecycle labs. The richer interactive pages use Vite module entry points under `src/`; simpler lesson pages remain dependency-free browser JavaScript.
 
-Run `npm install` once, then use `npm run dev` for local development, `npm test` for the financial-engine checks, and `npm run build` for a type-checked production bundle plus the complete site.
+Run `npm install` once, then use `npm run dev` for local development and `npm run build` for a type-checked production bundle plus the complete site. `npm run check` verifies Oxfmt formatting, runs Oxlint, checks TypeScript and executes the financial-engine tests. Use `npm run format` and `npm run lint:fix` for automatic source cleanup.
 
 ## Interactive source layout
 

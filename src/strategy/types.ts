@@ -92,7 +92,17 @@ export interface ScenarioRow {
 }
 
 export interface MarketControl {
-  key: keyof Pick<StrategyState, "spot" | "volatility" | "tenor" | "rate" | "dividend" | "observedLow" | "observedHigh" | "terminal">;
+  key: keyof Pick<
+    StrategyState,
+    | "spot"
+    | "volatility"
+    | "tenor"
+    | "rate"
+    | "dividend"
+    | "observedLow"
+    | "observedHigh"
+    | "terminal"
+  >;
   label: string;
   min: number;
   max: number;
@@ -100,7 +110,13 @@ export interface MarketControl {
   format: (value: number) => string;
 }
 
-export type CatalogueRow = readonly [presetId: string, name: string, recipe: string, shape: string, tradeOff: string];
+export type CatalogueRow = readonly [
+  presetId: string,
+  name: string,
+  recipe: string,
+  shape: string,
+  tradeOff: string,
+];
 export type RuleRow = readonly [decision: string, question: string, reason: string];
 
 export interface ViewHandlers {

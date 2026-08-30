@@ -6,4 +6,4 @@ const worker = self as unknown as {
   postMessage: (result: ReturnType<typeof simulatePaths>) => void;
 };
 
-worker.onmessage = event => worker.postMessage(simulatePaths(event.data));
+worker.onmessage = (event) => worker.postMessage(simulatePaths(event.data));

@@ -20,7 +20,7 @@ function market(): Market {
     volatility: state.volatility,
     tenor: state.tenor,
     rate: state.rate,
-    dividend: state.dividend
+    dividend: state.dividend,
   };
 }
 
@@ -36,7 +36,7 @@ function updateMarket(key: MarketControl["key"], value: number): void {
   state[key] = value;
   if (key === "spot" && previousSpot !== state.spot) {
     const scale = state.spot / previousSpot;
-    state.legs.forEach(item => {
+    state.legs.forEach((item) => {
       item.strike *= scale;
       if (item.barrier) item.barrier *= scale;
     });
@@ -52,17 +52,35 @@ function updateLeg(index: number, field: keyof OptionLeg, value: OptionLeg[keyof
   const item = state.legs[index];
   if (!item) throw new Error(`Unknown strategy leg: ${index}`);
   switch (field) {
-    case "id": item.id = Number(value); break;
-    case "enabled": item.enabled = Boolean(value); break;
-    case "side": item.side = value as OptionLeg["side"]; break;
-    case "quantity": item.quantity = Number(value); break;
-    case "type": item.type = value as OptionLeg["type"]; break;
-    case "strike": item.strike = Number(value); break;
-    case "barrierType": item.barrierType = value as OptionLeg["barrierType"]; break;
-    case "barrier": item.barrier = Number(value); break;
+    case "id":
+      item.id = Number(value);
+      break;
+    case "enabled":
+      item.enabled = Boolean(value);
+      break;
+    case "side":
+      item.side = value as OptionLeg["side"];
+      break;
+    case "quantity":
+      item.quantity = Number(value);
+      break;
+    case "type":
+      item.type = value as OptionLeg["type"];
+      break;
+    case "strike":
+      item.strike = Number(value);
+      break;
+    case "barrierType":
+      item.barrierType = value as OptionLeg["barrierType"];
+      break;
+    case "barrier":
+      item.barrier = Number(value);
+      break;
   }
-  if (field === "barrierType" && item.barrierType.startsWith("down") && item.barrier >= state.spot) item.barrier = state.spot * 0.75;
-  if (field === "barrierType" && item.barrierType.startsWith("up") && item.barrier <= state.spot) item.barrier = state.spot * 1.25;
+  if (field === "barrierType" && item.barrierType.startsWith("down") && item.barrier >= state.spot)
+    item.barrier = state.spot * 0.75;
+  if (field === "barrierType" && item.barrierType.startsWith("up") && item.barrier <= state.spot)
+    item.barrier = state.spot * 1.25;
   state.presetId = "custom";
   render();
 }
@@ -78,10 +96,19 @@ function scheduleRender(): void {
 
 function render(): void {
   const currentMarket = market();
-  const currentMetrics = metrics(currentMarket, state.legs, state.observedLow, state.observedHigh, state.terminal);
+  const currentMetrics = metrics(
+    currentMarket,
+    state.legs,
+    state.observedLow,
+    state.observedHigh,
+    state.terminal,
+  );
   const risk = riskMeasures(currentMarket, state.legs);
   const scenarios = scenarioMatrix(currentMarket, state.legs, spotMoves, volatilityMoves);
-  renderView(state, currentMetrics, risk, scenarios, { onPreset: applyPreset, onLegChange: updateLeg });
+  renderView(state, currentMetrics, risk, scenarios, {
+    onPreset: applyPreset,
+    onLegChange: updateLeg,
+  });
 }
 
 byId<HTMLButtonElement>("strategy-reset").addEventListener("click", () => {

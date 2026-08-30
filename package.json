@@ -9,11 +9,17 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
-    "check": "tsc --noEmit && vitest run",
+    "format": "oxfmt src vite.config.ts",
+    "format:check": "oxfmt --check src vite.config.ts",
+    "lint": "oxlint src vite.config.ts",
+    "lint:fix": "oxlint --fix src vite.config.ts",
+    "check": "npm run format:check && npm run lint && tsc --noEmit && vitest run",
     "preview": "vite preview"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",
+    "oxfmt": "^0.65.0",
+    "oxlint": "^1.80.0",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"

@@ -7,7 +7,7 @@ const terms = {
   callSchedule: [100, 95, 90, 85],
   couponBarrier: 70,
   couponAmount: 2,
-  protectionBarrier: 60
+  protectionBarrier: 60,
 };
 
 const profiles = {
@@ -19,7 +19,7 @@ const profiles = {
     memory: "yes",
     eventOrder: "coupon-first",
     finalConvention: "maturity-only",
-    settlement: "cash"
+    settlement: "cash",
   },
   draft: {
     id: "draft",
@@ -29,7 +29,7 @@ const profiles = {
     memory: "yes",
     eventOrder: "unresolved",
     finalConvention: "unresolved",
-    settlement: "unresolved"
+    settlement: "unresolved",
   },
   conflict: {
     id: "conflict",
@@ -39,8 +39,8 @@ const profiles = {
     memory: "yes",
     eventOrder: "coupon-first",
     finalConvention: "final-call",
-    settlement: "physical"
-  }
+    settlement: "physical",
+  },
 };
 
 const scenarios = {
@@ -49,38 +49,62 @@ const scenarios = {
     name: "Late step-down call",
     A: [94, 92, 93, 96],
     B: [89, 91, 90, 94],
-    note: "The worst performer misses 100 and 95, then meets the Q3 trigger exactly."
+    note: "The worst performer misses 100 and 95, then meets the Q3 trigger exactly.",
   },
   memoryRecovery: {
     id: "memoryRecovery",
     name: "Memory recovery",
     A: [84, 68, 79, 82],
     B: [81, 66, 76, 80],
-    note: "The Q2 coupon is missed, then recovered at Q3 while every call test fails."
+    note: "The Q2 coupon is missed, then recovered at Q3 while every call test fails.",
   },
   boundary: {
     id: "boundary",
     name: "Call boundary",
     A: [92, 95, 89, 86],
     B: [90, 95, 88, 84],
-    note: "Both names equal the Q2 call trigger, exposing the inclusive-versus-strict comparison."
+    note: "Both names equal the Q2 call trigger, exposing the inclusive-versus-strict comparison.",
   },
   downside: {
     id: "downside",
     name: "Downside settlement",
     A: [88, 77, 68, 55],
     B: [85, 74, 64, 50],
-    note: "No call occurs; the final reference is below the protection barrier."
-  }
+    note: "No call occurs; the final reference is below the protection barrier.",
+  },
 };
 
 const choiceDefinitions = [
-  { key: "referenceMeasure", label: "Basket reference", unresolved: "Is the applicable level worst-of or average?" },
-  { key: "callComparison", label: "Call comparison", unresolved: "Does equality with a call trigger redeem the note?" },
-  { key: "memory", label: "Coupon memory", unresolved: "Are missed coupons banked or permanently lost?" },
-  { key: "eventOrder", label: "Same-day order", unresolved: "Is coupon evaluated before or after the call?" },
-  { key: "finalConvention", label: "Final date", unresolved: "Is the final observation also an autocall date?" },
-  { key: "settlement", label: "Downside settlement", unresolved: "Is a loss paid in cash or by delivering an asset?" }
+  {
+    key: "referenceMeasure",
+    label: "Basket reference",
+    unresolved: "Is the applicable level worst-of or average?",
+  },
+  {
+    key: "callComparison",
+    label: "Call comparison",
+    unresolved: "Does equality with a call trigger redeem the note?",
+  },
+  {
+    key: "memory",
+    label: "Coupon memory",
+    unresolved: "Are missed coupons banked or permanently lost?",
+  },
+  {
+    key: "eventOrder",
+    label: "Same-day order",
+    unresolved: "Is coupon evaluated before or after the call?",
+  },
+  {
+    key: "finalConvention",
+    label: "Final date",
+    unresolved: "Is the final observation also an autocall date?",
+  },
+  {
+    key: "settlement",
+    label: "Downside settlement",
+    unresolved: "Is a loss paid in cash or by delivering an asset?",
+  },
 ];
 
 function referenceLevel(a, b, measure) {
@@ -94,14 +118,20 @@ function comparisonPass(value, threshold, operator) {
 function compile(config) {
   const open = choiceDefinitions
     .filter((field) => config[field.key] === "unresolved")
-    .map((field) => ({ id: field.key, label: field.label, message: field.unresolved, severity: "open" }));
+    .map((field) => ({
+      id: field.key,
+      label: field.label,
+      message: field.unresolved,
+      severity: "open",
+    }));
   const blockers = [];
   if (config.referenceMeasure === "average" && config.settlement === "physical") {
     blockers.push({
       id: "average-physical",
       label: "Deliverable asset",
-      message: "Physical settlement cannot be executed from an average reference without defining which asset and delivery ratio apply.",
-      severity: "blocker"
+      message:
+        "Physical settlement cannot be executed from an average reference without defining which asset and delivery ratio apply.",
+      severity: "blocker",
     });
   }
   return {
@@ -109,7 +139,7 @@ function compile(config) {
     resolved: choiceDefinitions.length - open.length,
     open,
     blockers,
-    executable: open.length === 0 && blockers.length === 0
+    executable: open.length === 0 && blockers.length === 0,
   };
 }
 
@@ -128,13 +158,24 @@ function evaluate(config, scenario) {
     const b = scenario.B[index];
     const reference = referenceLevel(a, b, config.referenceMeasure);
     if (!active) {
-      events.push({ index, label: terms.observationLabels[index], a, b, reference, status: "inactive", coupon: 0, call: false, memoryBalance });
+      events.push({
+        index,
+        label: terms.observationLabels[index],
+        a,
+        b,
+        reference,
+        status: "inactive",
+        coupon: 0,
+        call: false,
+        memoryBalance,
+      });
       continue;
     }
 
     const finalDate = index === terms.observationLabels.length - 1;
     const callEligible = !finalDate || config.finalConvention === "final-call";
-    const call = callEligible && comparisonPass(reference, terms.callSchedule[index], config.callComparison);
+    const call =
+      callEligible && comparisonPass(reference, terms.callSchedule[index], config.callComparison);
     let coupon = 0;
     let couponStatus = "missed";
 
@@ -156,7 +197,19 @@ function evaluate(config, scenario) {
       active = false;
       calledIndex = index;
     }
-    events.push({ index, label: terms.observationLabels[index], a, b, reference, status: call ? "called" : "active", coupon, couponStatus, call, callEligible, memoryBalance });
+    events.push({
+      index,
+      label: terms.observationLabels[index],
+      a,
+      b,
+      reference,
+      status: call ? "called" : "active",
+      coupon,
+      couponStatus,
+      call,
+      callEligible,
+      memoryBalance,
+    });
   }
 
   let principalCash = 0;
@@ -171,13 +224,18 @@ function evaluate(config, scenario) {
     settlementStatus = `Autocalled at ${terms.observationLabels[calledIndex]}; principal repaid in cash.`;
   } else if (finalReference >= terms.protectionBarrier) {
     principalCash = terms.nominal;
-    settlementStatus = "Reached maturity with protection condition satisfied; principal repaid in cash.";
+    settlementStatus =
+      "Reached maturity with protection condition satisfied; principal repaid in cash.";
   } else if (config.settlement === "cash") {
-    principalCash = terms.nominal * finalReference / 100;
+    principalCash = (terms.nominal * finalReference) / 100;
     settlementStatus = "Protection failed; downside value settled in cash.";
   } else {
     const asset = finalA <= finalB ? "A" : "B";
-    delivered = { asset, units: terms.nominal / terms.initialLevels[asset], value: terms.nominal * finalReference / 100 };
+    delivered = {
+      asset,
+      units: terms.nominal / terms.initialLevels[asset],
+      value: (terms.nominal * finalReference) / 100,
+    };
     settlementStatus = `Protection failed; ${delivered.units.toFixed(2)} unit of Asset ${asset} is delivered.`;
   }
 
@@ -195,7 +253,7 @@ function evaluate(config, scenario) {
     totalCash: couponCash + principalCash,
     totalEconomic: couponCash + economicPrincipal,
     finalReference,
-    settlementStatus
+    settlementStatus,
   };
 }
 
@@ -213,7 +271,7 @@ function normalizedRows(config) {
     "maturity-only": "Final date is maturity settlement, not an autocall observation",
     "final-call": "Final date tests autocall before maturity settlement",
     cash: "Cash-only downside settlement",
-    physical: "Deliver worst-performing asset when protection fails"
+    physical: "Deliver worst-performing asset when protection fails",
   };
   return [
     ["PROD-01", "Product", "Two-asset step-down autocallable note; fictional; nominal 100"],
@@ -225,29 +283,106 @@ function normalizedRows(config) {
     ["MAT-01", "Final convention", text[config.finalConvention]],
     ["SET-01", "Settlement", text[config.settlement]],
     ["STATE-01", "Persistent state", "ACTIVE / REDEEMED / MATURED; coupon memory balance"],
-    ["TERM-01", "Termination", "After redemption, all later observations and cash-flow tests are inactive"]
+    [
+      "TERM-01",
+      "Termination",
+      "After redemption, all later observations and cash-flow tests are inactive",
+    ],
   ];
 }
 
 function acceptanceTests(config) {
   const unresolved = Object.values(config).includes("unresolved");
-  const equalityResult = config.callComparison === "unresolved" ? "Pending operator decision" : config.callComparison === "gte" ? "Redeem" : "Remain active";
-  const callCouponResult = config.eventOrder === "unresolved" ? "Pending event-order decision" : config.eventOrder === "coupon-first" ? "Pay coupon, then redeem" : "Redeem; do not pay current coupon";
-  const memoryResult = config.memory === "unresolved" ? "Pending memory decision" : config.memory === "yes" ? "Bank 2.00" : "Lose 2.00";
-  const finalResult = config.finalConvention === "unresolved" ? "Pending final-date decision" : config.finalConvention === "final-call" ? "Test 85% call before maturity" : "Proceed directly to maturity settlement";
-  const downsideResult = config.settlement === "unresolved" ? "Pending settlement decision" : config.settlement === "cash" ? "Pay 59.99 cash principal" : config.referenceMeasure === "average" ? "BLOCKED: deliverable undefined" : "Deliver 1.00 unit of the worse asset";
+  const equalityResult =
+    config.callComparison === "unresolved"
+      ? "Pending operator decision"
+      : config.callComparison === "gte"
+        ? "Redeem"
+        : "Remain active";
+  const callCouponResult =
+    config.eventOrder === "unresolved"
+      ? "Pending event-order decision"
+      : config.eventOrder === "coupon-first"
+        ? "Pay coupon, then redeem"
+        : "Redeem; do not pay current coupon";
+  const memoryResult =
+    config.memory === "unresolved"
+      ? "Pending memory decision"
+      : config.memory === "yes"
+        ? "Bank 2.00"
+        : "Lose 2.00";
+  const finalResult =
+    config.finalConvention === "unresolved"
+      ? "Pending final-date decision"
+      : config.finalConvention === "final-call"
+        ? "Test 85% call before maturity"
+        : "Proceed directly to maturity settlement";
+  const downsideResult =
+    config.settlement === "unresolved"
+      ? "Pending settlement decision"
+      : config.settlement === "cash"
+        ? "Pay 59.99 cash principal"
+        : config.referenceMeasure === "average"
+          ? "BLOCKED: deliverable undefined"
+          : "Deliver 1.00 unit of the worse asset";
   return [
     ["AT-01", "Exact call trigger", "Q2 reference = 95.00", equalityResult],
     ["AT-02", "Just below call trigger", "Q2 reference = 94.99", "Remain active"],
-    ["AT-03", "Exact coupon barrier", "Reference = 70.00", "Pay current coupon and eligible memory"],
+    [
+      "AT-03",
+      "Exact coupon barrier",
+      "Reference = 70.00",
+      "Pay current coupon and eligible memory",
+    ],
     ["AT-04", "Just below coupon barrier", "Reference = 69.99", memoryResult],
     ["AT-05", "Coupon and call together", "Both tests pass on one active date", callCouponResult],
-    ["AT-06", "Exact protection barrier", "Final reference = 60.00 and no prior call", "Repay 100 principal"],
-    ["AT-07", "Below protection barrier", "Final reference = 59.99 and no prior call", downsideResult],
+    [
+      "AT-06",
+      "Exact protection barrier",
+      "Final reference = 60.00 and no prior call",
+      "Repay 100 principal",
+    ],
+    [
+      "AT-07",
+      "Below protection barrier",
+      "Final reference = 59.99 and no prior call",
+      downsideResult,
+    ],
     ["AT-08", "Final-date convention", "Final reference = 86.00", finalResult],
-    ["AT-09", "Post-call event", "A prior observation already redeemed", "Ignore all later coupon and call tests"],
-    ["AT-10", "Basket divergence", "Asset A = 120; Asset B = 60", config.referenceMeasure === "unresolved" ? "Pending reference-measure decision" : config.referenceMeasure === "worst" ? "Reference = 60" : "Reference = 90"]
-  ].map((row) => ({ id: row[0], title: row[1], given: row[2], expected: row[3], pending: unresolved && /Pending|BLOCKED/.test(row[3]) }));
+    [
+      "AT-09",
+      "Post-call event",
+      "A prior observation already redeemed",
+      "Ignore all later coupon and call tests",
+    ],
+    [
+      "AT-10",
+      "Basket divergence",
+      "Asset A = 120; Asset B = 60",
+      config.referenceMeasure === "unresolved"
+        ? "Pending reference-measure decision"
+        : config.referenceMeasure === "worst"
+          ? "Reference = 60"
+          : "Reference = 90",
+    ],
+  ].map((row) => ({
+    id: row[0],
+    title: row[1],
+    given: row[2],
+    expected: row[3],
+    pending: unresolved && /Pending|BLOCKED/.test(row[3]),
+  }));
 }
 
-export { terms, profiles, scenarios, choiceDefinitions, referenceLevel, comparisonPass, compile, evaluate, normalizedRows, acceptanceTests };
+export {
+  terms,
+  profiles,
+  scenarios,
+  choiceDefinitions,
+  referenceLevel,
+  comparisonPass,
+  compile,
+  evaluate,
+  normalizedRows,
+  acceptanceTests,
+};

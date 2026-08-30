@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { evaluate as evaluateBasket } from "./basket/engine.js";
-import {
-  outperformance,
-  redemption as participationRedemption
-} from "./participation/engine.js";
+import { outperformance, redemption as participationRedemption } from "./participation/engine.js";
 import { evaluate as evaluateKoda } from "./koda-kodd/engine.js";
 
 describe("basket engine", () => {
@@ -11,7 +8,7 @@ describe("basket engine", () => {
     const paths = [
       new Float64Array(253).fill(100),
       new Float64Array(253).fill(100),
-      new Float64Array(253).fill(100)
+      new Float64Array(253).fill(100),
     ];
     paths[2][252] = 50;
     const result = evaluateBasket(paths, {
@@ -23,7 +20,7 @@ describe("basket engine", () => {
       barrier: 60,
       settlement: "physical",
       tenor: 1,
-      frequency: 4
+      frequency: 4,
     });
 
     expect(result.worstName).toBe("Asset C");
@@ -36,7 +33,7 @@ describe("participation engine", () => {
   const params = {
     product: "bonus_outperformance",
     participation: 1.1,
-    bonus: 110
+    bonus: 110,
   };
 
   it("keeps the bonus floor only while the barrier state is intact", () => {
@@ -60,7 +57,7 @@ describe("KODA/KODD engine", () => {
       gearing: 2,
       tenor: 1,
       frequency: 4,
-      guaranteed: 0
+      guaranteed: 0,
     });
 
     expect(result.knockedOut).toBe(false);

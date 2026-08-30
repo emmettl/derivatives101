@@ -1,38 +1,15 @@
 "use strict";
 
+import { metricValue, optionMetrics as calculateOptionMetrics } from "./math";
+import { simulatePaths } from "./simulation";
+
 const $=id=>document.getElementById(id);
 const inputs=["spot","strike","vol","expiry","rate","dividend"];
 const state={type:"call",greek:"delta",seed:481516,sample:1,yaw:-0.72,pitch:0.62,drag:null};
 const palette={ink:"#0b1e2d",night:"#071620",deep:"#123b54",steel:"#2c5670",amber:"#e4a340",jade:"#3e8e7e",brick:"#b5443a",muted:"#8ba0ad",line:"#294352",white:"#edf3f6"};
 
-function normPdf(x){return Math.exp(-.5*x*x)/Math.sqrt(2*Math.PI)}
-function normCdf(x){
-  const b=[.319381530,-.356563782,1.781477937,-1.821255978,1.330274429];
-  const sign=x<0?-1:1,a=Math.abs(x),t=1/(1+.2316419*a);
-  let poly=0,p=t; for(let i=0;i<b.length;i++){poly+=b[i]*p;p*=t}
-  const value=1-normPdf(a)*poly; return sign>0?value:1-value;
-}
 function optionMetrics(S,K,T,r,q,v,type=state.type){
-  const dr=Math.exp(-r*T),dq=Math.exp(-q*T);
-  if(T<=0||v<=0||S<=0||K<=0){
-    const intrinsic=type==="call"?Math.max(S-K,0):Math.max(K-S,0);
-    return {price:intrinsic,delta:type==="call"?(S>K?1:0):(S<K?-1:0),gamma:0,vega:0,theta:0,rho:0,intrinsic};
-  }
-  const root=Math.sqrt(T),vs=v*root,d1=(Math.log(S/K)+(r-q+.5*v*v)*T)/vs,d2=d1-vs;
-  const nd1=normPdf(d1); let price,delta,theta,rho;
-  if(type==="call"){
-    price=S*dq*normCdf(d1)-K*dr*normCdf(d2);
-    delta=dq*normCdf(d1);
-    theta=-(S*dq*nd1*v)/(2*root)-r*K*dr*normCdf(d2)+q*S*dq*normCdf(d1);
-    rho=K*T*dr*normCdf(d2);
-  }else{
-    price=K*dr*normCdf(-d2)-S*dq*normCdf(-d1);
-    delta=-dq*normCdf(-d1);
-    theta=-(S*dq*nd1*v)/(2*root)+r*K*dr*normCdf(-d2)-q*S*dq*normCdf(-d1);
-    rho=-K*T*dr*normCdf(-d2);
-  }
-  const intrinsic=type==="call"?Math.max(S-K,0):Math.max(K-S,0);
-  return {price,delta,gamma:dq*nd1/(S*vs),vega:S*dq*nd1*root,theta,rho,intrinsic};
+  return calculateOptionMetrics({S,K,T,r,q,v},type);
 }
 function params(){return {S:+$("spot").value,K:+$("strike").value,T:+$("expiry").value,r:+$("rate").value/100,q:+$("dividend").value/100,v:+$("vol").value/100}}
 function fmt(value,d=2){return Number.isFinite(value)?value.toFixed(d):"—"}
@@ -112,7 +89,7 @@ const greekInfo={
   theta:["Theta","Theta is usually most negative near the strike. Time decay is not a steady fee; it accelerates where time value is concentrated."],
   rho:["Rho","Rho shows sensitivity to rates. It grows with time and has the opposite sign for puts and calls."]
 };
-function greekValue(m,g){return g==="vega"?m.vega/100:g==="theta"?m.theta/365:g==="rho"?m.rho/100:m[g]}
+function greekValue(m,g){return metricValue(m,g)}
 let greekPlot=null;
 function drawGreeks(){
   const canvas=$("greeks"),{ctx,w,h}=resize(canvas),p=params(),lo=p.K*.4,hi=p.K*1.6,n=220,vals=[];
@@ -131,16 +108,6 @@ function drawGreeks(){
   $("greek-insight-label").textContent=greekInfo[state.greek][0];$("greek-insight").textContent=greekInfo[state.greek][1];
 }
 
-function seeded(seed){let s=seed>>>0;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296}}
-function normal(r){let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
-function simulateFallback(p,type,seed,id,sample){
-  const rgen=seeded(seed),steps=80,paths=4000,drawN=64,dt=p.T/steps,drift=(p.r-p.q-.5*p.v*p.v)*dt,shock=p.v*Math.sqrt(dt),samples=[],ends=[],sum=0;
-  for(let j=0;j<paths;j++){
-    let S=p.S,path=j<drawN?[S]:null;for(let i=1;i<=steps;i++){S*=Math.exp(drift+shock*normal(rgen));if(path)path.push(S)}
-    const payoff=type==="call"?Math.max(S-p.K,0):Math.max(p.K-S,0);sum+=payoff;ends.push(S);if(path)samples.push(path);
-  }
-  return {id,sample,samples,ends,estimate:Math.exp(-p.r*p.T)*sum/paths,steps,p,type};
-}
 function drawPaths(sim){
   const canvas=$("paths"),{ctx,w,h}=resize(canvas),p=sim.p,m={l:48,r:25,t:24,b:38},split=w*.73,pathW=split-m.l-18;
   const all=sim.samples.flatMap(path=>Array.from(path)),rawLo=Math.min(p.K,p.S,...all),rawHi=Math.max(p.K,p.S,...all),pad=(rawHi-rawLo)*.08,ylo=Math.max(0,rawLo-pad),yhi=rawHi+pad;
@@ -158,7 +125,7 @@ function drawPaths(sim){
 }
 
 let fastFrame,plotFrame,plotTimer,settledPlotTimer,lastPlotAt=0,surfaceFrame,surfaceVersion=0,resizeFrame,mcTimer,mcVersion=0,lastSimulation=null,surfaceWorker=null;
-const mcWorker=typeof Worker!=="undefined"?new Worker("option-worker.js"):null;
+const mcWorker=typeof Worker!=="undefined"?new Worker(new URL("./option-worker.ts",import.meta.url),{type:"module"}):null;
 function setMCStatus(message,busy=false){const status=$("mc-status");status.textContent=message;status.classList.toggle("busy",busy)}
 function renderFast(){updateReadouts();drawSurface();drawGreeks();lastPlotAt=performance.now()}
 function renderPlots(){if(!surfaceWorker)drawSurface();drawGreeks();lastPlotAt=performance.now()}
@@ -181,7 +148,7 @@ function startSimulation(id){
   setMCStatus(`Sample ${state.sample} · calculating…`,true);
   const payload={id,sample:state.sample,p:params(),type:state.type,seed:state.seed,paths:4000,drawN:64,steps:80};
   if(mcWorker)mcWorker.postMessage(payload);
-  else setTimeout(()=>finishSimulation(simulateFallback(payload.p,payload.type,payload.seed,id,payload.sample)),0);
+  else setTimeout(()=>finishSimulation(simulatePaths(payload)),0);
 }
 function scheduleSimulation(delay=180){
   const id=++mcVersion;clearTimeout(mcTimer);$("paths").classList.add("refreshing");setMCStatus(`Sample ${state.sample} · ${delay?"waiting…":"calculating…"}`,true);
@@ -198,7 +165,7 @@ document.querySelectorAll("#greek-picker button").forEach(button=>button.addEven
 
 const surface=$("surface");
 if(typeof Worker!=="undefined"&&typeof surface.transferControlToOffscreen==="function"){
-  try{surfaceWorker=new Worker("surface-worker.js");const offscreen=surface.transferControlToOffscreen();surfaceWorker.postMessage({action:"init",canvas:offscreen},[offscreen]);surfaceWorker.onmessage=event=>{if(event.data.action==="rendered")surface.dataset.frame=event.data.frame};surface.dataset.renderer="worker"}catch(error){surfaceWorker=null}
+  try{surfaceWorker=new Worker(new URL("./surface-worker.js",import.meta.url),{type:"module"});const offscreen=surface.transferControlToOffscreen();surfaceWorker.postMessage({action:"init",canvas:offscreen},[offscreen]);surfaceWorker.onmessage=event=>{if(event.data.action==="rendered")surface.dataset.frame=event.data.frame};surface.dataset.renderer="worker"}catch(error){surfaceWorker=null}
 }
 if(!surfaceWorker)surface.dataset.renderer="main";
 surface.addEventListener("pointerdown",e=>{state.drag={x:e.clientX,y:e.clientY,yaw:state.yaw,pitch:state.pitch};surface.setPointerCapture(e.pointerId)});

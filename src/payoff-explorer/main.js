@@ -1,0 +1,10 @@
+import "./navigation.js";
+import "./panels/building-blocks.js";
+import "./panels/accumulator.js";
+import "./panels/reverse-convertible.js";
+import "./panels/worst-of-fcn.js";
+import "./panels/discount-certificate.js";
+import "./panels/bonus-certificate.js";
+import "./panels/capital-protected.js";
+import "./panels/mini-future.js";
+import "./guidance.js";

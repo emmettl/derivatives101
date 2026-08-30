@@ -16,9 +16,21 @@ An independent, generally useful short course in options and structured products
 
 The course is published at [emmettl.github.io/derivatives101](https://emmettl.github.io/derivatives101/).
 
-Every push to `main` builds and publishes the multi-page site through GitHub Pages. `index.html` is the course home, `payoff-explorer.html` is the quick payoff explorer, and `structured-products.html` is the entry point for the lifecycle labs. Most labs remain dependency-free browser JavaScript; Vite provides the shared development server and production packaging, while the multi-leg strategy lab is written in TypeScript.
+Every push to `main` builds and publishes the multi-page site through GitHub Pages. `index.html` is the course home, `payoff-explorer.html` is the quick payoff explorer, and `structured-products.html` is the entry point for the lifecycle labs. The richer interactive pages use Vite module entry points under `src/`; simpler lesson pages remain dependency-free browser JavaScript.
 
-Run `npm install` once, then use `npm run dev` for local development, `npm test` for the strategy-engine checks, and `npm run build` for a type-checked production bundle of the multi-leg lab plus the complete legacy site.
+Run `npm install` once, then use `npm run dev` for local development, `npm test` for the financial-engine checks, and `npm run build` for a type-checked production bundle plus the complete site.
+
+## Interactive source layout
+
+- `src/strategy/` contains the typed multi-leg strategy engine, chart and view.
+- `src/payoff-explorer/` gives each product family its own panel module.
+- `src/option-lab/` separates option math, simulations, workers and rendering.
+- `src/structured/` shares one lifecycle engine and controller across reverse-convertible, coupon-memory and lock-in pages.
+- `src/basket/`, `src/participation/` and `src/koda-kodd/` keep each product engine independent from its page controller and worker.
+- `src/specification/` and `src/decoder/` separate contract rules and case data from presentation.
+- `src/shared/` contains deterministic simulation primitives used across product engines.
+
+Add a rich interactive page to `bundledEntries` in `vite.config.ts`. Keep financial rules in a pure engine module where they can be tested without a browser, and keep DOM rendering in the page entry module.
 
 ## Important note
 

@@ -1,72 +1,9 @@
 "use strict";
 
+import * as StructuredEngine from "./engine.js";
+import { colors, configs } from "./config.js";
+
 const $=id=>document.getElementById(id),mode=document.body.dataset.lab;
-const colors={ink:"#0b1e2d",deep:"#123b54",steel:"#2c5670",amber:"#e4a340",amberD:"#a96f19",jade:"#3e8e7e",brick:"#b5443a",muted:"#64798a",line:"#d3dbe2",tint:"#f2f5f7"};
-const configs={
-  rc:{
-    defaults:{variant:"barrier",coupon:8,barrier:65,barrierObservation:"daily",settlement:"physical",callLevel:100,callPolicy:"above",tenor:3,frequency:4,vol:30},
-    variants:{
-      plain:["Plain reverse convertible","No barrier condition: at maturity the investor receives 100 if the underlying is at or above the strike, otherwise the underlying level, plus fixed coupons."],
-      barrier:["Barrier reverse convertible","The short-put downside is conditional. Principal falls with the underlying only if the barrier condition has occurred and the final level is below the strike."],
-      issuer:["Issuer-callable barrier reverse convertible","Eligible dates give the issuer a right to redeem at par. The path does not determine that discretionary decision, so the simulation states an issuer policy explicitly."],
-      autocall:["Autocallable barrier reverse convertible","At each eligible observation, redemption is automatic when the underlying meets the call trigger. The note ends and future coupons are not earned."]
-    },
-    scenarios:[["random","Random"],["rally","Rally & call"],["crash","Crash & recover"],["decline","Slow decline"]],
-    controls:[
-      {key:"variant",type:"select",label:"Lifecycle variant",options:[["plain","Plain · no barrier"],["barrier","Barrier"],["issuer","Issuer callable"],["autocall","Autocallable"]]},
-      {key:"coupon",type:"range",label:"Fixed coupon",min:0,max:20,step:.5,format:v=>v.toFixed(1)+"% p.a."},
-      {key:"barrier",type:"range",label:"Downside barrier",min:40,max:95,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.variant!=="plain"},
-      {key:"barrierObservation",type:"radio",label:"Barrier observation",options:[["maturity","Maturity only"],["daily","Daily close"]],show:p=>p.variant!=="plain"},
-      {key:"settlement",type:"radio",label:"Downside settlement",options:[["cash","Cash amount"],["physical","Underlying units"]],help:"Physical delivery applies only when downside redemption is activated; par and early-call redemption remain cash."},
-      {key:"callLevel",type:"range",label:"Early-redemption level",min:80,max:130,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.variant==="issuer"||p.variant==="autocall"},
-      {key:"callPolicy",type:"select",label:"Issuer exercise assumption",options:[["above","Exercise if level meets threshold"],["first","Exercise at first eligible date"],["never","Never exercise"]],show:p=>p.variant==="issuer",help:"This is a modelling assumption, not a contractual market trigger."},
-      {key:"tenor",type:"range",label:"Scheduled tenor",min:1,max:5,step:1,format:v=>v.toFixed(0)+" years"},
-      {key:"frequency",type:"select",numeric:true,label:"Observation frequency",options:[[4,"Quarterly"],[12,"Monthly"]]},
-      {key:"vol",type:"range",label:"Annualised volatility",min:10,max:70,step:1,format:v=>v.toFixed(0)+"%"}
-    ]
-  },
-  coupon:{
-    defaults:{style:"memory",coupon:10,couponLevel:75,autocall:true,callLevel:100,barrier:60,settlement:"physical",tenor:3,frequency:4,vol:32},
-    variants:{
-      fixed:["Fixed coupon","Every scheduled coupon is paid while the note is alive. The underlying affects early redemption and final principal, but not the coupon test."],
-      conditional:["Conditional coupon without memory","A coupon is paid only when the underlying meets the coupon level on that observation date. A failed coupon is permanently lost."],
-      memory:["Conditional coupon with memory","A failed coupon increases the memory balance. When a later coupon test passes, the current coupon and the accumulated balance are paid together."]
-    },
-    scenarios:[["random","Random"],["memory","Miss & recover"],["rally","Early call"],["decline","Coupons missed"]],
-    controls:[
-      {key:"style",type:"select",label:"Coupon convention",options:[["fixed","Fixed"],["conditional","Conditional · no memory"],["memory","Conditional · memory"]]},
-      {key:"coupon",type:"range",label:"Headline coupon",min:0,max:24,step:.5,format:v=>v.toFixed(1)+"% p.a."},
-      {key:"couponLevel",type:"range",label:"Coupon trigger",min:40,max:100,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.style!=="fixed"},
-      {key:"autocall",type:"radio",label:"Early redemption",boolean:true,options:[[false,"No autocall"],[true,"Autocall"]]},
-      {key:"callLevel",type:"range",label:"Autocall trigger",min:80,max:130,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.autocall},
-      {key:"barrier",type:"range",label:"European downside barrier",min:40,max:90,step:1,format:v=>v.toFixed(0)+"%"},
-      {key:"settlement",type:"radio",label:"Downside settlement",options:[["cash","Cash amount"],["physical","Underlying units"]],help:"Physical delivery applies only below the maturity barrier. Coupons and any early redemption remain cash."},
-      {key:"tenor",type:"range",label:"Scheduled tenor",min:1,max:5,step:1,format:v=>v.toFixed(0)+" years"},
-      {key:"frequency",type:"select",numeric:true,label:"Coupon observations",options:[[4,"Quarterly"],[12,"Monthly"]]},
-      {key:"vol",type:"range",label:"Annualised volatility",min:10,max:70,step:1,format:v=>v.toFixed(0)+"%"}
-    ]
-  },
-  lock:{
-    defaults:{style:"par",lockLevel:110,coupon:7,barrier:65,settlement:"physical",initialFloor:80,capture:80,tenor:4,frequency:4,vol:30},
-    variants:{
-      par:["Par lock-in","A qualifying observation raises the minimum principal redemption to 100. The note remains alive and continues paying its fixed coupon."],
-      step:["Step-up minimum repayment","A qualifying observation can raise the maturity floor to a percentage of the observed underlying level. Final payment is the greater of that locked floor and final participation."]
-    },
-    scenarios:[["random","Random"],["lock","Lock then sell off"],["rally","Repeated lock-ins"],["decline","No lock-in"]],
-    controls:[
-      {key:"style",type:"select",label:"Lock-in convention",options:[["par","Par lock-in BRC"],["step","Step-up minimum repayment"]]},
-      {key:"lockLevel",type:"range",label:"Lock-in trigger",min:95,max:140,step:1,format:v=>v.toFixed(0)+"%"},
-      {key:"coupon",type:"range",label:"Fixed coupon",min:0,max:18,step:.5,format:v=>v.toFixed(1)+"% p.a.",show:p=>p.style==="par"},
-      {key:"barrier",type:"range",label:"European downside barrier",min:40,max:90,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.style==="par"},
-      {key:"settlement",type:"radio",label:"Downside settlement",options:[["cash","Cash amount"],["physical","Underlying units"]],show:p=>p.style==="par",help:"Physical delivery is possible only if no par lock-in protects redemption and downside is activated."},
-      {key:"initialFloor",type:"range",label:"Initial minimum payment",min:50,max:95,step:1,format:v=>v.toFixed(0)+"%",show:p=>p.style==="step"},
-      {key:"capture",type:"range",label:"Lock-in factor",min:50,max:100,step:5,format:v=>v.toFixed(0)+"% of observed level",show:p=>p.style==="step",help:"A 120 observation with an 80% factor locks a minimum payment of 96."},
-      {key:"tenor",type:"range",label:"Scheduled tenor",min:1,max:6,step:1,format:v=>v.toFixed(0)+" years"},
-      {key:"frequency",type:"select",numeric:true,label:"Lock-in observations",options:[[1,"Annual"],[4,"Quarterly"],[12,"Monthly"]]},
-      {key:"vol",type:"range",label:"Annualised volatility",min:10,max:70,step:1,format:v=>v.toFixed(0)+"%"}
-    ]
-  }
-};
 const config=configs[mode],state={params:{...config.defaults},scenario:config.scenarios[0][0],seed:904271,simulationVersion:0};
 
 function svgEl(name,attrs={},text=""){const node=document.createElementNS("http://www.w3.org/2000/svg",name);Object.entries(attrs).forEach(([key,value])=>node.setAttribute(key,value));if(text)node.textContent=text;return node}
@@ -198,7 +135,7 @@ function drawHistogram(returns){
   if(lo<0&&hi>0)svg.append(svgEl("line",{x1:X(0),x2:X(0),y1:m.t,y2:h-m.b,stroke:colors.ink,"stroke-width":1.3}));
   for(let i=0;i<=4;i++){const value=lo+span*i/4,x=X(value);svg.append(svgEl("text",{x,y:h-16,"text-anchor":"middle",class:"axis"},money(value)))}svg.append(svgEl("text",{x:(m.l+w-m.r)/2,y:h-2,"text-anchor":"middle",class:"axis"},"Total return per 100 invested"));
 }
-let simulationTimer,simulationVersion=0;const simulationWorker=typeof Worker!=="undefined"?new Worker("structured-worker.js?v=3"):null;
+let simulationTimer,simulationVersion=0;const simulationWorker=typeof Worker!=="undefined"?new Worker(new URL("./worker.js", import.meta.url), { type: "module" }):null;
 function finishSimulation(message){if(message.id!==simulationVersion)return;const statsHost=$("stats");statsHost.innerHTML="";statDefinitions(message.stats).forEach(item=>{const card=document.createElement("div");card.className="stat";const label=document.createElement("span"),value=document.createElement("strong");label.textContent=item.label;value.textContent=item.value;card.append(label,value);statsHost.append(card)});drawHistogram(Array.from(message.returns));$("simulation-status").textContent=`Current · ${message.count.toLocaleString()} paths · zero-drift lognormal illustration`}
 function scheduleSimulation(){const id=++simulationVersion;clearTimeout(simulationTimer);$("simulation-status").textContent="Updating simulated outcomes…";simulationTimer=setTimeout(()=>{const payload={id,mode,params:{...state.params},seed:state.seed,count:2000};if(simulationWorker)simulationWorker.postMessage(payload);else setTimeout(()=>finishSimulation({id,...StructuredEngine.simulate(mode,payload.params,payload.seed,payload.count)}),0)},140)}
 if(simulationWorker)simulationWorker.onmessage=event=>finishSimulation(event.data);

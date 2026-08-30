@@ -1,23 +1,12 @@
 "use strict";
 
+import { optionMetrics as calculateOptionMetrics } from "./math";
+
 const palette={deep:"#123b54",steel:"#2c5670",amber:"#e4a340",jade:"#3e8e7e",muted:"#8ba0ad",white:"#edf3f6"};
 let canvas,ctx,latestJob=null,renderQueued=false;
 
-function normPdf(x){return Math.exp(-.5*x*x)/Math.sqrt(2*Math.PI)}
-function normCdf(x){
-  const b=[.319381530,-.356563782,1.781477937,-1.821255978,1.330274429],sign=x<0?-1:1,a=Math.abs(x),t=1/(1+.2316419*a);
-  let poly=0,p=t;for(let i=0;i<b.length;i++){poly+=b[i]*p;p*=t}
-  const value=1-normPdf(a)*poly;return sign>0?value:1-value;
-}
 function optionMetrics(S,K,T,r,q,v,type){
-  const dr=Math.exp(-r*T),dq=Math.exp(-q*T);
-  if(T<=0||v<=0||S<=0||K<=0){
-    const intrinsic=type==="call"?Math.max(S-K,0):Math.max(K-S,0);
-    return {price:intrinsic,intrinsic};
-  }
-  const root=Math.sqrt(T),vs=v*root,d1=(Math.log(S/K)+(r-q+.5*v*v)*T)/vs,d2=d1-vs;
-  const price=type==="call"?S*dq*normCdf(d1)-K*dr*normCdf(d2):K*dr*normCdf(-d2)-S*dq*normCdf(-d1);
-  return {price,intrinsic:type==="call"?Math.max(S-K,0):Math.max(K-S,0)};
+  return calculateOptionMetrics({S,K,T,r,q,v},type);
 }
 function mix(a,b,t){
   const pa=a.match(/\w\w/g).map(x=>parseInt(x,16)),pb=b.match(/\w\w/g).map(x=>parseInt(x,16));

@@ -1,4 +1,5 @@
 import * as engine from "./engine";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
   "use strict";
@@ -30,6 +31,101 @@ import * as engine from "./engine";
   ];
   let state = Object.assign({}, presets.financing);
   let framePending = false;
+  let curveContext = null;
+  let optionContext = null;
+
+  const curveInspector = attachHorizontalInspector(byId("forward-curve-chart"), () => {
+    if (!curveContext) return null;
+    return {
+      width: 900,
+      left: 64,
+      right: 24,
+      top: 24,
+      bottom: 310,
+      minimum: 0.25,
+      maximum: 5,
+      plotMinimum: 0,
+      plotMaximum: 5,
+      step: 0.25,
+      value: state.tenor,
+      label: "Forward curve tenor selection",
+      inspect(tenor) {
+        const selected = engine.metrics(Object.assign({}, state, { tenor }));
+        return {
+          title: `Tenor ${tenor.toFixed(2)} years`,
+          rows: [
+            { label: "Net forward", value: selected.forward.toFixed(2), color: "#2c5670" },
+            {
+              label: "Financing only",
+              value: selected.financingOnlyForward.toFixed(2),
+              color: "#3e8e7e",
+            },
+            {
+              label: "Dividend only",
+              value: selected.dividendOnlyForward.toFixed(2),
+              color: "#b5443a",
+            },
+            { label: "Basis to spot", value: signed(selected.basis) },
+          ],
+          points: [
+            { y: curveContext.y(selected.forward), color: "#2c5670" },
+            { y: curveContext.y(selected.financingOnlyForward), color: "#3e8e7e" },
+            { y: curveContext.y(selected.dividendOnlyForward), color: "#b5443a" },
+          ],
+        };
+      },
+      onSelect(tenor) {
+        state.tenor = tenor;
+        state.id = "custom";
+        syncControls();
+        render();
+      },
+    };
+  });
+
+  const optionInspector = attachHorizontalInspector(byId("forward-option-chart"), () => {
+    if (!optionContext) return null;
+    return {
+      width: 900,
+      left: 62,
+      right: 24,
+      top: 24,
+      bottom: 300,
+      minimum: 60,
+      maximum: 140,
+      step: 1,
+      value: state.strike,
+      label: "Call value strike selection",
+      inspect(strikeValue) {
+        const selected = engine.metrics(Object.assign({}, state, { strike: strikeValue }));
+        return {
+          title: `Strike ${strikeValue.toFixed(0)}`,
+          rows: [
+            { label: "Call with carry", value: selected.prices.call.toFixed(2), color: "#2c5670" },
+            { label: "Spot-as-forward call", value: selected.spotForwardPrices.call.toFixed(2) },
+            {
+              label: "Carry difference",
+              value: signed(selected.prices.call - selected.spotForwardPrices.call),
+            },
+            {
+              label: "Budget participation",
+              value: `${(selected.participation * 100).toFixed(1)}%`,
+            },
+          ],
+          points: [
+            { y: optionContext.y(selected.prices.call), color: "#2c5670" },
+            { y: optionContext.y(selected.spotForwardPrices.call), color: "#0b1e2d" },
+          ],
+        };
+      },
+      onSelect(strikeValue) {
+        state.strike = Math.round(strikeValue);
+        state.id = "custom";
+        syncControls();
+        render();
+      },
+    };
+  });
 
   function number(value) {
     return value.toFixed(2);
@@ -181,6 +277,8 @@ import * as engine from "./engine";
     );
     const selected = engine.metrics(state);
     svg.innerHTML = `<title>Forward level across tenor</title><desc>The financing-only curve rises with positive rates, the dividend-only curve falls with positive dividend yield, and the net forward combines both effects.</desc>${yTicks.map((tick) => `<line class="grid" x1="${left}" x2="${width - right}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${left - 8}" y="${y(tick) + 3}" text-anchor="end">${tick.toFixed(0)}</text>`).join("")}${xTicks.map((tick) => `<line class="grid" x1="${x(tick)}" x2="${x(tick)}" y1="${top}" y2="${height - bottom}"></line><text class="axis" x="${x(tick)}" y="${height - bottom + 18}" text-anchor="middle">${tick}</text>`).join("")}<path class="forward-spot-line" d="${path("spot")}"></path><path class="forward-finance-line" d="${path("financingOnly")}"></path><path class="forward-dividend-line" d="${path("dividendOnly")}"></path><path class="forward-net-line" d="${path("forward")}"></path><line class="forward-selected-guide" x1="${x(state.tenor)}" x2="${x(state.tenor)}" y1="${top}" y2="${height - bottom}"></line><circle class="forward-selected-point" cx="${x(state.tenor)}" cy="${y(selected.forward)}" r="5"></circle><text class="axis forward-axis-title" x="${(left + width - right) / 2}" y="${height - 8}" text-anchor="middle">Tenor (years)</text><text class="axis forward-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">Level</text>`;
+    curveContext = { y };
+    curveInspector.refresh();
   }
 
   function renderOptions(result) {
@@ -240,6 +338,8 @@ import * as engine from "./engine";
     const xTicks = [60, 80, 100, 120, 140];
     const yTicks = Array.from({ length: 6 }, (_, indexValue) => (yMaximum * indexValue) / 5);
     svg.innerHTML = `<title>Call value across strikes</title><desc>The carried-forward line uses the selected financing and dividend assumptions. The comparison holds the forward equal to spot while keeping discounting and volatility unchanged.</desc>${yTicks.map((tick) => `<line class="grid" x1="${left}" x2="${width - right}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${left - 8}" y="${y(tick) + 3}" text-anchor="end">${tick.toFixed(0)}</text>`).join("")}${xTicks.map((tick) => `<line class="grid" x1="${x(tick)}" x2="${x(tick)}" y1="${top}" y2="${height - bottom}"></line><text class="axis" x="${x(tick)}" y="${height - bottom + 18}" text-anchor="middle">${tick}</text>`).join("")}<path class="forward-spot-call-line" d="${path("spotForward")}"></path><path class="forward-carried-call-line" d="${path("carried")}"></path><line class="forward-option-guide" x1="${x(state.strike)}" x2="${x(state.strike)}" y1="${top}" y2="${height - bottom}"></line><circle class="forward-option-point carried" cx="${x(state.strike)}" cy="${y(result.prices.call)}" r="5"></circle><circle class="forward-option-point spot" cx="${x(state.strike)}" cy="${y(result.spotForwardPrices.call)}" r="5"></circle><text class="axis forward-axis-title" x="${(left + width - right) / 2}" y="${height - 8}" text-anchor="middle">Strike</text><text class="axis forward-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">European call value</text>`;
+    optionContext = { y };
+    optionInspector.refresh();
   }
 
   function renderParity(result) {

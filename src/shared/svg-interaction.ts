@@ -23,6 +23,8 @@ export interface HorizontalInspectorConfig {
   bottom: number;
   minimum: number;
   maximum: number;
+  plotMinimum?: number;
+  plotMaximum?: number;
   step: number;
   value: number;
   label: string;
@@ -145,13 +147,15 @@ export function attachHorizontalInspector(
     const config = getConfig();
     if (!config) return;
     const value = normalise(rawValue);
+    const plotMinimum = config.plotMinimum ?? config.minimum;
+    const plotMaximum = config.plotMaximum ?? config.maximum;
     shownValue = value;
     if (pin) isPinned = true;
     svg.querySelector<SVGGElement>("[data-svg-inspector]")?.remove();
     const group = svgElement("g", { "data-svg-inspector": "true", class: "svg-inspector" });
     const x =
       config.left +
-      ((value - config.minimum) / (config.maximum - config.minimum)) *
+      ((value - plotMinimum) / (plotMaximum - plotMinimum)) *
         (config.width - config.left - config.right);
     group.append(
       svgElement("line", {
@@ -186,7 +190,9 @@ export function attachHorizontalInspector(
     const bounds = svg.getBoundingClientRect();
     const x = ((event.clientX - bounds.left) / bounds.width) * config.width;
     const proportion = (x - config.left) / (config.width - config.left - config.right);
-    return normalise(config.minimum + clamp(proportion, 0, 1) * (config.maximum - config.minimum));
+    const plotMinimum = config.plotMinimum ?? config.minimum;
+    const plotMaximum = config.plotMaximum ?? config.maximum;
+    return normalise(plotMinimum + clamp(proportion, 0, 1) * (plotMaximum - plotMinimum));
   };
   const select = (value: number) => {
     const config = getConfig();

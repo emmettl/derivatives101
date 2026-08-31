@@ -1,4 +1,5 @@
 import * as engine from "./engine";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
   "use strict";
@@ -35,6 +36,56 @@ import * as engine from "./engine";
       format: percent,
     },
   ];
+  let curveContext = null;
+
+  const curveInspector = attachHorizontalInspector(byId("credit-curve"), () => {
+    if (!curveContext) return null;
+    return {
+      width: 900,
+      left: 64,
+      right: 24,
+      top: 24,
+      bottom: 300,
+      minimum: 0,
+      maximum: 0.12,
+      step: 0.0025,
+      value: Math.min(0.12, Math.max(0, state.spread)),
+      label: "Issuer spread selection",
+      inspect(spread) {
+        const selected = engine.value(Object.assign({}, state, { spread, defaulted: false }));
+        return {
+          title: `Issuer spread ${basisPoints(spread)}`,
+          rows: [
+            {
+              label: "Issuer-adjusted value",
+              value: selected.creditAdjusted.toFixed(2),
+              color: "#2c5670",
+            },
+            {
+              label: "Illustrative bid",
+              value: selected.bid == null ? "No quote" : selected.bid.toFixed(2),
+              color: "#b5443a",
+            },
+            { label: "Credit adjustment", value: signed(selected.creditAdjustment) },
+            { label: "Exit deduction", value: state.exitCost.toFixed(2) },
+          ],
+          points: [
+            { y: curveContext.y(selected.creditAdjusted), color: "#2c5670" },
+            ...(selected.bid == null
+              ? []
+              : [{ y: curveContext.y(selected.bid), color: "#b5443a" }]),
+          ],
+        };
+      },
+      onSelect(spread) {
+        state.spread = spread;
+        state.defaulted = false;
+        state.id = "custom";
+        syncControls();
+        render();
+      },
+    };
+  });
 
   function points(value) {
     return `${value.toFixed(2)} points`;
@@ -230,6 +281,8 @@ import * as engine from "./engine";
       Object.assign({}, state, { spread: selectedSpread, defaulted: false }),
     );
     svg.innerHTML = `<title>Value across issuer spreads</title><desc>Issuer-adjusted model value falls as spread widens. An indicative bid is shown only when a quote is assumed available.</desc>${yTicks.map((tick) => `<line class="grid" x1="${left}" x2="${width - right}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${left - 8}" y="${y(tick) + 3}" text-anchor="end">${formatTick(tick)}</text>`).join("")}${xTicks.map((tick) => `<line class="grid" x1="${x(tick)}" x2="${x(tick)}" y1="${top}" y2="${height - bottom}"></line><text class="axis" x="${x(tick)}" y="${height - bottom + 18}" text-anchor="middle">${Math.round(tick * 10000)} bp</text>`).join("")}<path class="credit-model-line" d="${path("creditAdjusted")}"></path>${state.quoteAvailable && !state.defaulted ? `<path class="credit-bid-line" d="${path("bid")}"></path>` : ""}<line class="credit-spread-guide" x1="${x(selectedSpread)}" x2="${x(selectedSpread)}" y1="${top}" y2="${height - bottom}"></line><circle class="credit-point model" cx="${x(selectedSpread)}" cy="${y(selected.creditAdjusted)}" r="5"></circle>${selected.bid == null || state.defaulted ? "" : `<circle class="credit-point bid" cx="${x(selectedSpread)}" cy="${y(selected.bid)}" r="5"></circle>`}<text class="axis credit-axis-title" x="${(left + width - right) / 2}" y="${height - 8}" text-anchor="middle">Issuer spread</text><text class="axis credit-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">Value per 100 nominal</text>`;
+    curveContext = { y };
+    curveInspector.refresh();
   }
 
   function renderPaths(result) {

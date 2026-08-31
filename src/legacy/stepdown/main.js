@@ -1,4 +1,5 @@
 import * as engine from "./engine";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
   "use strict";
@@ -37,6 +38,43 @@ import * as engine from "./engine";
   ];
   let state = defaults();
   let framePending = false;
+  let chartContext = null;
+
+  const chartInspector = attachHorizontalInspector(byId("stepdown-path-chart"), () => {
+    if (!chartContext) return null;
+    return {
+      width: 900,
+      left: 62,
+      right: 24,
+      top: 24,
+      bottom: 340,
+      minimum: 0,
+      maximum: 7,
+      step: 1,
+      value: state.selectedIndex,
+      label: "Autocall observation selection",
+      inspect(indexValue) {
+        const event = chartContext.result.events[indexValue];
+        const threshold = event.maturity ? "Maturity rule" : level(event.threshold);
+        const couponTest = !event.active ? "Not tested" : event.couponPass ? "Pass" : "Miss";
+        return {
+          title: `Q${indexValue + 1} · ${event.state}`,
+          rows: [
+            { label: "Underlying", value: level(event.level), color: "#2c5670" },
+            { label: "Call threshold", value: threshold, color: "#b2741b" },
+            { label: "Coupon test", value: couponTest },
+            { label: "Decision", value: event.decision },
+          ],
+          points: [{ y: chartContext.y(event.level), color: "#2c5670" }],
+        };
+      },
+      onSelect(indexValue) {
+        state.selectedIndex = indexValue;
+        syncControls();
+        render();
+      },
+    };
+  });
 
   function defaults() {
     return {
@@ -190,6 +228,8 @@ import * as engine from "./engine";
     }
     const callEvent = result.called ? result.events[result.calledIndex] : null;
     svg.innerHTML = `<title>Step-down autocall lifecycle</title><desc>The underlying is compared with a descending call threshold at each pre-maturity observation. Coupon and maturity protection use separate fixed barriers.</desc>${yTicks.map((tick) => `<line class="grid" x1="${left}" x2="${width - right}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${left - 8}" y="${y(tick) + 3}" text-anchor="end">${tick.toFixed(0)}</text>`).join("")}${state.path.map((value, indexValue) => `<line class="grid" x1="${x(indexValue)}" x2="${x(indexValue)}" y1="${top}" y2="${height - bottom}"></line><text class="axis" x="${x(indexValue)}" y="${height - bottom + 18}" text-anchor="middle">Q${indexValue + 1}</text>`).join("")}<line class="stepdown-fixed-line" x1="${left}" x2="${x(6)}" y1="${y(state.startCall)}" y2="${y(state.startCall)}"></line><path class="stepdown-call-line" d="${stairs.join(" ")}"></path><line class="stepdown-coupon-line" x1="${left}" x2="${width - right}" y1="${y(state.couponBarrier)}" y2="${y(state.couponBarrier)}"></line><line class="stepdown-protection-line" x1="${left}" x2="${width - right}" y1="${y(state.protectionBarrier)}" y2="${y(state.protectionBarrier)}"></line><path class="stepdown-underlying-line" d="${path}"></path>${state.path.map((value, indexValue) => `<circle class="stepdown-observation ${indexValue === state.selectedIndex ? "selected" : ""}" cx="${x(indexValue)}" cy="${y(value)}" r="${indexValue === state.selectedIndex ? 6 : 4}"></circle>`).join("")}${callEvent ? `<circle class="stepdown-call-event" cx="${x(result.calledIndex)}" cy="${y(callEvent.level)}" r="9"></circle><text class="stepdown-event-label" x="${x(result.calledIndex) + 11}" y="${y(callEvent.level) - 11}">CALLED Q${result.calledIndex + 1}</text>` : ""}<text class="axis stepdown-axis-title" x="${(left + width - right) / 2}" y="${height - 8}" text-anchor="middle">Quarterly observation</text><text class="axis stepdown-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">Underlying (% of initial)</text>`;
+    chartContext = { y, result };
+    chartInspector.refresh();
   }
 
   function lifecycleLabel(result) {
@@ -238,7 +278,13 @@ import * as engine from "./engine";
           : event.maturity
             ? `Protection: ${event.level.toFixed(1)} ${event.level >= state.protectionBarrier ? "≥" : "<"} ${state.protectionBarrier.toFixed(1)}`
             : `${event.level.toFixed(1)} ${event.callPass ? "≥" : "<"} ${event.threshold.toFixed(1)} · ${event.callPass ? "Call" : "Continue"}`;
-        return `<tr class="${event.callPass ? "stepdown-called-row" : !event.active ? "stepdown-inactive-row" : ""}"><td>Q${event.index + 1}${event.maturity ? " · final" : ""}</td><td>${event.level.toFixed(1)}</td><td>${esc(threshold)}</td><td class="${event.active && event.couponPass ? "event-positive" : event.active ? "event-negative" : "event-neutral"}">${esc(couponTest)}</td><td>${event.couponPaid.toFixed(2)}</td><td>${esc(callDecision)}</td><td>${esc(event.state)}</td></tr>`;
+        const classes = [
+          event.callPass ? "stepdown-called-row" : !event.active ? "stepdown-inactive-row" : "",
+          event.index === state.selectedIndex ? "selected-observation" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+        return `<tr class="${classes}" data-event-index="${event.index}"><td>Q${event.index + 1}${event.maturity ? " · final" : ""}</td><td>${event.level.toFixed(1)}</td><td>${esc(threshold)}</td><td class="${event.active && event.couponPass ? "event-positive" : event.active ? "event-negative" : "event-neutral"}">${esc(couponTest)}</td><td>${event.couponPaid.toFixed(2)}</td><td>${esc(callDecision)}</td><td>${esc(event.state)}</td></tr>`;
       })
       .join("");
     byId("stepdown-ledger-total").innerHTML =

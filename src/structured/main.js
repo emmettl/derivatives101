@@ -15,7 +15,9 @@ const config = configs[mode],
   };
 let currentResult = null,
   currentPathGeometry = null,
-  selectedObservation = 0;
+  selectedObservation = 0,
+  histogramContext = null,
+  selectedHistogramValue = null;
 
 function svgEl(name, attrs = {}, text = "") {
   const node = document.createElementNS("http://www.w3.org/2000/svg", name);
@@ -117,6 +119,45 @@ const pathInspector = attachHorizontalInspector($("path-chart"), () => {
     onSelect(day) {
       selectedObservation = nearestObservation(day);
       highlightObservation(selectedObservation);
+    },
+  };
+});
+
+const histogramInspector = attachHorizontalInspector($("histogram"), () => {
+  if (!histogramContext) return null;
+  const { lo, span, bins, counts, Y, total } = histogramContext;
+  const binWidth = span / bins;
+  return {
+    width: 900,
+    left: 50,
+    right: 20,
+    top: 18,
+    bottom: 172,
+    minimum: lo + binWidth / 2,
+    maximum: lo + span - binWidth / 2,
+    plotMinimum: lo,
+    plotMaximum: lo + span,
+    step: binWidth,
+    value: selectedHistogramValue,
+    label: "Simulated total-return distribution",
+    inspect(value) {
+      const index = Math.max(0, Math.min(bins - 1, Math.round((value - lo) / binWidth - 0.5)));
+      const count = counts[index];
+      const lower = lo + index * binWidth;
+      const upper = lower + binWidth;
+      const midpoint = lower + binWidth / 2;
+      return {
+        title: `Return ${money(midpoint)}`,
+        rows: [
+          { label: "Range", value: `${money(lower)} to ${money(upper)}` },
+          { label: "Paths", value: count.toLocaleString() },
+          { label: "Share", value: pct(count / total, 1) },
+        ],
+        points: [{ y: Y(count), color: midpoint < 0 ? colors.brick : colors.jade }],
+      };
+    },
+    onSelect(value) {
+      selectedHistogramValue = value;
     },
   };
 });
@@ -721,16 +762,23 @@ function drawHistogram(returns) {
   });
   counts.forEach((count, index) => {
     const midpoint = lo + ((index + 0.5) / n) * span;
-    svg.append(
-      svgEl("rect", {
-        x: m.l + index * barW + 0.7,
-        y: Y(count),
-        width: Math.max(1, barW - 1.4),
-        height: h - m.b - Y(count),
-        fill: midpoint < 0 ? colors.brick : colors.jade,
-        opacity: 0.7,
-      }),
+    const bar = svgEl("rect", {
+      x: m.l + index * barW + 0.7,
+      y: Y(count),
+      width: Math.max(1, barW - 1.4),
+      height: h - m.b - Y(count),
+      fill: midpoint < 0 ? colors.brick : colors.jade,
+      opacity: 0.7,
+      class: "interactive-histogram-bar",
+    });
+    bar.append(
+      svgEl(
+        "title",
+        {},
+        `${count.toLocaleString()} paths from ${money(lo + (index / n) * span)} to ${money(lo + ((index + 1) / n) * span)}`,
+      ),
     );
+    svg.append(bar);
   });
   if (lo < 0 && hi > 0)
     svg.append(
@@ -757,6 +805,13 @@ function drawHistogram(returns) {
       "Total return per 100 invested",
     ),
   );
+  const binWidth = span / n;
+  selectedHistogramValue = Math.max(
+    lo + binWidth / 2,
+    Math.min(lo + span - binWidth / 2, selectedHistogramValue ?? 0),
+  );
+  histogramContext = { lo, span, bins: n, counts, Y, total: returns.length };
+  histogramInspector.refresh();
 }
 let simulationTimer,
   simulationVersion = 0;

@@ -1,3 +1,5 @@
+import { attachHorizontalInspector, type InspectorController } from "../shared/svg-interaction";
+
 export const C = {
   ink: "#0B1E2D",
   deep: "#123B54",
@@ -74,6 +76,77 @@ export interface HistogramOptions {
   xfmt?: (value: number) => string;
   xlab?: string;
   title?: string;
+}
+
+interface HistogramContext {
+  options: HistogramOptions;
+  bins: number;
+  counts: number[];
+  plot: PlotFrame;
+  total: number;
+}
+
+const histogramContexts = new WeakMap<SVGSVGElement, HistogramContext>();
+const histogramControllers = new WeakMap<SVGSVGElement, InspectorController>();
+const selectedHistogramValues = new WeakMap<SVGSVGElement, number>();
+
+function ensureHistogramInspector(svg: SVGSVGElement): InspectorController {
+  const existing = histogramControllers.get(svg);
+  if (existing) return existing;
+  const controller = attachHorizontalInspector(svg, () => {
+    const context = histogramContexts.get(svg);
+    if (!context) return null;
+    const { options, bins, counts, plot, total } = context;
+    const binWidth = (options.hi - options.lo) / bins;
+    const minimum = options.lo + binWidth / 2;
+    const maximum = options.hi - binWidth / 2;
+    const format = options.xfmt ?? ((value: number) => value.toFixed(1));
+    const selected =
+      selectedHistogramValues.get(svg) ?? options.split ?? (options.lo + options.hi) / 2;
+    return {
+      width: 760,
+      left: plot.m.l,
+      right: plot.m.r,
+      top: plot.m.t,
+      bottom: plot.m.t + plot.ph,
+      minimum,
+      maximum,
+      plotMinimum: options.lo,
+      plotMaximum: options.hi,
+      step: binWidth,
+      value: Math.max(minimum, Math.min(maximum, selected)),
+      label: options.title ?? "Simulated outcome distribution",
+      inspect(value) {
+        const index = Math.max(
+          0,
+          Math.min(bins - 1, Math.round((value - options.lo) / binWidth - 0.5)),
+        );
+        const count = counts[index];
+        const lower = options.lo + index * binWidth;
+        const upper = lower + binWidth;
+        const midpoint = lower + binWidth / 2;
+        return {
+          title: `Outcome ${format(midpoint)}`,
+          rows: [
+            { label: "Range", value: `${format(lower)} to ${format(upper)}` },
+            { label: "Paths", value: count.toLocaleString() },
+            { label: "Share", value: `${((100 * count) / total).toFixed(1)}%` },
+          ],
+          points: [
+            {
+              y: plot.Y(count),
+              color: midpoint < (options.split ?? -Infinity) ? C.brick : C.jade,
+            },
+          ],
+        };
+      },
+      onSelect(value) {
+        selectedHistogramValues.set(svg, value);
+      },
+    };
+  });
+  histogramControllers.set(svg, controller);
+  return controller;
 }
 
 export function $<T extends Element = HTMLElement>(id: string): T {
@@ -431,5 +504,7 @@ export function histogram(
     svg.append(
       el("text", { x: 62, y: 14, "font-size": 12, "font-weight": 700, fill: C.ink }, options.title),
     );
+  histogramContexts.set(svg, { options, bins, counts, plot, total: values.length });
+  ensureHistogramInspector(svg).refresh();
   return plot;
 }

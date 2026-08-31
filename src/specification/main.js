@@ -1,6 +1,7 @@
 "use strict";
 
 import * as engine from "./engine.ts";
+import { attachHorizontalInspector } from "../shared/svg-interaction";
 
 const byId = (id) => document.getElementById(id);
 const choiceOptions = {
@@ -36,6 +37,8 @@ const choiceOptions = {
   ],
 };
 let state = Object.assign({}, engine.profiles.resolved, { scenarioId: "lateCall" });
+let traceContext = null;
+let selectedTraceObservation = 0;
 
 function esc(value) {
   return String(value).replace(
@@ -220,6 +223,90 @@ function renderNormalized() {
     .join("");
 }
 
+function traceCallTest(event) {
+  if (event.status === "inactive") return "Not evaluated";
+  if (!event.callEligible) return "Not a call date";
+  return `${event.reference.toFixed(2)} ${state.callComparison === "gte" ? "≥" : ">"} ${engine.terms.callSchedule[event.index].toFixed(2)} → ${event.call ? "PASS" : "FAIL"}`;
+}
+
+function traceCallSummary(event) {
+  if (event.status === "inactive") return "Not evaluated";
+  if (!event.callEligible) return "Not a call date";
+  return `${event.call ? "Pass" : "Fail"} vs ${engine.terms.callSchedule[event.index].toFixed(2)}`;
+}
+
+function traceCoupon(event) {
+  if (event.status === "inactive") return "Not evaluated";
+  if (event.couponStatus === "skipped") return "Skipped after call";
+  return event.coupon
+    ? `${event.coupon.toFixed(2)} paid (${event.couponStatus})`
+    : `0.00 (${event.couponStatus})`;
+}
+
+function traceState(event) {
+  if (event.status === "called") return "REDEEMED";
+  if (event.status === "inactive") return "INACTIVE";
+  return event.index === 3 ? "MATURED" : "ACTIVE";
+}
+
+function highlightTraceObservation(index) {
+  byId("trace-ledger")
+    .querySelectorAll("[data-event-index]")
+    .forEach((row) =>
+      row.classList.toggle("selected-observation", Number(row.dataset.eventIndex) === index),
+    );
+}
+
+const traceInspector = attachHorizontalInspector(byId("spec-path-chart"), () => {
+  if (!traceContext) return null;
+  const { result, scenario, y } = traceContext;
+  return {
+    width: 900,
+    left: 60,
+    right: 26,
+    top: 24,
+    bottom: 310,
+    minimum: 0,
+    maximum: result.events.length - 1,
+    step: 1,
+    value: selectedTraceObservation,
+    label: "Contractual observation",
+    inspect(index) {
+      const event = result.events[index];
+      return {
+        title: `${event.label} · ${traceState(event)}`,
+        rows: [
+          { label: "Asset A", value: event.a.toFixed(2), color: "#b87e24" },
+          { label: "Asset B", value: event.b.toFixed(2), color: "#3e8e7e" },
+          { label: "Reference", value: event.reference.toFixed(2), color: "#2c5670" },
+          {
+            label: "Call",
+            value: traceCallSummary(event),
+            color: event.call ? "#3e8e7e" : "#b5443a",
+          },
+          { label: "Coupon", value: traceCoupon(event) },
+        ],
+        points: [
+          { y: y(scenario.A[index]), color: "#b87e24" },
+          { y: y(scenario.B[index]), color: "#3e8e7e" },
+          { y: y(event.reference), color: "#2c5670" },
+          { y: y(engine.terms.callSchedule[index]), color: "#b5443a" },
+        ],
+      };
+    },
+    onSelect(index) {
+      selectedTraceObservation = index;
+      highlightTraceObservation(index);
+    },
+    onInspect(index) {
+      highlightTraceObservation(index);
+    },
+    onHide() {
+      highlightTraceObservation(selectedTraceObservation);
+    },
+  };
+});
+
 function renderPathChart(result, scenario) {
   const svg = byId("spec-path-chart");
   const width = 900,
@@ -239,6 +326,9 @@ function renderPathChart(result, scenario) {
   const reference = result.events.map((event) => event.reference);
   const yTicks = [50, 60, 70, 80, 90, 100];
   svg.innerHTML = `<title>${esc(scenario.name)} path trace</title><desc>Asset A, Asset B and the selected basket reference are compared with the descending autocall trigger at each observation.</desc>${yTicks.map((tick) => `<line class="grid" x1="${left}" x2="${width - right}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${left - 8}" y="${y(tick) + 3}" text-anchor="end">${tick}</text>`).join("")}${engine.terms.observationLabels.map((label, index) => `<line class="grid" x1="${x(index)}" x2="${x(index)}" y1="${top}" y2="${height - bottom}"></line><text class="axis" x="${x(index)}" y="${height - bottom + 19}" text-anchor="middle">${esc(label)}</text>`).join("")}<path class="spec-line-trigger" d="${path(engine.terms.callSchedule)}"></path><path class="spec-line-a" d="${path(scenario.A)}"></path><path class="spec-line-b" d="${path(scenario.B)}"></path><path class="spec-line-reference" d="${path(reference)}"></path>${result.events.map((event) => `<circle class="spec-point ${event.status}" cx="${x(event.index)}" cy="${y(event.reference)}" r="5"></circle>${event.coupon ? `<text class="spec-coupon" x="${x(event.index)}" y="${y(event.reference) - 10}" text-anchor="middle">+${event.coupon.toFixed(0)}</text>` : ""}`).join("")}<text class="axis spec-axis-title" x="${(left + width - right) / 2}" y="${height - 8}" text-anchor="middle">Contractual observation</text><text class="axis spec-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">Percent of initial level</text>`;
+  selectedTraceObservation = Math.min(selectedTraceObservation, result.events.length - 1);
+  traceContext = { result, scenario, y };
+  traceInspector.refresh();
 }
 
 function renderTrace() {
@@ -247,6 +337,8 @@ function renderTrace() {
   const gate = byId("trace-gate");
   const output = byId("trace-output");
   if (!result.executable) {
+    traceContext = null;
+    traceInspector.hide();
     gate.className = "spec-gate visible";
     gate.innerHTML = `<strong>Trace withheld.</strong> Resolve ${result.readiness.open.length} open decision${result.readiness.open.length === 1 ? "" : "s"} and ${result.readiness.blockers.length} blocker${result.readiness.blockers.length === 1 ? "" : "s"}. A worked example should never hide assumptions merely to produce a number.`;
     output.className = "hidden";
@@ -282,23 +374,10 @@ function renderTrace() {
   renderPathChart(result, scenario);
   byId("trace-ledger").innerHTML = result.events
     .map((event) => {
-      const callTest =
-        event.status === "inactive"
-          ? "Not evaluated"
-          : event.callEligible
-            ? `${event.reference.toFixed(2)} ${state.callComparison === "gte" ? "≥" : ">"} ${engine.terms.callSchedule[event.index].toFixed(2)} → ${event.call ? "PASS" : "FAIL"}`
-            : "Not a call date";
-      const coupon =
-        event.status === "inactive"
-          ? "Not evaluated"
-          : event.couponStatus === "skipped"
-            ? "Skipped after call"
-            : event.coupon
-              ? `${event.coupon.toFixed(2)} paid (${event.couponStatus})`
-              : `0.00 (${event.couponStatus})`;
-      return `<tr class="${event.status}"><td>${esc(event.label)}</td><td>${event.a.toFixed(2)}</td><td>${event.b.toFixed(2)}</td><td>${event.reference.toFixed(2)}</td><td>${esc(callTest)}</td><td>${esc(coupon)}</td><td>${event.memoryBalance.toFixed(2)}</td><td>${event.status === "called" ? "REDEEMED" : event.status === "inactive" ? "INACTIVE" : event.index === 3 ? "MATURED" : "ACTIVE"}</td></tr>`;
+      return `<tr class="${event.status}" data-event-index="${event.index}"><td>${esc(event.label)}</td><td>${event.a.toFixed(2)}</td><td>${event.b.toFixed(2)}</td><td>${event.reference.toFixed(2)}</td><td>${esc(traceCallTest(event))}</td><td>${esc(traceCoupon(event))}</td><td>${event.memoryBalance.toFixed(2)}</td><td>${traceState(event)}</td></tr>`;
     })
     .join("");
+  highlightTraceObservation(selectedTraceObservation);
   byId("trace-settlement").innerHTML = [
     ["Coupon cash", result.couponCash.toFixed(2), "Paid over the lifecycle"],
     [

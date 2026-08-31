@@ -351,6 +351,77 @@ function drawGreeks() {
   $("greek-insight").textContent = greekInfo[state.greek][1];
 }
 
+let pathDistributionPlot = null,
+  selectedTerminalBin = null,
+  hoveredTerminalBin = null,
+  terminalDistributionPinned = false,
+  terminalDistributionDragging = false,
+  pathInteractionFrame;
+
+function terminalBinDetails(plot, index) {
+  const width = plot.span / plot.bins,
+    lower = plot.eLo + index * width,
+    upper = lower + width;
+  return {
+    lower,
+    upper,
+    midpoint: lower + width / 2,
+    count: plot.counts[index],
+  };
+}
+
+function drawTerminalSelection(ctx, plot, index) {
+  const details = terminalBinDetails(plot, index),
+    y = plot.m.t + (plot.bins - index - 0.5) * plot.bh,
+    barEnd = plot.hx + (details.count / plot.max) * plot.hw,
+    payoff =
+      plot.sim.type === "call"
+        ? Math.max(details.midpoint - plot.sim.p.K, 0)
+        : Math.max(plot.sim.p.K - details.midpoint, 0),
+    readout = $("terminal-readout");
+  ctx.save();
+  ctx.strokeStyle = "rgba(237,243,246,.88)";
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.moveTo(plot.hx, y);
+  ctx.lineTo(plot.hx + plot.hw, y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  const inTheMoney =
+    plot.sim.type === "call" ? details.midpoint > plot.sim.p.K : details.midpoint < plot.sim.p.K;
+  ctx.fillStyle = inTheMoney ? palette.jade : palette.steel;
+  ctx.beginPath();
+  ctx.arc(barEnd, y, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = palette.white;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+  readout.innerHTML = `<strong>Terminal spot ${fmt(details.midpoint, 1)}</strong><span><i>Range</i><b>${fmt(details.lower, 1)} to ${fmt(details.upper, 1)}</b></span><span><i>Paths</i><b>${details.count.toLocaleString()}</b></span><span><i>Share</i><b>${fmt((100 * details.count) / plot.sim.ends.length, 1)}%</b></span><span><i>Option payoff</i><b>${fmt(payoff, 2)}</b></span>`;
+  readout.style.top = `${Math.max(8, Math.min(plot.h - 116, y - 42))}px`;
+  readout.hidden = false;
+}
+
+function queuePathInteractionRender() {
+  cancelAnimationFrame(pathInteractionFrame);
+  pathInteractionFrame = requestAnimationFrame(() => {
+    pathInteractionFrame = null;
+    if (lastSimulation) drawPaths(lastSimulation);
+  });
+}
+
+function terminalBinFromPointer(event) {
+  const plot = pathDistributionPlot;
+  if (!plot) return null;
+  const bounds = event.currentTarget.getBoundingClientRect(),
+    x = ((event.clientX - bounds.left) / bounds.width) * plot.w,
+    y = ((event.clientY - bounds.top) / bounds.height) * plot.h;
+  if (x < plot.hx || x > plot.hx + plot.hw || y < plot.m.t || y > plot.h - plot.m.b) return null;
+  const row = Math.min(plot.bins - 1, Math.floor((y - plot.m.t) / plot.bh));
+  return plot.bins - row - 1;
+}
+
 function drawPaths(sim) {
   const canvas = $("paths"),
     { ctx, w, h } = resize(canvas),
@@ -413,10 +484,9 @@ function drawPaths(sim) {
   const bins = 26,
     eLo = Math.min(...sim.ends),
     eHi = Math.max(...sim.ends),
+    span = Math.max(1e-9, eHi - eLo),
     counts = Array.from({ length: bins }, () => 0);
-  sim.ends.forEach(
-    (s) => counts[Math.min(bins - 1, Math.floor(((s - eLo) / (eHi - eLo)) * bins))]++,
-  );
+  sim.ends.forEach((s) => counts[Math.min(bins - 1, Math.floor(((s - eLo) / span) * bins))]++);
   const max = Math.max(...counts),
     hx = split + 10,
     hw = w - hx - 12,
@@ -426,7 +496,7 @@ function drawPaths(sim) {
   ctx.font = "700 10px Segoe UI, sans-serif";
   ctx.fillText("TERMINAL DISTRIBUTION", hx, m.t - 7);
   counts.forEach((count, i) => {
-    const s = eLo + ((i + 0.5) / bins) * (eHi - eLo),
+    const s = eLo + ((i + 0.5) / bins) * span,
       itm = sim.type === "call" ? s > p.K : s < p.K;
     ctx.fillStyle = itm ? palette.jade : palette.steel;
     ctx.globalAlpha = 0.75;
@@ -438,6 +508,20 @@ function drawPaths(sim) {
     );
   });
   ctx.globalAlpha = 1;
+  pathDistributionPlot = { sim, m, w, h, bins, eLo, span, counts, max, hx, hw, bh };
+  if (selectedTerminalBin == null)
+    selectedTerminalBin = Math.max(0, Math.min(bins - 1, Math.floor(((p.S - eLo) / span) * bins)));
+  else selectedTerminalBin = Math.max(0, Math.min(bins - 1, selectedTerminalBin));
+  const activeBin =
+    hoveredTerminalBin ??
+    (terminalDistributionPinned || document.activeElement === canvas ? selectedTerminalBin : null);
+  if (activeBin == null) $("terminal-readout").hidden = true;
+  else drawTerminalSelection(ctx, pathDistributionPlot, activeBin);
+  const selectedDetails = terminalBinDetails(pathDistributionPlot, selectedTerminalBin);
+  canvas.setAttribute("aria-valuemin", eLo.toFixed(4));
+  canvas.setAttribute("aria-valuemax", (eLo + span).toFixed(4));
+  canvas.setAttribute("aria-valuenow", selectedDetails.midpoint.toFixed(4));
+  canvas.setAttribute("aria-valuetext", `Terminal spot ${fmt(selectedDetails.midpoint, 1)}`);
   const bs = optionMetrics(p.S, p.K, p.T, p.r, p.q, p.v).price,
     diff = sim.estimate - bs;
   $("mc-price").textContent = fmt(sim.estimate);
@@ -445,7 +529,7 @@ function drawPaths(sim) {
   $("mc-diff").textContent = (diff >= 0 ? "+" : "") + fmt(diff, 3);
   canvas.setAttribute(
     "aria-label",
-    `${sim.samples.length} visible simulated paths and terminal distribution; Monte Carlo estimate ${fmt(sim.estimate)} versus closed-form value ${fmt(bs)}`,
+    `${sim.samples.length} visible simulated paths and terminal distribution; Monte Carlo estimate ${fmt(sim.estimate)} versus closed-form value ${fmt(bs)}. Use arrow keys to inspect terminal bins.`,
   );
 }
 
@@ -623,6 +707,90 @@ $("greeks").addEventListener("pointermove", (e) => {
   read.style.top = "18px";
 });
 $("greeks").addEventListener("pointerleave", () => ($("greek-readout").style.display = "none"));
+const pathsCanvas = $("paths");
+pathsCanvas.addEventListener("pointerdown", (event) => {
+  const index = terminalBinFromPointer(event);
+  if (index == null) return;
+  terminalDistributionDragging = true;
+  terminalDistributionPinned = true;
+  selectedTerminalBin = index;
+  hoveredTerminalBin = null;
+  pathsCanvas.focus();
+  pathsCanvas.setPointerCapture(event.pointerId);
+  queuePathInteractionRender();
+});
+pathsCanvas.addEventListener("pointermove", (event) => {
+  const index = terminalBinFromPointer(event);
+  if (terminalDistributionDragging) {
+    if (index != null && index !== selectedTerminalBin) {
+      selectedTerminalBin = index;
+      queuePathInteractionRender();
+    }
+    return;
+  }
+  if (terminalDistributionPinned) return;
+  if (index !== hoveredTerminalBin) {
+    hoveredTerminalBin = index;
+    queuePathInteractionRender();
+  }
+});
+pathsCanvas.addEventListener("pointerup", (event) => {
+  terminalDistributionDragging = false;
+  if (pathsCanvas.hasPointerCapture(event.pointerId))
+    pathsCanvas.releasePointerCapture(event.pointerId);
+});
+pathsCanvas.addEventListener("pointercancel", () => {
+  terminalDistributionDragging = false;
+  if (!terminalDistributionPinned) {
+    hoveredTerminalBin = null;
+    queuePathInteractionRender();
+  }
+});
+pathsCanvas.addEventListener("pointerleave", () => {
+  if (
+    !terminalDistributionDragging &&
+    !terminalDistributionPinned &&
+    document.activeElement !== pathsCanvas &&
+    hoveredTerminalBin != null
+  ) {
+    hoveredTerminalBin = null;
+    queuePathInteractionRender();
+  }
+});
+pathsCanvas.addEventListener("focus", () => {
+  if (!terminalDistributionPinned && selectedTerminalBin != null) {
+    hoveredTerminalBin = selectedTerminalBin;
+    queuePathInteractionRender();
+  }
+});
+pathsCanvas.addEventListener("blur", () => {
+  if (!terminalDistributionPinned) {
+    hoveredTerminalBin = null;
+    queuePathInteractionRender();
+  }
+});
+pathsCanvas.addEventListener("keydown", (event) => {
+  const plot = pathDistributionPlot;
+  if (!plot || selectedTerminalBin == null) return;
+  let next = selectedTerminalBin;
+  if (event.key === "ArrowDown" || event.key === "ArrowLeft") next -= 1;
+  else if (event.key === "ArrowUp" || event.key === "ArrowRight") next += 1;
+  else if (event.key === "PageDown") next -= 5;
+  else if (event.key === "PageUp") next += 5;
+  else if (event.key === "Home") next = 0;
+  else if (event.key === "End") next = plot.bins - 1;
+  else if (event.key === "Escape") {
+    terminalDistributionPinned = false;
+    hoveredTerminalBin = null;
+    queuePathInteractionRender();
+    return;
+  } else return;
+  event.preventDefault();
+  terminalDistributionPinned = true;
+  hoveredTerminalBin = null;
+  selectedTerminalBin = Math.max(0, Math.min(plot.bins - 1, next));
+  queuePathInteractionRender();
+});
 $("resample").addEventListener("click", () => {
   const freshSeed = new Uint32Array(1);
   if (globalThis.crypto?.getRandomValues) crypto.getRandomValues(freshSeed);

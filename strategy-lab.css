@@ -491,6 +491,10 @@
 .strategy-simulation-chart .simulation-path {
   fill: none;
   stroke-width: 1.15;
+  pointer-events: stroke;
+  transition:
+    opacity 0.12s ease,
+    stroke-width 0.12s ease;
 }
 
 .strategy-simulation-chart .simulation-path.positive {
@@ -503,6 +507,11 @@
   opacity: 0.3;
 }
 
+.strategy-simulation-chart .simulation-path:hover {
+  stroke-width: 2.5;
+  opacity: 1;
+}
+
 .strategy-simulation-chart .simulation-bin.positive {
   fill: var(--jade);
   opacity: 0.78;
@@ -511,6 +520,18 @@
 .strategy-simulation-chart .simulation-bin.negative {
   fill: var(--brick);
   opacity: 0.7;
+}
+
+.strategy-simulation-chart .simulation-bin {
+  transition:
+    opacity 0.12s ease,
+    filter 0.12s ease;
+}
+
+.strategy-simulation-chart .simulation-bin:hover,
+.strategy-simulation-chart .simulation-bin.selected {
+  opacity: 1;
+  filter: drop-shadow(0 0 2px rgb(11 30 45 / 35%));
 }
 
 .strategy-simulation-chart .simulation-start {
@@ -528,6 +549,13 @@
   margin: 11px 22px 20px;
   color: var(--deep);
   font-size: 10px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strategy-simulation-chart .simulation-path,
+  .strategy-simulation-chart .simulation-bin {
+    transition: none;
+  }
 }
 
 /* Before-expiry risk */

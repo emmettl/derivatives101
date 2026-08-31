@@ -1,4 +1,5 @@
 import type { StrategySimulationResult } from "./types";
+import { attachVerticalInspector } from "../shared/svg-interaction";
 
 function byId<T extends Element>(id: string): T {
   const element = document.getElementById(id);
@@ -6,8 +7,100 @@ function byId<T extends Element>(id: string): T {
   return element as unknown as T;
 }
 
+interface SimulationChartContext {
+  pnlLow: number;
+  pnlHigh: number;
+  bins: number;
+  counts: number[];
+  maxCount: number;
+  histogramLeft: number;
+  histogramRight: number;
+  top: number;
+  bottom: number;
+  total: number;
+}
+
+let simulationChartContext: SimulationChartContext | null = null;
+let selectedSimulationPnl: number | null = null;
+
+function simulationBinIndex(context: SimulationChartContext, value: number): number {
+  const binWidth = (context.pnlHigh - context.pnlLow) / context.bins;
+  return Math.max(
+    0,
+    Math.min(context.bins - 1, Math.round((value - context.pnlLow) / binWidth - 0.5)),
+  );
+}
+
+function highlightSimulationBin(index: number | null): void {
+  byId<SVGSVGElement>("strategy-simulation-chart")
+    .querySelectorAll<SVGRectElement>(".simulation-bin")
+    .forEach((bar) => bar.classList.toggle("selected", Number(bar.dataset.bin) === index));
+}
+
+const simulationInspector = attachVerticalInspector(
+  byId<SVGSVGElement>("strategy-simulation-chart"),
+  () => {
+    const context = simulationChartContext;
+    if (!context) return null;
+    const binWidth = (context.pnlHigh - context.pnlLow) / context.bins;
+    const minimum = context.pnlLow + binWidth / 2;
+    const maximum = context.pnlHigh - binWidth / 2;
+    const selected = Math.max(minimum, Math.min(maximum, selectedSimulationPnl ?? 0));
+    return {
+      width: 900,
+      height: 390,
+      left: context.histogramLeft,
+      right: 900 - context.histogramRight,
+      top: context.top,
+      bottom: context.bottom,
+      minimum,
+      maximum,
+      plotMinimum: context.pnlLow,
+      plotMaximum: context.pnlHigh,
+      step: binWidth,
+      value: selected,
+      label: "Terminal strategy profit and loss distribution",
+      inspect(value) {
+        const index = simulationBinIndex(context, value);
+        const count = context.counts[index];
+        const lower = context.pnlLow + index * binWidth;
+        const upper = lower + binWidth;
+        const midpoint = lower + binWidth / 2;
+        return {
+          title: `Expiry P/L ${midpoint.toFixed(2)}`,
+          rows: [
+            { label: "Range", value: `${lower.toFixed(2)} to ${upper.toFixed(2)}` },
+            { label: "Paths", value: count.toLocaleString() },
+            { label: "Share", value: `${((100 * count) / context.total).toFixed(1)}%` },
+          ],
+          points: [
+            {
+              x:
+                context.histogramLeft +
+                (count / context.maxCount) * (context.histogramRight - context.histogramLeft),
+              color: midpoint >= 0 ? "#3e8e7e" : "#b5443a",
+            },
+          ],
+        };
+      },
+      onSelect(value) {
+        selectedSimulationPnl = value;
+        highlightSimulationBin(simulationBinIndex(context, value));
+      },
+      onInspect(value) {
+        highlightSimulationBin(simulationBinIndex(context, value));
+      },
+      onHide() {
+        highlightSimulationBin(
+          selectedSimulationPnl == null ? null : simulationBinIndex(context, selectedSimulationPnl),
+        );
+      },
+    };
+  },
+);
+
 export function drawSimulationChart(result: StrategySimulationResult): void {
-  const svg = byId<SVGElement>("strategy-simulation-chart");
+  const svg = byId<SVGSVGElement>("strategy-simulation-chart");
   const width = 900;
   const height = 390;
   const margin = { left: 58, right: 22, top: 38, bottom: 42 };
@@ -59,15 +152,39 @@ export function drawSimulationChart(result: StrategySimulationResult): void {
           path,
         )
           .map((spot, step) => `${step ? "L" : "M"}${x(step).toFixed(2)},${y(spot).toFixed(2)}`)
-          .join(" ")}"></path>`,
+          .join(
+            " ",
+          )}"><title>Terminal spot ${path.at(-1)?.toFixed(2)} · strategy P/L ${result.pathPnls[index].toFixed(2)}</title></path>`,
     )
     .join("")}${counts
     .map((count, index) => {
       const center = pnlLow + ((index + 0.5) / bins) * (pnlHigh - pnlLow);
       const barWidth = (count / maxCount) * (histogramRight - histogramLeft);
-      return `<rect class="simulation-bin ${center >= 0 ? "positive" : "negative"}" x="${histogramLeft}" y="${margin.top + (bins - index - 1) * barHeight}" width="${Math.max(1, barWidth)}" height="${Math.max(1, barHeight - 1)}"><title>${count.toLocaleString()} paths around P/L ${center.toFixed(2)}</title></rect>`;
+      return `<rect class="simulation-bin ${center >= 0 ? "positive" : "negative"}" data-bin="${index}" x="${histogramLeft}" y="${margin.top + (bins - index - 1) * barHeight}" width="${Math.max(1, barWidth)}" height="${Math.max(1, barHeight - 1)}"><title>${count.toLocaleString()} paths around P/L ${center.toFixed(2)}</title></rect>`;
     })
     .join(
       "",
     )}<line class="simulation-zero" x1="${histogramLeft}" x2="${histogramRight}" y1="${pnlY(0)}" y2="${pnlY(0)}"></line><text class="axis" x="${histogramLeft}" y="${height - 17}">P/L ${pnlLow.toFixed(1)}</text><text class="axis" x="${histogramRight}" y="${height - 17}" text-anchor="end">${pnlHigh.toFixed(1)}</text>`;
+  simulationChartContext = {
+    pnlLow,
+    pnlHigh,
+    bins,
+    counts,
+    maxCount,
+    histogramLeft,
+    histogramRight,
+    top: margin.top,
+    bottom: height - margin.bottom,
+    total: result.terminalPnls.length,
+  };
+  if (selectedSimulationPnl != null) {
+    const binWidth = (pnlHigh - pnlLow) / bins;
+    selectedSimulationPnl = Math.max(
+      pnlLow + binWidth / 2,
+      Math.min(pnlHigh - binWidth / 2, selectedSimulationPnl),
+    );
+  }
+  simulationInspector.refresh();
+  if (selectedSimulationPnl != null)
+    highlightSimulationBin(simulationBinIndex(simulationChartContext, selectedSimulationPnl));
 }

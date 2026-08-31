@@ -552,7 +552,75 @@ canvas {
 }
 
 #paths {
+  cursor: crosshair;
+  touch-action: pan-y;
   transition: opacity 0.16s ease;
+}
+
+#paths:focus-visible {
+  outline: 3px solid rgb(228 163 64 / 45%);
+  outline-offset: 2px;
+}
+
+.terminal-chart-hint {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: 1px solid #456171;
+  border-radius: 999px;
+  background: rgb(7 22 32 / 88%);
+  color: #c6d5dc;
+  padding: 5px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.terminal-readout {
+  position: absolute;
+  right: 12px;
+  z-index: 3;
+  width: 180px;
+  padding: 9px 10px;
+  border: 1px solid #456171;
+  border-radius: 7px;
+  background: rgb(7 22 32 / 94%);
+  box-shadow: 0 8px 24px rgb(7 22 32 / 16%);
+  color: #fff;
+  pointer-events: none;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.terminal-readout[hidden] {
+  display: none;
+}
+
+.terminal-readout strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--amber);
+  font-size: 11px;
+}
+
+.terminal-readout span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 3px;
+  color: #c6d5dc;
+}
+
+.terminal-readout i {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.terminal-readout b {
+  color: inherit;
+  white-space: nowrap;
 }
 
 .refreshing#paths {
@@ -562,6 +630,20 @@ canvas {
 @media (prefers-reduced-motion: reduce) {
   #paths {
     transition: none;
+  }
+}
+
+@media (width <= 680px) {
+  .terminal-readout {
+    right: 8px;
+    width: 160px;
+    font-size: 9px;
+  }
+
+  .terminal-chart-hint {
+    position: static;
+    display: inline-block;
+    margin: 0 0 6px 8px;
   }
 }
 

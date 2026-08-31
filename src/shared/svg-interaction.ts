@@ -9,6 +9,11 @@ export interface InspectorPoint {
   color: string;
 }
 
+export interface VerticalInspectorPoint {
+  x: number;
+  color: string;
+}
+
 export interface InspectorResult {
   title: string;
   rows: InspectorRow[];
@@ -29,6 +34,28 @@ export interface HorizontalInspectorConfig {
   value: number;
   label: string;
   inspect: (value: number) => InspectorResult;
+  onSelect: (value: number) => void;
+  onInspect?: (value: number) => void;
+  onHide?: () => void;
+}
+
+export interface VerticalInspectorConfig {
+  width: number;
+  height: number;
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  minimum: number;
+  maximum: number;
+  plotMinimum?: number;
+  plotMaximum?: number;
+  step: number;
+  value: number;
+  label: string;
+  inspect: (value: number) => Omit<InspectorResult, "points"> & {
+    points?: VerticalInspectorPoint[];
+  };
   onSelect: (value: number) => void;
   onInspect?: (value: number) => void;
   onHide?: () => void;
@@ -103,7 +130,7 @@ function tooltipFor(svg: SVGElement): HTMLElement {
 
 function renderTooltip(
   tooltip: HTMLElement,
-  result: InspectorResult,
+  result: Pick<InspectorResult, "title" | "rows">,
   horizontalPercent: number,
 ): void {
   tooltip.replaceChildren();
@@ -249,6 +276,169 @@ export function attachHorizontalInspector(
     let next = shownValue ?? config.value;
     if (event.key === "ArrowLeft" || event.key === "ArrowDown") next -= config.step;
     else if (event.key === "ArrowRight" || event.key === "ArrowUp") next += config.step;
+    else if (event.key === "PageDown") next -= config.step * 5;
+    else if (event.key === "PageUp") next += config.step * 5;
+    else if (event.key === "Home") next = config.minimum;
+    else if (event.key === "End") next = config.maximum;
+    else if (event.key === "Escape") {
+      isPinned = false;
+      hideOverlay(svg);
+      config.onHide?.();
+      return;
+    } else return;
+    event.preventDefault();
+    select(next);
+  });
+
+  return {
+    refresh() {
+      const config = getConfig();
+      if (!config) return;
+      svg.setAttribute("aria-label", config.label);
+      svg.setAttribute("aria-valuemin", String(config.minimum));
+      svg.setAttribute("aria-valuemax", String(config.maximum));
+      svg.setAttribute("aria-valuenow", String(config.value));
+      if (isPinned) draw(config.value, true);
+    },
+    show(value, pin = false, showTooltip = true) {
+      draw(value, pin, false, showTooltip);
+    },
+    hide() {
+      isPinned = false;
+      hideOverlay(svg);
+    },
+  };
+}
+
+export function attachVerticalInspector(
+  svg: SVGSVGElement,
+  getConfig: () => VerticalInspectorConfig | null,
+): InspectorController {
+  const tooltip = tooltipFor(svg);
+  let dragging = false;
+  let isPinned = false;
+  let shownValue: number | null = null;
+
+  const normalise = (value: number) => {
+    const config = getConfig();
+    return config ? snap(value, config.minimum, config.maximum, config.step) : value;
+  };
+  const draw = (rawValue: number, pin = false, notify = false, showTooltip = true) => {
+    const config = getConfig();
+    if (!config) return;
+    const value = normalise(rawValue);
+    const plotMinimum = config.plotMinimum ?? config.minimum;
+    const plotMaximum = config.plotMaximum ?? config.maximum;
+    shownValue = value;
+    if (pin) isPinned = true;
+    svg.querySelector<SVGGElement>("[data-svg-inspector]")?.remove();
+    const group = svgElement("g", { "data-svg-inspector": "true", class: "svg-inspector" });
+    const y =
+      config.top +
+      ((plotMaximum - value) / (plotMaximum - plotMinimum)) * (config.bottom - config.top);
+    group.append(
+      svgElement("line", {
+        x1: config.left,
+        x2: config.width - config.right,
+        y1: y,
+        y2: y,
+        class: "svg-inspector-line",
+      }),
+    );
+    const result = config.inspect(value);
+    result.points?.forEach((point) =>
+      group.append(
+        svgElement("circle", {
+          cx: point.x,
+          cy: y,
+          r: 5,
+          fill: point.color,
+          class: "svg-inspector-point",
+        }),
+      ),
+    );
+    svg.append(group);
+    if (showTooltip) renderTooltip(tooltip, result, (config.left / config.width) * 100);
+    svg.setAttribute("aria-valuenow", value.toFixed(4));
+    svg.setAttribute("aria-valuetext", result.title);
+    if (notify) config.onInspect?.(value);
+  };
+  const valueFromPointer = (event: PointerEvent): number | null => {
+    const config = getConfig();
+    if (!config) return null;
+    const bounds = svg.getBoundingClientRect();
+    const x = ((event.clientX - bounds.left) / bounds.width) * config.width;
+    const y = ((event.clientY - bounds.top) / bounds.height) * config.height;
+    if (x < config.left || x > config.width - config.right) return null;
+    const proportion = clamp((y - config.top) / (config.bottom - config.top), 0, 1);
+    const plotMinimum = config.plotMinimum ?? config.minimum;
+    const plotMaximum = config.plotMaximum ?? config.maximum;
+    return normalise(plotMaximum - proportion * (plotMaximum - plotMinimum));
+  };
+  const select = (value: number) => {
+    const config = getConfig();
+    if (!config) return;
+    const selected = normalise(value);
+    config.onSelect(selected);
+    draw(selected, true, true);
+  };
+
+  svg.classList.add("svg-interactive");
+  svg.tabIndex = 0;
+  svg.setAttribute("role", "slider");
+  svg.addEventListener("pointerdown", (event) => {
+    const value = valueFromPointer(event);
+    if (value == null) return;
+    dragging = true;
+    isPinned = true;
+    svg.setPointerCapture(event.pointerId);
+    select(value);
+  });
+  svg.addEventListener("pointermove", (event) => {
+    const value = valueFromPointer(event);
+    if (value == null) {
+      if (!dragging && !isPinned) {
+        hideOverlay(svg);
+        getConfig()?.onHide?.();
+      }
+      return;
+    }
+    if (dragging) select(value);
+    else if (!isPinned) draw(value, false, true);
+  });
+  svg.addEventListener("pointerup", (event) => {
+    dragging = false;
+    if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
+  });
+  svg.addEventListener("pointercancel", () => {
+    dragging = false;
+    if (!isPinned) {
+      hideOverlay(svg);
+      getConfig()?.onHide?.();
+    }
+  });
+  svg.addEventListener("pointerleave", () => {
+    if (!dragging && !isPinned && document.activeElement !== svg) {
+      hideOverlay(svg);
+      getConfig()?.onHide?.();
+    }
+  });
+  svg.addEventListener("focus", () => {
+    const config = getConfig();
+    if (config) draw(shownValue ?? config.value);
+  });
+  svg.addEventListener("blur", () => {
+    if (!isPinned) {
+      hideOverlay(svg);
+      getConfig()?.onHide?.();
+    }
+  });
+  svg.addEventListener("keydown", (event) => {
+    const config = getConfig();
+    if (!config) return;
+    let next = shownValue ?? config.value;
+    if (event.key === "ArrowDown" || event.key === "ArrowLeft") next -= config.step;
+    else if (event.key === "ArrowUp" || event.key === "ArrowRight") next += config.step;
     else if (event.key === "PageDown") next -= config.step * 5;
     else if (event.key === "PageUp") next += config.step * 5;
     else if (event.key === "Home") next = config.minimum;

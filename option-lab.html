@@ -305,9 +305,18 @@
             <div class="canvas-wrap">
               <canvas
                 id="paths"
-                role="img"
+                role="slider"
+                tabindex="0"
                 aria-label="Simulated option price paths and terminal distribution"
               ></canvas>
+              <span class="terminal-chart-hint">Inspect terminal bars</span>
+              <div
+                class="terminal-readout"
+                id="terminal-readout"
+                role="status"
+                aria-live="polite"
+                hidden
+              ></div>
             </div>
             <div class="insight">
               <span>Look for</span>

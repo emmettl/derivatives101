@@ -1,4 +1,5 @@
 import * as engine from "./engine";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
   "use strict";
@@ -44,6 +45,9 @@ import * as engine from "./engine";
   ];
   let state = defaults();
   let framePending = false;
+  let activeStrikeKind = "put";
+  const chartContexts = {};
+  const chartInspectors = {};
 
   function defaults() {
     return {
@@ -76,12 +80,125 @@ import * as engine from "./engine";
     );
   }
 
+  function kindForStrike(strikeValue, fallback = activeStrikeKind) {
+    if (strikeValue < 100) return "put";
+    if (strikeValue > 100) return "call";
+    return fallback;
+  }
+
+  function syncStrikeInspectors(sourceId, strikeValue, kind, pinned = false) {
+    const facetId = kind === "put" ? "skew-put-chart" : "skew-call-chart";
+    const inactiveId = kind === "put" ? "skew-call-chart" : "skew-put-chart";
+    if (sourceId !== inactiveId) chartInspectors[inactiveId].hide();
+    if (sourceId !== "skew-curve-chart")
+      chartInspectors["skew-curve-chart"].show(strikeValue, pinned);
+    if (sourceId !== facetId) chartInspectors[facetId].show(strikeValue, pinned);
+    else chartInspectors[sourceId].show(strikeValue, pinned);
+  }
+
+  function hideStrikeInspectors(sourceId) {
+    Object.entries(chartInspectors).forEach(([id, inspector]) => {
+      if (id !== sourceId) inspector.hide();
+    });
+  }
+
+  function inspectorConfig(id) {
+    const context = chartContexts[id];
+    if (!context) return null;
+    const selectedKind = context.kind === "curve" ? activeStrikeKind : context.kind;
+    return {
+      width: context.width,
+      left: context.left,
+      right: context.right,
+      top: context.top,
+      bottom: context.height - context.bottom,
+      minimum: context.minimum,
+      maximum: context.maximum,
+      step: 1,
+      value: state[selectedKind === "put" ? "putStrike" : "callStrike"],
+      label:
+        context.kind === "curve"
+          ? "Volatility curve strike selection"
+          : `${context.kind === "put" ? "Put" : "Call"} strike selection`,
+      inspect(strikeValue) {
+        const kind = context.kind === "curve" ? kindForStrike(strikeValue) : context.kind;
+        const point = engine.point(state, strikeValue);
+        if (context.kind === "curve")
+          return {
+            title: `${kind === "put" ? "Put" : "Call"} strike ${strikeValue.toFixed(0)}`,
+            rows: [
+              {
+                label: "Curve volatility",
+                value: percent(point.localVolatility),
+                color: "#2c5670",
+              },
+              {
+                label: "Flat ATM volatility",
+                value: percent(state.atmVolatility),
+                color: "#0b1e2d",
+              },
+              { label: "Curve option value", value: point.surface[kind].toFixed(3) },
+              {
+                label: "Curve–flat value",
+                value: signed(point.surface[kind] - point.flat[kind], 3),
+              },
+            ],
+            points: [
+              { y: context.y(point.localVolatility), color: "#2c5670" },
+              { y: context.y(state.atmVolatility), color: "#0b1e2d" },
+            ],
+          };
+        return {
+          title: `${context.kind === "put" ? "Put" : "Call"} strike ${strikeValue.toFixed(0)}`,
+          rows: [
+            {
+              label: "Curve value",
+              value: point.surface[context.kind].toFixed(3),
+              color: "#2c5670",
+            },
+            {
+              label: "Flat-vol value",
+              value: point.flat[context.kind].toFixed(3),
+              color: "#0b1e2d",
+            },
+            {
+              label: "Difference",
+              value: signed(point.surface[context.kind] - point.flat[context.kind], 3),
+            },
+            { label: "Local volatility", value: percent(point.localVolatility) },
+          ],
+          points: [
+            { y: context.y(point.surface[context.kind]), color: "#2c5670" },
+            { y: context.y(point.flat[context.kind]), color: "#0b1e2d" },
+          ],
+        };
+      },
+      onInspect(strikeValue) {
+        const kind = context.kind === "curve" ? kindForStrike(strikeValue) : context.kind;
+        syncStrikeInspectors(id, strikeValue, kind);
+      },
+      onHide() {
+        hideStrikeInspectors(id);
+      },
+      onSelect(strikeValue) {
+        const kind = context.kind === "curve" ? kindForStrike(strikeValue) : context.kind;
+        activeStrikeKind = kind;
+        state[kind === "put" ? "putStrike" : "callStrike"] = Math.round(strikeValue);
+        state.presetId = "custom";
+        syncControls();
+        render();
+      },
+    };
+  }
+
   function createControls() {
     byId("skew-controls").innerHTML =
       `<div class="control-block"><span class="control-title">Curve</span>${controls.slice(0, 4).map(controlMarkup).join("")}</div><div class="control-block"><span class="control-title">Product strikes</span>${controls.slice(4).map(controlMarkup).join("")}</div>`;
     controls.forEach((control) =>
       byId(`skew-${control.id}`).addEventListener("input", (event) => {
         state[control.id] = Number(event.target.value);
+        if (control.id === "putStrike") activeStrikeKind = "put";
+        if (control.id === "callStrike") activeStrikeKind = "call";
         state.presetId = "custom";
         scheduleRender();
       }),
@@ -158,6 +275,19 @@ import * as engine from "./engine";
       (_, index) => minimum + ((maximum - minimum) * index) / 5,
     );
     svg.innerHTML = `<title>Implied volatility across strikes</title><desc>The flat line uses one volatility at every strike. The shaped curve applies the selected skew and curvature.</desc>${yTicks.map((tick) => `<line class="grid" x1="${left}" x2="${width - right}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${left - 8}" y="${y(tick) + 3}" text-anchor="end">${percent(tick)}</text>`).join("")}${xTicks.map((tick) => `<line class="grid" x1="${x(tick)}" x2="${x(tick)}" y1="${top}" y2="${height - bottom}"></line><text class="axis" x="${x(tick)}" y="${height - bottom + 18}" text-anchor="middle">${tick}</text>`).join("")}<line class="skew-flat-line" x1="${left}" x2="${width - right}" y1="${y(state.atmVolatility)}" y2="${y(state.atmVolatility)}"></line><path class="skew-surface-line" d="${line}"></path><line class="skew-selected-guide put" x1="${x(state.putStrike)}" x2="${x(state.putStrike)}" y1="${top}" y2="${height - bottom}"></line><line class="skew-selected-guide call" x1="${x(state.callStrike)}" x2="${x(state.callStrike)}" y1="${top}" y2="${height - bottom}"></line><circle class="skew-point put" cx="${x(state.putStrike)}" cy="${y(terms.putPoint.localVolatility)}" r="5"></circle><circle class="skew-point call" cx="${x(state.callStrike)}" cy="${y(terms.callPoint.localVolatility)}" r="5"></circle><text class="axis skew-axis-title" x="${(left + width - right) / 2}" y="${height - 8}" text-anchor="middle">Strike (% of spot)</text><text class="axis skew-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">Implied volatility</text>`;
+    chartContexts["skew-curve-chart"] = {
+      width,
+      height,
+      left,
+      right,
+      top,
+      bottom,
+      minimum: 60,
+      maximum: 140,
+      kind: "curve",
+      y,
+    };
+    chartInspectors["skew-curve-chart"].refresh();
   }
 
   function renderOptionFacet(id, points, key, title, selectedStrike) {
@@ -188,6 +318,19 @@ import * as engine from "./engine";
     const yTicks = Array.from({ length: 5 }, (_, index) => (maximumValue * index) / 4);
     const selected = engine.point(state, selectedStrike);
     svg.innerHTML = `<title>${esc(title)}</title><desc>Option values under flat ATM volatility and strike-specific volatility.</desc><text class="skew-price-title" x="${left}" y="18">${esc(title)}</text>${yTicks.map((tick) => `<line class="grid" x1="${left}" x2="${width - right}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${left - 7}" y="${y(tick) + 3}" text-anchor="end">${tick.toFixed(1)}</text>`).join("")}${xTicks.map((tick) => `<line class="grid" x1="${x(tick)}" x2="${x(tick)}" y1="${top}" y2="${height - bottom}"></line><text class="axis" x="${x(tick)}" y="${height - bottom + 17}" text-anchor="middle">${tick.toFixed(0)}</text>`).join("")}<path class="skew-price-flat-line" d="${path("flat")}"></path><path class="skew-price-surface-line" d="${path("surface")}"></path><line class="skew-price-guide" x1="${x(selectedStrike)}" x2="${x(selectedStrike)}" y1="${top}" y2="${height - bottom}"></line><circle class="skew-price-point flat" cx="${x(selectedStrike)}" cy="${y(selected.flat[key])}" r="4"></circle><circle class="skew-price-point surface" cx="${x(selectedStrike)}" cy="${y(selected.surface[key])}" r="4"></circle><text class="axis skew-price-axis" x="${(left + width - right) / 2}" y="${height - 6}" text-anchor="middle">Strike</text><text class="axis skew-price-axis" x="12" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 12 ${(top + height - bottom) / 2})">Option value</text>`;
+    chartContexts[id] = {
+      width,
+      height,
+      left,
+      right,
+      top,
+      bottom,
+      minimum: minimumStrike,
+      maximum: maximumStrike,
+      kind: key,
+      y,
+    };
+    chartInspectors[id].refresh();
   }
 
   function renderPriceCharts(curve) {
@@ -342,8 +485,12 @@ import * as engine from "./engine";
 
   byId("skew-reset").addEventListener("click", () => {
     state = defaults();
+    activeStrikeKind = "put";
     syncControls();
     render();
+  });
+  ["skew-curve-chart", "skew-put-chart", "skew-call-chart"].forEach((id) => {
+    chartInspectors[id] = attachHorizontalInspector(byId(id), () => inspectorConfig(id));
   });
   createControls();
   render();

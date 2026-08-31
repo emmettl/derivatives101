@@ -1,4 +1,5 @@
 import * as engine from "./engine";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
   "use strict";
@@ -14,6 +15,8 @@ import * as engine from "./engine";
     dividend: 0.02,
   };
   const byId = (id) => document.getElementById(id);
+  const chartContexts = {};
+  const chartInspectors = {};
   const controls = [
     {
       id: "lifeFraction",
@@ -74,6 +77,90 @@ import * as engine from "./engine";
       rate: state.rate,
       issuerSpread: state.issuerSpread,
       dividend: state.dividend,
+    };
+  }
+
+  function riskAt(spot) {
+    const selectedMarket = Object.assign({}, market(), { spot });
+    return {
+      marked: engine.value(note(), selectedMarket),
+      risk: engine.sensitivities(note(), selectedMarket),
+      payoff: engine.maturityPayoff(note(), spot),
+    };
+  }
+
+  function metricValue(key, value) {
+    if (key === "gamma") return signed(value, 4);
+    if (key === "delta") return value.toFixed(3);
+    return signed(value, 3);
+  }
+
+  function syncChartInspectors(sourceId, spot) {
+    Object.entries(chartInspectors).forEach(([id, inspector]) => {
+      if (id !== sourceId) inspector.show(spot, false, id === "risk-value-chart");
+    });
+  }
+
+  function hideLinkedInspectors(sourceId) {
+    Object.entries(chartInspectors).forEach(([id, inspector]) => {
+      if (id !== sourceId) inspector.hide();
+    });
+  }
+
+  function inspectorConfig(id) {
+    const context = chartContexts[id];
+    if (!context) return null;
+    return {
+      width: context.width,
+      left: context.left,
+      right: context.right,
+      top: context.top,
+      bottom: context.height - context.bottom,
+      minimum: 40,
+      maximum: 160,
+      step: 1,
+      value: state.spot,
+      label: `${context.title} by underlying level`,
+      inspect(spot) {
+        const selected = riskAt(spot);
+        if (context.key === "value")
+          return {
+            title: `Underlying ${spot.toFixed(0)}`,
+            rows: [
+              { label: "Current value", value: selected.marked.value.toFixed(2), color: "#2c5670" },
+              { label: "Maturity payoff", value: selected.payoff.toFixed(2), color: "#3e8e7e" },
+              {
+                label: "Value–payoff gap",
+                value: signed(selected.marked.value - selected.payoff, 2),
+              },
+            ],
+            points: [
+              { y: context.y(selected.marked.value), color: "#2c5670" },
+              { y: context.y(selected.payoff), color: "#3e8e7e" },
+            ],
+          };
+        const metric = selected.risk[context.key];
+        return {
+          title: `Underlying ${spot.toFixed(0)} · ${context.title}`,
+          rows: [
+            { label: context.title, value: metricValue(context.key, metric), color: "#2c5670" },
+            { label: "Current value", value: selected.marked.value.toFixed(2) },
+            { label: "Maturity payoff", value: selected.payoff.toFixed(2) },
+          ],
+          points: [{ y: context.y(metric), color: "#e4a340" }],
+        };
+      },
+      onInspect(spot) {
+        syncChartInspectors(id, spot);
+      },
+      onHide() {
+        hideLinkedInspectors(id);
+      },
+      onSelect(spot) {
+        state.spot = Math.round(spot);
+        syncControls();
+        render();
+      },
     };
   }
 
@@ -184,6 +271,18 @@ import * as engine from "./engine";
     const yTicks = Array.from({ length: 6 }, (_, index) => yMin + ((yMax - yMin) * index) / 5);
     const payoff = engine.maturityPayoff(note(), state.spot);
     svg.innerHTML = `<title>Current value and maturity redemption</title><desc>The current value curve is smooth because time remains. The maturity redemption has a kink at the strike.</desc>${gridMarkup(xTicks, yTicks, x, y, width, height, left, right, top, bottom)}<path class="risk-payoff-line" d="${path("maturityPayoff")}"></path><path class="risk-value-line" d="${path("value")}"></path><line class="risk-spot-guide" x1="${x(state.spot)}" x2="${x(state.spot)}" y1="${top}" y2="${height - bottom}"></line><circle class="risk-point value" cx="${x(state.spot)}" cy="${y(currentRisk.value)}" r="5"></circle><circle class="risk-point payoff" cx="${x(state.spot)}" cy="${y(payoff)}" r="5"></circle><text class="axis risk-axis-title" x="${(left + width - right) / 2}" y="${height - 8}" text-anchor="middle">Underlying level</text><text class="axis risk-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">Value per 100 nominal</text>`;
+    chartContexts["risk-value-chart"] = {
+      width,
+      height,
+      left,
+      right,
+      top,
+      bottom,
+      y,
+      key: "value",
+      title: "Current value and maturity payoff",
+    };
+    chartInspectors["risk-value-chart"].refresh();
   }
 
   function gridMarkup(xTicks, yTicks, x, y, width, height, left, right, top, bottom) {
@@ -225,6 +324,8 @@ import * as engine from "./engine";
       (_, index) => minimum + ((maximum - minimum) * index) / 3,
     );
     svg.innerHTML = `<title>${esc(title)} across underlying levels</title><desc>${esc(unit)} for the selected product and remaining tenor.</desc><text class="risk-facet-title" x="${left}" y="17">${esc(title)}</text>${gridMarkup(xTicks, yTicks, x, y, width, height, left, right, top, bottom)}<line class="risk-zero-line" x1="${left}" x2="${width - right}" y1="${y(0)}" y2="${y(0)}"></line><path class="risk-facet-line" d="${path}"></path><line class="risk-facet-guide" x1="${x(state.spot)}" x2="${x(state.spot)}" y1="${top}" y2="${height - bottom}"></line><circle class="risk-facet-point" cx="${x(state.spot)}" cy="${y(currentRisk[key])}" r="4"></circle><text class="axis risk-facet-axis" x="${(left + width - right) / 2}" y="${height - 6}" text-anchor="middle">Underlying</text><text class="axis risk-facet-axis" x="12" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 12 ${(top + height - bottom) / 2})">${esc(unit)}</text>`;
+    chartContexts[id] = { width, height, left, right, top, bottom, y, key, title };
+    chartInspectors[id].refresh();
   }
 
   function renderComponents(marked) {
@@ -352,6 +453,9 @@ import * as engine from "./engine";
     };
     syncControls();
     render();
+  });
+  ["risk-value-chart", "risk-delta", "risk-gamma", "risk-vega", "risk-carry"].forEach((id) => {
+    chartInspectors[id] = attachHorizontalInspector(byId(id), () => inspectorConfig(id));
   });
   createControls();
   render();

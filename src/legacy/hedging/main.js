@@ -104,6 +104,9 @@ import { attachHorizontalInspector } from "../../shared/svg-interaction";
       onInspect(day) {
         ratioInspector?.show(Math.round(day));
       },
+      onHide() {
+        ratioInspector?.hide();
+      },
       onSelect(day) {
         selectedDay = Math.round(day);
         highlightLedger(selectedDay);
@@ -143,6 +146,9 @@ import { attachHorizontalInspector } from "../../shared/svg-interaction";
       },
       onInspect(day) {
         pathInspector?.show(Math.round(day));
+      },
+      onHide() {
+        pathInspector?.hide();
       },
       onSelect(day) {
         selectedDay = Math.round(day);

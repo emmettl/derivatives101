@@ -29,6 +29,7 @@ export interface HorizontalInspectorConfig {
   inspect: (value: number) => InspectorResult;
   onSelect: (value: number) => void;
   onInspect?: (value: number) => void;
+  onHide?: () => void;
 }
 
 export interface PlaneInspectorConfig {
@@ -53,7 +54,7 @@ export interface PlaneInspectorConfig {
 
 export interface InspectorController {
   refresh: () => void;
-  show: (value: number, pinned?: boolean) => void;
+  show: (value: number, pinned?: boolean, showTooltip?: boolean) => void;
   hide: () => void;
 }
 
@@ -140,7 +141,7 @@ export function attachHorizontalInspector(
     const config = getConfig();
     return config ? snap(value, config.minimum, config.maximum, config.step) : value;
   };
-  const draw = (rawValue: number, pin = false, notify = false) => {
+  const draw = (rawValue: number, pin = false, notify = false, showTooltip = true) => {
     const config = getConfig();
     if (!config) return;
     const value = normalise(rawValue);
@@ -174,7 +175,7 @@ export function attachHorizontalInspector(
       ),
     );
     svg.append(group);
-    renderTooltip(tooltip, result, (x / config.width) * 100);
+    if (showTooltip) renderTooltip(tooltip, result, (x / config.width) * 100);
     svg.setAttribute("aria-valuenow", value.toFixed(4));
     svg.setAttribute("aria-valuetext", result.title);
     if (notify) config.onInspect?.(value);
@@ -207,7 +208,7 @@ export function attachHorizontalInspector(
   svg.addEventListener("pointermove", (event) => {
     const value = valueFromPointer(event);
     if (dragging) select(value);
-    else draw(value, false, true);
+    else if (!isPinned) draw(value, false, true);
   });
   svg.addEventListener("pointerup", (event) => {
     dragging = false;
@@ -215,17 +216,26 @@ export function attachHorizontalInspector(
   });
   svg.addEventListener("pointercancel", () => {
     dragging = false;
-    if (!isPinned) hideOverlay(svg);
+    if (!isPinned) {
+      hideOverlay(svg);
+      getConfig()?.onHide?.();
+    }
   });
   svg.addEventListener("pointerleave", () => {
-    if (!dragging && !isPinned && document.activeElement !== svg) hideOverlay(svg);
+    if (!dragging && !isPinned && document.activeElement !== svg) {
+      hideOverlay(svg);
+      getConfig()?.onHide?.();
+    }
   });
   svg.addEventListener("focus", () => {
     const config = getConfig();
     if (config) draw(shownValue ?? config.value);
   });
   svg.addEventListener("blur", () => {
-    if (!isPinned) hideOverlay(svg);
+    if (!isPinned) {
+      hideOverlay(svg);
+      getConfig()?.onHide?.();
+    }
   });
   svg.addEventListener("keydown", (event) => {
     const config = getConfig();
@@ -240,6 +250,7 @@ export function attachHorizontalInspector(
     else if (event.key === "Escape") {
       isPinned = false;
       hideOverlay(svg);
+      config.onHide?.();
       return;
     } else return;
     event.preventDefault();
@@ -254,10 +265,10 @@ export function attachHorizontalInspector(
       svg.setAttribute("aria-valuemin", String(config.minimum));
       svg.setAttribute("aria-valuemax", String(config.maximum));
       svg.setAttribute("aria-valuenow", String(config.value));
-      if (isPinned) draw(shownValue ?? config.value, true);
+      if (isPinned) draw(config.value, true);
     },
-    show(value, pin = false) {
-      draw(value, pin);
+    show(value, pin = false, showTooltip = true) {
+      draw(value, pin, false, showTooltip);
     },
     hide() {
       isPinned = false;
@@ -368,7 +379,7 @@ export function attachPlaneInspector(
   svg.addEventListener("pointermove", (event) => {
     const values = valuesFromPointer(event);
     if (dragging) select(...values);
-    else draw(...values);
+    else if (!isPinned) draw(...values);
   });
   svg.addEventListener("pointerup", (event) => {
     dragging = false;
@@ -399,7 +410,7 @@ export function attachPlaneInspector(
       const config = getConfig();
       if (!config) return;
       svg.setAttribute("aria-label", config.label);
-      if (isPinned) draw(...(shown ?? [config.xValue, config.yValue]), true);
+      if (isPinned) draw(config.xValue, config.yValue, true);
     },
     hide() {
       isPinned = false;

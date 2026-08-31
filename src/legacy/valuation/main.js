@@ -1,4 +1,5 @@
 import * as engine from "./engine";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
   "use strict";
@@ -135,6 +136,45 @@ import * as engine from "./engine";
   let market = Object.assign({}, defaults);
   let activeScenario = "unchanged";
   const byId = (id) => document.getElementById(id);
+  let curveContext = null;
+  const curveInspector = attachHorizontalInspector(byId("valuation-curve"), () => {
+    if (!curveContext) return null;
+    return {
+      width: 900,
+      left: 62,
+      right: 24,
+      top: 24,
+      bottom: 312,
+      minimum: 50,
+      maximum: 160,
+      step: 1,
+      value: market.spot,
+      label: "Valuation comparison by underlying level",
+      inspect(spot) {
+        const selected = engine.markNote(note, Object.assign({}, market, { spot }));
+        return {
+          title: `Underlying ${spot.toFixed(0)}`,
+          rows: [
+            { label: "Current model value", value: points(selected.modelValue), color: "#2c5670" },
+            { label: "Illustrative exit bid", value: points(selected.bid), color: "#b5443a" },
+            { label: "Maturity payoff", value: points(selected.maturityPayoff), color: "#3e8e7e" },
+            { label: "Bid versus issue", value: signed(selected.bid - note.issuePrice) },
+          ],
+          points: [
+            { y: curveContext.y(selected.modelValue), color: "#2c5670" },
+            { y: curveContext.y(selected.bid), color: "#b5443a" },
+            { y: curveContext.y(selected.maturityPayoff), color: "#3e8e7e" },
+          ],
+        };
+      },
+      onSelect(spot) {
+        market.spot = Math.round(spot);
+        activeScenario = "custom";
+        syncControls();
+        render();
+      },
+    };
+  });
 
   function percent(value) {
     return `${(value * 100).toFixed(2)}%`;
@@ -297,6 +337,8 @@ import * as engine from "./engine";
     const xTicks = [50, 75, 100, 125, 150];
     const yTicks = Array.from({ length: 6 }, (_, index) => yMin + ((yMax - yMin) * index) / 5);
     svg.innerHTML = `<title>Current value and maturity payoff across underlying levels</title><desc>The current model value and illustrative bid differ from the maturity payoff because time, rates, volatility, dividends, issuer spread and exit costs remain.</desc>${yTicks.map((tick) => `<line class="grid" x1="${left}" x2="${width - right}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${left - 8}" y="${y(tick) + 3}" text-anchor="end">${tick.toFixed(0)}</text>`).join("")}${xTicks.map((tick) => `<line class="grid" x1="${x(tick)}" x2="${x(tick)}" y1="${top}" y2="${height - bottom}"></line><text class="axis" x="${x(tick)}" y="${height - bottom + 20}" text-anchor="middle">${tick}</text>`).join("")}<line class="valuation-issue-line" x1="${left}" x2="${width - right}" y1="${y(100)}" y2="${y(100)}"></line><path class="valuation-maturity" d="${path("maturityPayoff")}"></path><path class="valuation-current" d="${path("modelValue")}"></path><path class="valuation-bid" d="${path("bid")}"></path><line class="valuation-current-guide" x1="${x(market.spot)}" x2="${x(market.spot)}" y1="${top}" y2="${height - bottom}"></line><circle class="valuation-dot current" cx="${x(market.spot)}" cy="${y(marked.modelValue)}" r="5"></circle><circle class="valuation-dot bid" cx="${x(market.spot)}" cy="${y(marked.bid)}" r="5"></circle><circle class="valuation-dot maturity" cx="${x(market.spot)}" cy="${y(marked.maturityPayoff)}" r="5"></circle><text class="axis valuation-axis-title" x="${(left + width - right) / 2}" y="${height - 8}" text-anchor="middle">Underlying level</text><text class="axis valuation-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">Value per 100 nominal</text>`;
+    curveContext = { y };
+    curveInspector.refresh();
     byId("valuation-comparison").innerHTML = [
       [
         points(marked.maturityPayoff),

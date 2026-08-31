@@ -1,323 +1,964 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Explore the payoffs and simulated outcomes of eight structured-product families.">
-<meta name="theme-color" content="#0B1E2D">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Derivatives 101">
-<meta property="og:title" content="Derivatives 101 — Payoff Explorer">
-<meta property="og:description" content="Change the terms and watch the payoff and simulated risk move across eight structured-product families.">
-<meta property="og:url" content="https://emmettl.github.io/derivatives101/payoff-explorer.html">
-<meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Derivatives 101 — See the payoff. Understand the trade.">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Derivatives 101 — Payoff Explorer">
-<meta name="twitter:description" content="An interactive lab for eight structured-product families.">
-<meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
-<title>Derivatives 101 — Payoff Explorer</title>
-<link rel="stylesheet" href="payoff-explorer.css?v=2">
-</head>
-<body>
-<header>
-  <div class="kick">Derivatives 101 · companion tool</div>
-  <h1>Payoff Explorer</h1>
-  <p>Move the sliders and watch the payoff change. Every structure in the six decks is here. The simulations use a simple lognormal price model with zero drift — they are for building intuition, not for pricing.</p>
-</header>
-<div class="utility">
-  <span class="utility-links"><a href="./">← Course home</a><a href="option-lab.html">Option Lab</a><a href="structured-products.html">Structured labs</a></span>
-  <span class="utility-status" id="utility-status">Structure 1 of 8 · Building blocks</span>
-  <div class="utility-actions">
-    <button type="button" id="reset-setup">Reset</button>
-    <button type="button" id="share-setup">Copy setup link</button>
-  </div>
-</div>
-<nav id="tabs" aria-label="Structures" role="tablist">
-  <button data-t="blocks" class="on">0 · Building blocks</button>
-  <button data-t="acc">1 · Accumulator / decumulator</button>
-  <button data-t="rc">2 · Reverse convertible</button>
-  <button data-t="fcn">3 · FCN worst-of</button>
-  <button data-t="disc">4 · Discount certificate</button>
-  <button data-t="bonus">4 · Bonus certificate</button>
-  <button data-t="cpn">5 · Capital protected note</button>
-  <button data-t="mini">5 · Mini future</button>
-</nav>
-<main>
-
-<!-- ============ TAB 0 ============ -->
-<section class="panel on" id="p-blocks">
-  <p class="lede">The four shapes that everything else is built from. Notice that <b>selling</b> an option gives a flat, capped payoff on one side and a payoff that slides all the way down to zero on the other — that is the trade every yield-seeking investor is making.</p>
-  <div class="grid">
-    <div class="card">
-      <h3>Position</h3>
-      <div class="seg" id="bk-type">
-        <button data-v="lc" class="on">Long call</button>
-        <button data-v="lp">Long put</button>
-        <button data-v="sp">Short put</button>
-        <button data-v="rc">Bond + short put</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Explore the payoffs and simulated outcomes of eight structured-product families."
+    />
+    <meta name="theme-color" content="#0B1E2D" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta property="og:title" content="Derivatives 101 — Payoff Explorer" />
+    <meta
+      property="og:description"
+      content="Change the terms and watch the payoff and simulated risk move across eight structured-product families."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/payoff-explorer.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Derivatives 101 — See the payoff. Understand the trade."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Derivatives 101 — Payoff Explorer" />
+    <meta
+      name="twitter:description"
+      content="An interactive lab for eight structured-product families."
+    />
+    <meta
+      name="twitter:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <title>Derivatives 101 — Payoff Explorer</title>
+    <link rel="stylesheet" href="payoff-explorer.css?v=2" />
+  </head>
+  <body>
+    <header>
+      <div class="kick">Derivatives 101 · companion tool</div>
+      <h1>Payoff Explorer</h1>
+      <p>
+        Move the sliders and watch the payoff change. Every structure in the six
+        decks is here. The simulations use a simple lognormal price model with
+        zero drift — they are for building intuition, not for pricing.
+      </p>
+    </header>
+    <div class="utility">
+      <span class="utility-links"
+        ><a href="./">← Course home</a><a href="option-lab.html">Option Lab</a
+        ><a href="structured-products.html">Structured labs</a></span
+      >
+      <span class="utility-status" id="utility-status"
+        >Structure 1 of 8 · Building blocks</span
+      >
+      <div class="utility-actions">
+        <button type="button" id="reset-setup">Reset</button>
+        <button type="button" id="share-setup">Copy setup link</button>
       </div>
-      <div class="ctl"><label>Strike <span id="bk-k-v">100</span></label>
-        <input type="range" id="bk-k" min="60" max="140" value="100" step="1"></div>
-      <div class="ctl"><label><span id="bk-p-lab">Premium paid</span> <span id="bk-p-v">10</span></label>
-        <input type="range" id="bk-p" min="0" max="30" value="10" step="0.5"></div>
-      <div class="readout" id="bk-read"></div>
-      <p class="note">At expiry, ignoring funding, dividends and issuer credit.</p>
     </div>
-    <div>
-      <p style="margin:0 0 8px 4px;font-size:13px;font-weight:700;color:#64798A" id="bk-basis"></p>
-      <div class="chartbox"><svg id="bk-svg" viewBox="0 0 760 420"></svg></div>
-      <div class="legend"><span><i style="background:var(--jade)"></i>profit region</span><span><i style="background:var(--brick)"></i>loss region</span><span><i style="background:var(--line)"></i>strike</span></div>
-    </div>
-  </div>
-</section>
+    <nav id="tabs" aria-label="Structures" role="tablist">
+      <button data-t="blocks" class="on">0 · Building blocks</button>
+      <button data-t="acc">1 · Accumulator / decumulator</button>
+      <button data-t="rc">2 · Reverse convertible</button>
+      <button data-t="fcn">3 · FCN worst-of</button>
+      <button data-t="disc">4 · Discount certificate</button>
+      <button data-t="bonus">4 · Bonus certificate</button>
+      <button data-t="cpn">5 · Capital protected note</button>
+      <button data-t="mini">5 · Mini future</button>
+    </nav>
+    <main>
+      <!-- ============ TAB 0 ============ -->
+      <section class="panel on" id="p-blocks">
+        <p class="lede">
+          The four shapes that everything else is built from. Notice that
+          <b>selling</b> an option gives a flat, capped payoff on one side and a
+          payoff that slides all the way down to zero on the other — that is the
+          trade every yield-seeking investor is making.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Position</h3>
+            <div class="seg" id="bk-type">
+              <button data-v="lc" class="on">Long call</button>
+              <button data-v="lp">Long put</button>
+              <button data-v="sp">Short put</button>
+              <button data-v="rc">Bond + short put</button>
+            </div>
+            <div class="ctl">
+              <label>Strike <span id="bk-k-v">100</span></label>
+              <input
+                type="range"
+                id="bk-k"
+                min="60"
+                max="140"
+                value="100"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                ><span id="bk-p-lab">Premium paid</span>
+                <span id="bk-p-v">10</span></label
+              >
+              <input
+                type="range"
+                id="bk-p"
+                min="0"
+                max="30"
+                value="10"
+                step="0.5"
+              />
+            </div>
+            <div class="readout" id="bk-read"></div>
+            <p class="note">
+              At expiry, ignoring funding, dividends and issuer credit.
+            </p>
+          </div>
+          <div>
+            <p
+              style="
+                margin: 0 0 8px 4px;
+                font-size: 13px;
+                font-weight: 700;
+                color: #64798a;
+              "
+              id="bk-basis"
+            ></p>
+            <div class="chartbox">
+              <svg id="bk-svg" viewBox="0 0 760 420"></svg>
+            </div>
+            <div class="legend">
+              <span><i style="background: var(--jade)"></i>profit region</span
+              ><span><i style="background: var(--brick)"></i>loss region</span
+              ><span><i style="background: var(--line)"></i>strike</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-<!-- ============ TAB 1 ============ -->
-<section class="panel" id="p-acc">
-  <p class="lede">A <b>knock-out discount accumulator</b> obliges the client to buy a fixed quantity every trading day at the strike, with the quantity geared up below the strike, until a knock-out barrier ends the trade. The left chart is a single day. The right chart is what 2,000 simulated markets do to the whole contract.</p>
-  <div class="grid">
-    <div class="card">
-      <h3>Terms</h3>
-      <div class="seg" id="ac-dir">
-        <button data-v="acc" class="on">Accumulator</button>
-        <button data-v="dec">Decumulator</button>
-      </div>
-      <div class="ctl"><label>Strike, % of spot <span id="ac-k-v">88%</span></label>
-        <input type="range" id="ac-k" min="70" max="130" value="88" step="1"></div>
-      <div class="ctl"><label>Knock-out, % of spot <span id="ac-b-v">103%</span></label>
-        <input type="range" id="ac-b" min="80" max="125" value="103" step="1"></div>
-      <div class="ctl"><label>Gearing below strike <span id="ac-g-v">2.0×</span></label>
-        <input type="range" id="ac-g" min="1" max="4" value="2" step="0.5"></div>
-      <div class="ctl"><label>Tenor, trading days <span id="ac-n-v">120</span></label>
-        <input type="range" id="ac-n" min="20" max="250" value="120" step="10"></div>
-      <div class="ctl"><label>Annualised volatility <span id="ac-v-v">35%</span></label>
-        <input type="range" id="ac-v" min="10" max="80" value="35" step="1"></div>
-      <div class="ctl"><label>Initial margin, % of max notional <span id="ac-m-v">30%</span></label>
-        <input type="range" id="ac-m" min="10" max="100" value="30" step="5"></div>
-      <button class="btn" id="ac-run">Re-run 2,000 simulated markets</button>
-      <table class="terms" id="ac-terms"></table>
-    </div>
-    <div>
-      <div class="chartbox"><svg id="ac-day" viewBox="0 0 760 300"></svg></div>
-      <div class="stats" id="ac-stats"></div>
-      <div class="chartbox" style="margin-top:16px"><svg id="ac-hist" viewBox="0 0 760 300"></svg></div>
-      <div class="readout" id="ac-read"></div>
-      <p class="note">Simulation: daily lognormal steps, zero drift, knock-out tested on the daily close, a guaranteed minimum of 20 accumulation days, and the position marked at the final close.</p>
-    </div>
-  </div>
-</section>
+      <!-- ============ TAB 1 ============ -->
+      <section class="panel" id="p-acc">
+        <p class="lede">
+          A <b>knock-out discount accumulator</b> obliges the client to buy a
+          fixed quantity every trading day at the strike, with the quantity
+          geared up below the strike, until a knock-out barrier ends the trade.
+          The left chart is a single day. The right chart is what 2,000
+          simulated markets do to the whole contract.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Terms</h3>
+            <div class="seg" id="ac-dir">
+              <button data-v="acc" class="on">Accumulator</button>
+              <button data-v="dec">Decumulator</button>
+            </div>
+            <div class="ctl">
+              <label>Strike, % of spot <span id="ac-k-v">88%</span></label>
+              <input
+                type="range"
+                id="ac-k"
+                min="70"
+                max="130"
+                value="88"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Knock-out, % of spot <span id="ac-b-v">103%</span></label>
+              <input
+                type="range"
+                id="ac-b"
+                min="80"
+                max="125"
+                value="103"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Gearing below strike <span id="ac-g-v">2.0×</span></label>
+              <input
+                type="range"
+                id="ac-g"
+                min="1"
+                max="4"
+                value="2"
+                step="0.5"
+              />
+            </div>
+            <div class="ctl">
+              <label>Tenor, trading days <span id="ac-n-v">120</span></label>
+              <input
+                type="range"
+                id="ac-n"
+                min="20"
+                max="250"
+                value="120"
+                step="10"
+              />
+            </div>
+            <div class="ctl">
+              <label>Annualised volatility <span id="ac-v-v">35%</span></label>
+              <input
+                type="range"
+                id="ac-v"
+                min="10"
+                max="80"
+                value="35"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Initial margin, % of max notional
+                <span id="ac-m-v">30%</span></label
+              >
+              <input
+                type="range"
+                id="ac-m"
+                min="10"
+                max="100"
+                value="30"
+                step="5"
+              />
+            </div>
+            <button class="btn" id="ac-run">
+              Re-run 2,000 simulated markets
+            </button>
+            <table class="terms" id="ac-terms"></table>
+          </div>
+          <div>
+            <div class="chartbox">
+              <svg id="ac-day" viewBox="0 0 760 300"></svg>
+            </div>
+            <div class="stats" id="ac-stats"></div>
+            <div class="chartbox" style="margin-top: 16px">
+              <svg id="ac-hist" viewBox="0 0 760 300"></svg>
+            </div>
+            <div class="readout" id="ac-read"></div>
+            <p class="note">
+              Simulation: daily lognormal steps, zero drift, knock-out tested on
+              the daily close, a guaranteed minimum of 20 accumulation days, and
+              the position marked at the final close.
+            </p>
+          </div>
+        </div>
+      </section>
 
-<!-- ============ TAB 2 ============ -->
-<section class="panel" id="p-rc">
-  <p class="lede">A <b>reverse convertible</b> pays a coupon and repays par unless the underlying breaches a knock-in barrier. Add an autocall trigger and the note usually dies early. Watch what happens to the "probability of loss" figure as you drag the barrier and the volatility.</p>
-  <div class="grid">
-    <div class="card">
-      <h3>Terms</h3>
-      <div class="ctl"><label>Coupon, % p.a. <span id="rc-c-v">10.0%</span></label>
-        <input type="range" id="rc-c" min="0" max="30" value="10" step="0.5"></div>
-      <div class="ctl"><label>Knock-in barrier, % of initial <span id="rc-b-v">60%</span></label>
-        <input type="range" id="rc-b" min="0" max="100" value="60" step="1"></div>
-      <div class="seg" id="rc-obs">
-        <button data-v="eu" class="on">Barrier at maturity only</button>
-        <button data-v="am">Barrier observed daily</button>
-      </div>
-      <div class="ctl"><label>Autocall trigger, % of initial <span id="rc-a-v">100%</span></label>
-        <input type="range" id="rc-a" min="80" max="130" value="100" step="1"></div>
-      <div class="ctl"><label>Tenor, years <span id="rc-t-v">3</span></label>
-        <input type="range" id="rc-t" min="1" max="5" value="3" step="1"></div>
-      <div class="ctl"><label>Observations per year <span id="rc-f-v">12</span></label>
-        <input type="range" id="rc-f" min="1" max="12" value="12" step="1"></div>
-      <div class="ctl"><label>Annualised volatility <span id="rc-v-v">30%</span></label>
-        <input type="range" id="rc-v" min="10" max="80" value="30" step="1"></div>
-      <button class="btn" id="rc-run">Re-run 2,000 simulated markets</button>
-    </div>
-    <div>
-      <div class="chartbox"><svg id="rc-pay" viewBox="0 0 760 300"></svg></div>
-      <div class="stats" id="rc-stats"></div>
-      <div class="chartbox" style="margin-top:16px"><svg id="rc-hist" viewBox="0 0 760 300"></svg></div>
-      <div class="readout" id="rc-read"></div>
-      <p class="note">Autocall is tested on each observation date after a one-period non-call window; coupons are paid up to redemption. No issuer credit event is modelled.</p>
-    </div>
-  </div>
-</section>
+      <!-- ============ TAB 2 ============ -->
+      <section class="panel" id="p-rc">
+        <p class="lede">
+          A <b>reverse convertible</b> pays a coupon and repays par unless the
+          underlying breaches a knock-in barrier. Add an autocall trigger and
+          the note usually dies early. Watch what happens to the "probability of
+          loss" figure as you drag the barrier and the volatility.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Terms</h3>
+            <div class="ctl">
+              <label>Coupon, % p.a. <span id="rc-c-v">10.0%</span></label>
+              <input
+                type="range"
+                id="rc-c"
+                min="0"
+                max="30"
+                value="10"
+                step="0.5"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Knock-in barrier, % of initial
+                <span id="rc-b-v">60%</span></label
+              >
+              <input
+                type="range"
+                id="rc-b"
+                min="0"
+                max="100"
+                value="60"
+                step="1"
+              />
+            </div>
+            <div class="seg" id="rc-obs">
+              <button data-v="eu" class="on">Barrier at maturity only</button>
+              <button data-v="am">Barrier observed daily</button>
+            </div>
+            <div class="ctl">
+              <label
+                >Autocall trigger, % of initial
+                <span id="rc-a-v">100%</span></label
+              >
+              <input
+                type="range"
+                id="rc-a"
+                min="80"
+                max="130"
+                value="100"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Tenor, years <span id="rc-t-v">3</span></label>
+              <input
+                type="range"
+                id="rc-t"
+                min="1"
+                max="5"
+                value="3"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Observations per year <span id="rc-f-v">12</span></label>
+              <input
+                type="range"
+                id="rc-f"
+                min="1"
+                max="12"
+                value="12"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Annualised volatility <span id="rc-v-v">30%</span></label>
+              <input
+                type="range"
+                id="rc-v"
+                min="10"
+                max="80"
+                value="30"
+                step="1"
+              />
+            </div>
+            <button class="btn" id="rc-run">
+              Re-run 2,000 simulated markets
+            </button>
+          </div>
+          <div>
+            <div class="chartbox">
+              <svg id="rc-pay" viewBox="0 0 760 300"></svg>
+            </div>
+            <div class="stats" id="rc-stats"></div>
+            <div class="chartbox" style="margin-top: 16px">
+              <svg id="rc-hist" viewBox="0 0 760 300"></svg>
+            </div>
+            <div class="readout" id="rc-read"></div>
+            <p class="note">
+              Autocall is tested on each observation date after a one-period
+              non-call window; coupons are paid up to redemption. No issuer
+              credit event is modelled.
+            </p>
+          </div>
+        </div>
+      </section>
 
-<!-- ============ TAB 3 ============ -->
-<section class="panel" id="p-fcn">
-  <p class="lede">An Asian <b>fixed coupon note</b> pays its coupon whatever happens, and settles into the worst-performing share if that share is both through the barrier and below the strike. Add names to the basket and drop the correlation — then watch the loss probability move while the coupon stays exactly where you set it.</p>
-  <div class="grid">
-    <div class="card">
-      <h3>Terms</h3>
-      <div class="ctl"><label>Names in the basket <span id="fc-n-v">3</span></label>
-        <input type="range" id="fc-n" min="1" max="5" value="3" step="1"></div>
-      <div class="ctl"><label>Pairwise correlation <span id="fc-r-v">0.50</span></label>
-        <input type="range" id="fc-r" min="0" max="95" value="50" step="5"></div>
-      <div class="ctl"><label>Coupon, % p.a. (unconditional) <span id="fc-c-v">12.0%</span></label>
-        <input type="range" id="fc-c" min="0" max="40" value="12" step="0.5"></div>
-      <div class="ctl"><label>Strike, % of initial <span id="fc-k-v">90%</span></label>
-        <input type="range" id="fc-k" min="60" max="105" value="90" step="1"></div>
-      <div class="ctl"><label>Knock-in barrier, % of initial <span id="fc-b-v">70%</span></label>
-        <input type="range" id="fc-b" min="30" max="100" value="70" step="1"></div>
-      <div class="ctl"><label>Autocall trigger, % of initial <span id="fc-a-v">100%</span></label>
-        <input type="range" id="fc-a" min="85" max="120" value="100" step="1"></div>
-      <div class="ctl"><label>Tenor, months <span id="fc-t-v">6</span></label>
-        <input type="range" id="fc-t" min="3" max="12" value="6" step="1"></div>
-      <div class="ctl"><label>Annualised volatility, each name <span id="fc-v-v">40%</span></label>
-        <input type="range" id="fc-v" min="15" max="90" value="40" step="1"></div>
-      <button class="btn" id="fc-run">Re-run 2,000 simulated markets</button>
-    </div>
-    <div>
-      <div class="stats" id="fc-stats"></div>
-      <div class="chartbox" style="margin-top:16px"><svg id="fc-hist" viewBox="0 0 760 300"></svg></div>
-      <div class="readout" id="fc-read"></div>
-      <div class="chartbox" style="margin-top:16px"><svg id="fc-corr" viewBox="0 0 760 260"></svg></div>
-      <p class="note">Knock-in observed daily on each name; autocall observed monthly after the first month, and requires every name to be at or above the trigger. Settlement is into the worst performer at the strike.</p>
-    </div>
-  </div>
-</section>
+      <!-- ============ TAB 3 ============ -->
+      <section class="panel" id="p-fcn">
+        <p class="lede">
+          An Asian <b>fixed coupon note</b> pays its coupon whatever happens,
+          and settles into the worst-performing share if that share is both
+          through the barrier and below the strike. Add names to the basket and
+          drop the correlation — then watch the loss probability move while the
+          coupon stays exactly where you set it.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Terms</h3>
+            <div class="ctl">
+              <label>Names in the basket <span id="fc-n-v">3</span></label>
+              <input
+                type="range"
+                id="fc-n"
+                min="1"
+                max="5"
+                value="3"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Pairwise correlation <span id="fc-r-v">0.50</span></label>
+              <input
+                type="range"
+                id="fc-r"
+                min="0"
+                max="95"
+                value="50"
+                step="5"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Coupon, % p.a. (unconditional)
+                <span id="fc-c-v">12.0%</span></label
+              >
+              <input
+                type="range"
+                id="fc-c"
+                min="0"
+                max="40"
+                value="12"
+                step="0.5"
+              />
+            </div>
+            <div class="ctl">
+              <label>Strike, % of initial <span id="fc-k-v">90%</span></label>
+              <input
+                type="range"
+                id="fc-k"
+                min="60"
+                max="105"
+                value="90"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Knock-in barrier, % of initial
+                <span id="fc-b-v">70%</span></label
+              >
+              <input
+                type="range"
+                id="fc-b"
+                min="30"
+                max="100"
+                value="70"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Autocall trigger, % of initial
+                <span id="fc-a-v">100%</span></label
+              >
+              <input
+                type="range"
+                id="fc-a"
+                min="85"
+                max="120"
+                value="100"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Tenor, months <span id="fc-t-v">6</span></label>
+              <input
+                type="range"
+                id="fc-t"
+                min="3"
+                max="12"
+                value="6"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Annualised volatility, each name
+                <span id="fc-v-v">40%</span></label
+              >
+              <input
+                type="range"
+                id="fc-v"
+                min="15"
+                max="90"
+                value="40"
+                step="1"
+              />
+            </div>
+            <button class="btn" id="fc-run">
+              Re-run 2,000 simulated markets
+            </button>
+          </div>
+          <div>
+            <div class="stats" id="fc-stats"></div>
+            <div class="chartbox" style="margin-top: 16px">
+              <svg id="fc-hist" viewBox="0 0 760 300"></svg>
+            </div>
+            <div class="readout" id="fc-read"></div>
+            <div class="chartbox" style="margin-top: 16px">
+              <svg id="fc-corr" viewBox="0 0 760 260"></svg>
+            </div>
+            <p class="note">
+              Knock-in observed daily on each name; autocall observed monthly
+              after the first month, and requires every name to be at or above
+              the trigger. Settlement is into the worst performer at the strike.
+            </p>
+          </div>
+        </div>
+      </section>
 
-<!-- ============ TAB 4a : discount certificate ============ -->
-<section class="panel" id="p-disc">
-  <p class="lede">A <b>discount certificate</b> is bought below spot and capped at the cap level. There is no barrier on the plain version — the cushion is the discount, and it is small but certain. Add a barrier and the cushion becomes large but conditional.</p>
-  <div class="grid">
-    <div class="card">
-      <h3>Terms</h3>
-      <div class="seg" id="dc-type">
-        <button data-v="plain" class="on">Plain · 1200</button>
-        <button data-v="barrier">Barrier · 1210</button>
-      </div>
-      <div class="ctl"><label>Cap, % of spot <span id="dc-c-v">95%</span></label>
-        <input type="range" id="dc-c" min="50" max="130" value="95" step="1"></div>
-      <div class="ctl"><label>Purchase price, % of spot <span id="dc-p-v">84%</span></label>
-        <input type="range" id="dc-p" min="40" max="105" value="84" step="1"></div>
-      <div class="ctl" id="dc-b-row"><label>Barrier, % of spot <span id="dc-b-v">65%</span></label>
-        <input type="range" id="dc-b" min="20" max="95" value="65" step="1"></div>
-      <div class="ctl"><label>Tenor, months <span id="dc-t-v">12</span></label>
-        <input type="range" id="dc-t" min="3" max="60" value="12" step="1"></div>
-      <div class="ctl"><label>Annualised volatility <span id="dc-v-v">25%</span></label>
-        <input type="range" id="dc-v" min="5" max="70" value="25" step="1"></div>
-      <button class="btn" id="dc-run">Re-run 2,000 simulated markets</button>
-      <table class="terms" id="dc-terms"></table>
-    </div>
-    <div>
-      <p style="margin:0 0 8px 4px;font-size:13px;font-weight:700;color:#64798A">Redemption at maturity, per certificate</p>
-      <div class="chartbox"><svg id="dc-pay" viewBox="0 0 760 320"></svg></div>
-      <div class="legend"><span><i style="background:var(--deep)"></i>certificate</span><span><i style="background:var(--line)"></i>direct holding in the share</span></div>
-      <div class="stats" id="dc-stats"></div>
-      <div class="readout" id="dc-read"></div>
-      <p class="note">Barrier version observed continuously on the simulated daily path. Dividends are excluded from the certificate and shown separately for the direct holding.</p>
-    </div>
-  </div>
-</section>
+      <!-- ============ TAB 4a : discount certificate ============ -->
+      <section class="panel" id="p-disc">
+        <p class="lede">
+          A <b>discount certificate</b> is bought below spot and capped at the
+          cap level. There is no barrier on the plain version — the cushion is
+          the discount, and it is small but certain. Add a barrier and the
+          cushion becomes large but conditional.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Terms</h3>
+            <div class="seg" id="dc-type">
+              <button data-v="plain" class="on">Plain · 1200</button>
+              <button data-v="barrier">Barrier · 1210</button>
+            </div>
+            <div class="ctl">
+              <label>Cap, % of spot <span id="dc-c-v">95%</span></label>
+              <input
+                type="range"
+                id="dc-c"
+                min="50"
+                max="130"
+                value="95"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Purchase price, % of spot <span id="dc-p-v">84%</span></label
+              >
+              <input
+                type="range"
+                id="dc-p"
+                min="40"
+                max="105"
+                value="84"
+                step="1"
+              />
+            </div>
+            <div class="ctl" id="dc-b-row">
+              <label>Barrier, % of spot <span id="dc-b-v">65%</span></label>
+              <input
+                type="range"
+                id="dc-b"
+                min="20"
+                max="95"
+                value="65"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Tenor, months <span id="dc-t-v">12</span></label>
+              <input
+                type="range"
+                id="dc-t"
+                min="3"
+                max="60"
+                value="12"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Annualised volatility <span id="dc-v-v">25%</span></label>
+              <input
+                type="range"
+                id="dc-v"
+                min="5"
+                max="70"
+                value="25"
+                step="1"
+              />
+            </div>
+            <button class="btn" id="dc-run">
+              Re-run 2,000 simulated markets
+            </button>
+            <table class="terms" id="dc-terms"></table>
+          </div>
+          <div>
+            <p
+              style="
+                margin: 0 0 8px 4px;
+                font-size: 13px;
+                font-weight: 700;
+                color: #64798a;
+              "
+            >
+              Redemption at maturity, per certificate
+            </p>
+            <div class="chartbox">
+              <svg id="dc-pay" viewBox="0 0 760 320"></svg>
+            </div>
+            <div class="legend">
+              <span><i style="background: var(--deep)"></i>certificate</span
+              ><span
+                ><i style="background: var(--line)"></i>direct holding in the
+                share</span
+              >
+            </div>
+            <div class="stats" id="dc-stats"></div>
+            <div class="readout" id="dc-read"></div>
+            <p class="note">
+              Barrier version observed continuously on the simulated daily path.
+              Dividends are excluded from the certificate and shown separately
+              for the direct holding.
+            </p>
+          </div>
+        </div>
+      </section>
 
-<!-- ============ TAB 4b : bonus certificate ============ -->
-<section class="panel" id="p-bonus">
-  <p class="lede">A <b>bonus certificate</b> pays at least the bonus level if the barrier survives, and participates 1:1 above it. It is funded by the dividends the client gives up — so push the dividend slider and watch how much bonus the budget can actually buy.</p>
-  <div class="grid">
-    <div class="card">
-      <h3>Terms</h3>
-      <div class="seg" id="bn-obs">
-        <button data-v="cont" class="on">Continuous barrier</button>
-        <button data-v="eu">Barrier at maturity</button>
-      </div>
-      <div class="ctl"><label>Bonus level, % of spot <span id="bn-l-v">120%</span></label>
-        <input type="range" id="bn-l" min="100" max="180" value="120" step="1"></div>
-      <div class="ctl"><label>Barrier, % of spot <span id="bn-b-v">70%</span></label>
-        <input type="range" id="bn-b" min="30" max="95" value="70" step="1"></div>
-      <div class="ctl"><label>Tenor, months <span id="bn-t-v">24</span></label>
-        <input type="range" id="bn-t" min="6" max="60" value="24" step="1"></div>
-      <div class="ctl"><label>Annualised volatility <span id="bn-v-v">25%</span></label>
-        <input type="range" id="bn-v" min="5" max="70" value="25" step="1"></div>
-      <div class="ctl"><label>Dividend yield given up <span id="bn-q-v">3.0%</span></label>
-        <input type="range" id="bn-q" min="0" max="8" value="3" step="0.25"></div>
-      <button class="btn" id="bn-run">Re-run 2,000 simulated markets</button>
-      <table class="terms" id="bn-terms"></table>
-    </div>
-    <div>
-      <p style="margin:0 0 8px 4px;font-size:13px;font-weight:700;color:#64798A">Redemption at maturity, assuming the barrier survives</p>
-      <div class="chartbox"><svg id="bn-pay" viewBox="0 0 760 320"></svg></div>
-      <div class="stats" id="bn-stats"></div>
-      <div class="readout" id="bn-read"></div>
-      <p class="note">The dividend yield is the budget that funds the bonus. It is also what the client forgoes — including after a breach, which is why a breached bonus certificate underperforms the share itself.</p>
-    </div>
-  </div>
-</section>
+      <!-- ============ TAB 4b : bonus certificate ============ -->
+      <section class="panel" id="p-bonus">
+        <p class="lede">
+          A <b>bonus certificate</b> pays at least the bonus level if the
+          barrier survives, and participates 1:1 above it. It is funded by the
+          dividends the client gives up — so push the dividend slider and watch
+          how much bonus the budget can actually buy.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Terms</h3>
+            <div class="seg" id="bn-obs">
+              <button data-v="cont" class="on">Continuous barrier</button>
+              <button data-v="eu">Barrier at maturity</button>
+            </div>
+            <div class="ctl">
+              <label
+                >Bonus level, % of spot <span id="bn-l-v">120%</span></label
+              >
+              <input
+                type="range"
+                id="bn-l"
+                min="100"
+                max="180"
+                value="120"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Barrier, % of spot <span id="bn-b-v">70%</span></label>
+              <input
+                type="range"
+                id="bn-b"
+                min="30"
+                max="95"
+                value="70"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Tenor, months <span id="bn-t-v">24</span></label>
+              <input
+                type="range"
+                id="bn-t"
+                min="6"
+                max="60"
+                value="24"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Annualised volatility <span id="bn-v-v">25%</span></label>
+              <input
+                type="range"
+                id="bn-v"
+                min="5"
+                max="70"
+                value="25"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Dividend yield given up <span id="bn-q-v">3.0%</span></label
+              >
+              <input
+                type="range"
+                id="bn-q"
+                min="0"
+                max="8"
+                value="3"
+                step="0.25"
+              />
+            </div>
+            <button class="btn" id="bn-run">
+              Re-run 2,000 simulated markets
+            </button>
+            <table class="terms" id="bn-terms"></table>
+          </div>
+          <div>
+            <p
+              style="
+                margin: 0 0 8px 4px;
+                font-size: 13px;
+                font-weight: 700;
+                color: #64798a;
+              "
+            >
+              Redemption at maturity, assuming the barrier survives
+            </p>
+            <div class="chartbox">
+              <svg id="bn-pay" viewBox="0 0 760 320"></svg>
+            </div>
+            <div class="stats" id="bn-stats"></div>
+            <div class="readout" id="bn-read"></div>
+            <p class="note">
+              The dividend yield is the budget that funds the bonus. It is also
+              what the client forgoes — including after a breach, which is why a
+              breached bonus certificate underperforms the share itself.
+            </p>
+          </div>
+        </div>
+      </section>
 
-<!-- ============ TAB 5a : capital protected note ============ -->
-<section class="panel" id="p-cpn">
-  <p class="lede">A <b>capital protected note</b> buys a bond floor first and spends what is left on options. Drag the interest rate slider to the left and watch the product become unbuildable — that is the whole story of 2015 to 2021 in one control.</p>
-  <div class="grid">
-    <div class="card">
-      <h3>Terms</h3>
-      <div class="ctl"><label>Issuer funding rate <span id="cp-r-v">4.30%</span></label>
-        <input type="range" id="cp-r" min="-100" max="800" value="430" step="10"></div>
-      <div class="ctl"><label>Tenor, years <span id="cp-t-v">5</span></label>
-        <input type="range" id="cp-t" min="1" max="10" value="5" step="1"></div>
-      <div class="ctl"><label>Protection level <span id="cp-pr-v">100%</span></label>
-        <input type="range" id="cp-pr" min="70" max="100" value="100" step="1"></div>
-      <div class="ctl"><label>Implied volatility <span id="cp-v-v">18%</span></label>
-        <input type="range" id="cp-v" min="5" max="45" value="18" step="1"></div>
-      <div class="ctl"><label>Dividend yield of the underlying <span id="cp-q-v">2.0%</span></label>
-        <input type="range" id="cp-q" min="0" max="6" value="2" step="0.25"></div>
-      <div class="ctl"><label>Total fees <span id="cp-f-v">2.0%</span></label>
-        <input type="range" id="cp-f" min="0" max="8" value="2" step="0.25"></div>
-      <div class="seg" id="cp-cap">
-        <button data-v="no" class="on">Uncapped</button>
-        <button data-v="yes">Capped at +40%</button>
-      </div>
-      <table class="terms" id="cp-terms"></table>
-    </div>
-    <div>
-      <div class="stats" id="cp-stats"></div>
-      <p style="margin:16px 0 8px 4px;font-size:13px;font-weight:700;color:#64798A">Participation you can buy, against the funding rate</p>
-      <div class="chartbox"><svg id="cp-curve" viewBox="0 0 760 300"></svg></div>
-      <p style="margin:16px 0 8px 4px;font-size:13px;font-weight:700;color:#64798A">Redemption at maturity, per 100 invested</p>
-      <div class="chartbox"><svg id="cp-pay" viewBox="0 0 760 280"></svg></div>
-      <div class="readout" id="cp-read"></div>
-      <p class="note">Black-Scholes on an at-the-money call, annual compounding on the bond floor. Illustrative arithmetic for teaching, not a pricing tool — and it ignores issuer credit entirely, which is the risk that actually matters.</p>
-    </div>
-  </div>
-</section>
+      <!-- ============ TAB 5a : capital protected note ============ -->
+      <section class="panel" id="p-cpn">
+        <p class="lede">
+          A <b>capital protected note</b> buys a bond floor first and spends
+          what is left on options. Drag the interest rate slider to the left and
+          watch the product become unbuildable — that is the whole story of 2015
+          to 2021 in one control.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Terms</h3>
+            <div class="ctl">
+              <label>Issuer funding rate <span id="cp-r-v">4.30%</span></label>
+              <input
+                type="range"
+                id="cp-r"
+                min="-100"
+                max="800"
+                value="430"
+                step="10"
+              />
+            </div>
+            <div class="ctl">
+              <label>Tenor, years <span id="cp-t-v">5</span></label>
+              <input
+                type="range"
+                id="cp-t"
+                min="1"
+                max="10"
+                value="5"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Protection level <span id="cp-pr-v">100%</span></label>
+              <input
+                type="range"
+                id="cp-pr"
+                min="70"
+                max="100"
+                value="100"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Implied volatility <span id="cp-v-v">18%</span></label>
+              <input
+                type="range"
+                id="cp-v"
+                min="5"
+                max="45"
+                value="18"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Dividend yield of the underlying
+                <span id="cp-q-v">2.0%</span></label
+              >
+              <input
+                type="range"
+                id="cp-q"
+                min="0"
+                max="6"
+                value="2"
+                step="0.25"
+              />
+            </div>
+            <div class="ctl">
+              <label>Total fees <span id="cp-f-v">2.0%</span></label>
+              <input
+                type="range"
+                id="cp-f"
+                min="0"
+                max="8"
+                value="2"
+                step="0.25"
+              />
+            </div>
+            <div class="seg" id="cp-cap">
+              <button data-v="no" class="on">Uncapped</button>
+              <button data-v="yes">Capped at +40%</button>
+            </div>
+            <table class="terms" id="cp-terms"></table>
+          </div>
+          <div>
+            <div class="stats" id="cp-stats"></div>
+            <p
+              style="
+                margin: 16px 0 8px 4px;
+                font-size: 13px;
+                font-weight: 700;
+                color: #64798a;
+              "
+            >
+              Participation you can buy, against the funding rate
+            </p>
+            <div class="chartbox">
+              <svg id="cp-curve" viewBox="0 0 760 300"></svg>
+            </div>
+            <p
+              style="
+                margin: 16px 0 8px 4px;
+                font-size: 13px;
+                font-weight: 700;
+                color: #64798a;
+              "
+            >
+              Redemption at maturity, per 100 invested
+            </p>
+            <div class="chartbox">
+              <svg id="cp-pay" viewBox="0 0 760 280"></svg>
+            </div>
+            <div class="readout" id="cp-read"></div>
+            <p class="note">
+              Black-Scholes on an at-the-money call, annual compounding on the
+              bond floor. Illustrative arithmetic for teaching, not a pricing
+              tool — and it ignores issuer credit entirely, which is the risk
+              that actually matters.
+            </p>
+          </div>
+        </div>
+      </section>
 
-<!-- ============ TAB 5b : mini future ============ -->
-<section class="panel" id="p-mini">
-  <p class="lede">A <b>mini future</b> costs the gap between spot and the financing level, and dies if the stop-loss is touched. The financing level accretes daily, so for a long the buffer erodes even in a flat market — the carry is charged through the strike, not as a fee.</p>
-  <div class="grid">
-    <div class="card">
-      <h3>Terms</h3>
-      <div class="seg" id="mf-dir">
-        <button data-v="long" class="on">Long</button>
-        <button data-v="short">Short</button>
-      </div>
-      <div class="ctl"><label>Financing level <span id="mf-f-v">90</span></label>
-        <input type="range" id="mf-f" min="50" max="150" value="90" step="1"></div>
-      <div class="ctl"><label>Stop-loss buffer over financing <span id="mf-s-v">3.3%</span></label>
-        <input type="range" id="mf-s" min="10" max="150" value="33" step="1"></div>
-      <div class="ctl"><label>Reference rate <span id="mf-r-v">3.0%</span></label>
-        <input type="range" id="mf-r" min="0" max="800" value="300" step="10"></div>
-      <div class="ctl"><label>Issuer financing spread <span id="mf-fs-v">3.0%</span></label>
-        <input type="range" id="mf-fs" min="0" max="600" value="300" step="10"></div>
-      <div class="ctl"><label>Holding period, calendar days <span id="mf-d-v">180</span></label>
-        <input type="range" id="mf-d" min="10" max="720" value="180" step="10"></div>
-      <div class="ctl"><label>Annualised volatility <span id="mf-v-v">30%</span></label>
-        <input type="range" id="mf-v" min="5" max="90" value="30" step="1"></div>
-      <button class="btn" id="mf-run">Re-run 2,000 simulated markets</button>
-      <table class="terms" id="mf-terms"></table>
-    </div>
-    <div>
-      <div class="stats" id="mf-stats"></div>
-      <p style="margin:16px 0 8px 4px;font-size:13px;font-weight:700;color:#64798A">The buffer erodes even with the underlying flat at 100</p>
-      <div class="chartbox"><svg id="mf-drift" viewBox="0 0 760 300"></svg></div>
-      <div class="readout" id="mf-read"></div>
-      <p class="note">Stop-loss tested on the daily close. Residual value uses the close on the day of the event, which is kinder than the real convention — issuers pay the worst price over an unwind window of roughly three trading hours.</p>
-    </div>
-  </div>
-</section>
+      <!-- ============ TAB 5b : mini future ============ -->
+      <section class="panel" id="p-mini">
+        <p class="lede">
+          A <b>mini future</b> costs the gap between spot and the financing
+          level, and dies if the stop-loss is touched. The financing level
+          accretes daily, so for a long the buffer erodes even in a flat market
+          — the carry is charged through the strike, not as a fee.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <h3>Terms</h3>
+            <div class="seg" id="mf-dir">
+              <button data-v="long" class="on">Long</button>
+              <button data-v="short">Short</button>
+            </div>
+            <div class="ctl">
+              <label>Financing level <span id="mf-f-v">90</span></label>
+              <input
+                type="range"
+                id="mf-f"
+                min="50"
+                max="150"
+                value="90"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Stop-loss buffer over financing
+                <span id="mf-s-v">3.3%</span></label
+              >
+              <input
+                type="range"
+                id="mf-s"
+                min="10"
+                max="150"
+                value="33"
+                step="1"
+              />
+            </div>
+            <div class="ctl">
+              <label>Reference rate <span id="mf-r-v">3.0%</span></label>
+              <input
+                type="range"
+                id="mf-r"
+                min="0"
+                max="800"
+                value="300"
+                step="10"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Issuer financing spread <span id="mf-fs-v">3.0%</span></label
+              >
+              <input
+                type="range"
+                id="mf-fs"
+                min="0"
+                max="600"
+                value="300"
+                step="10"
+              />
+            </div>
+            <div class="ctl">
+              <label
+                >Holding period, calendar days
+                <span id="mf-d-v">180</span></label
+              >
+              <input
+                type="range"
+                id="mf-d"
+                min="10"
+                max="720"
+                value="180"
+                step="10"
+              />
+            </div>
+            <div class="ctl">
+              <label>Annualised volatility <span id="mf-v-v">30%</span></label>
+              <input
+                type="range"
+                id="mf-v"
+                min="5"
+                max="90"
+                value="30"
+                step="1"
+              />
+            </div>
+            <button class="btn" id="mf-run">
+              Re-run 2,000 simulated markets
+            </button>
+            <table class="terms" id="mf-terms"></table>
+          </div>
+          <div>
+            <div class="stats" id="mf-stats"></div>
+            <p
+              style="
+                margin: 16px 0 8px 4px;
+                font-size: 13px;
+                font-weight: 700;
+                color: #64798a;
+              "
+            >
+              The buffer erodes even with the underlying flat at 100
+            </p>
+            <div class="chartbox">
+              <svg id="mf-drift" viewBox="0 0 760 300"></svg>
+            </div>
+            <div class="readout" id="mf-read"></div>
+            <p class="note">
+              Stop-loss tested on the daily close. Residual value uses the close
+              on the day of the event, which is kinder than the real convention
+              — issuers pay the worst price over an unwind window of roughly
+              three trading hours.
+            </p>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      Derivatives 101 · companion to decks 0–5 · illustrative model, not a
+      pricing tool · August 2026
+    </footer>
 
-</main>
-<footer>Derivatives 101 · companion to decks 0–5 · illustrative model, not a pricing tool · August 2026</footer>
-
-<script type="module" src="./src/payoff-explorer/main.js"></script>
-</body>
+    <script type="module" src="./src/payoff-explorer/main.js"></script>
+  </body>
 </html>

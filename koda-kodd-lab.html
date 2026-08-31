@@ -1,53 +1,257 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Trace a knock-out discount accumulator or decumulator fixing by fixing and see exactly when the geared quantity applies.">
-  <meta name="theme-color" content="#f7f9fa">
-  <meta property="og:type" content="website"><meta property="og:site_name" content="Derivatives 101">
-  <meta property="og:title" content="Derivatives 101 — KODA / KODD Lifecycle Lab">
-  <meta property="og:description" content="Put the price path and quantity obligation on the same timeline, then inspect every trade and cash flow.">
-  <meta property="og:url" content="https://emmettl.github.io/derivatives101/koda-kodd-lab.html">
-  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Derivatives 101 — KODA / KODD Lifecycle Lab">
-  <meta name="twitter:description" content="See how gearing changes the quantity bought or sold as the market moves against the investor.">
-  <meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <title>Derivatives 101 — KODA / KODD Lifecycle Lab</title>
-  <link rel="stylesheet" href="structured-labs.css?v=18">
-</head>
-<body>
-  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="structured-products.html">Structured Product Labs</a><a href="lessons/1_KODA_KODD.pdf">Read the lesson</a></div></nav></header>
-  <div class="hero"><p class="eyebrow">Lab 05 · Accumulators &amp; decumulators</p><h1>KODA / KODD Lifecycle</h1><p class="lede">The upper chart shows where the underlying went. The aligned bars show how much the investor became obliged to buy or sell at each fixing. That second view is where the leverage becomes tangible.</p></div>
-  <p class="scope-note"><b>Scope:</b><span>Normalised initial spot of 100; monthly or weekly observations for legibility; physical trades at one fixed forward price; simplified guaranteed opening observations; zero-drift lognormal simulations. Funding, dividends, fees, margin calls, early-unwind value, issuer credit and hedging are omitted. The P&amp;L view compares strike cash flows with the traded units’ market value when this illustrative contract stops.</span></p>
-  <main>
-    <section class="variant-summary" aria-live="polite"><strong id="product-name">KODA · accumulator</strong><p id="product-description"></p></section>
-    <div class="lab-grid">
-      <aside class="controls" aria-label="KODA and KODD terms"><div class="controls-head"><h2>Terms</h2><button type="button" class="reset-button" id="reset">Reset</button></div><div class="controls-body" id="koda-controls"></div></aside>
-      <div class="content">
-        <section class="panel" aria-labelledby="koda-path-title">
-          <div class="panel-head"><div><p class="eyebrow">Price above, obligation below</p><h2 id="koda-path-title">When does the quantity jump?</h2><p>The knock-out ends future trades. The forward price decides whether an active fixing uses the base or geared quantity. A guarantee can keep base-size trades alive briefly after a knock-out.</p></div><div class="path-actions"><div class="scenario-set" id="koda-scenarios" aria-label="Price path scenarios"></div><button type="button" class="resample" id="koda-resample">New random path</button></div></div>
-          <div class="chart-wrap"><svg class="path-chart koda-path-chart" id="koda-path-chart" viewBox="0 0 900 470" role="img" aria-label="Underlying price path and aligned fixing quantities"></svg></div>
-          <div class="outcome"><strong>Path outcome</strong><p id="koda-outcome" aria-live="polite"></p></div>
-          <div class="trade-breakdown" id="koda-breakdown" aria-live="polite"></div>
-        </section>
-        <section class="panel" aria-labelledby="koda-distribution-title">
-          <div class="panel-head"><div><p class="eyebrow">Two thousand possible paths</p><h2 id="koda-distribution-title">How often does the bad-side size appear?</h2><p>This is a scenario illustration, not a fair-value model. It isolates how volatility, knock-out and gearing alter the pathwise quantity and economic outcome.</p></div></div>
-          <div class="stats" id="koda-stats"></div>
-          <div class="chart-wrap"><svg class="histogram" id="koda-histogram" viewBox="0 0 900 210" role="img" aria-label="Distribution of simulated KODA or KODD economic outcomes"></svg></div>
-          <p class="simulation-status" id="koda-simulation-status" role="status" aria-live="polite">Calculating illustrative outcomes…</p>
-        </section>
-        <section class="panel" aria-labelledby="koda-ledger-title">
-          <div class="panel-head"><div><p class="eyebrow">Every fixing, in rule order</p><h2 id="koda-ledger-title">Observation and trade ledger</h2><p>A knock-out is tested before the normal size rule. A guaranteed opening observation is the exception: it can still execute at base size after the knock-out event.</p></div></div>
-          <div class="rule-strip" id="koda-rule-strip"></div>
-          <div class="ledger-wrap"><table class="ledger koda-ledger"><thead><tr><th>Fixing</th><th>Spot</th><th>KO test</th><th>Size rule</th><th>Units</th><th>Client cash flow</th><th>Cumulative units</th><th>State</th></tr></thead><tbody id="koda-ledger-body"></tbody><tfoot><tr id="koda-ledger-total"></tr></tfoot></table></div>
-        </section>
-      </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Trace a knock-out discount accumulator or decumulator fixing by fixing and see exactly when the geared quantity applies."
+    />
+    <meta name="theme-color" content="#f7f9fa" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta
+      property="og:title"
+      content="Derivatives 101 — KODA / KODD Lifecycle Lab"
+    />
+    <meta
+      property="og:description"
+      content="Put the price path and quantity obligation on the same timeline, then inspect every trade and cash flow."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/koda-kodd-lab.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Derivatives 101 — KODA / KODD Lifecycle Lab"
+    />
+    <meta
+      name="twitter:description"
+      content="See how gearing changes the quantity bought or sold as the market moves against the investor."
+    />
+    <meta
+      name="twitter:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <title>Derivatives 101 — KODA / KODD Lifecycle Lab</title>
+    <link rel="stylesheet" href="structured-labs.css?v=18" />
+  </head>
+  <body>
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="structured-products.html">Structured Product Labs</a
+          ><a href="lessons/1_KODA_KODD.pdf">Read the lesson</a>
+        </div>
+      </nav>
+    </header>
+    <div class="hero">
+      <p class="eyebrow">Lab 05 · Accumulators &amp; decumulators</p>
+      <h1>KODA / KODD Lifecycle</h1>
+      <p class="lede">
+        The upper chart shows where the underlying went. The aligned bars show
+        how much the investor became obliged to buy or sell at each fixing. That
+        second view is where the leverage becomes tangible.
+      </p>
     </div>
-    <section class="explain"><article><h3>Gearing changes quantity</h3><p>The forward price does not move. On the adverse side, the same price applies to a larger number of units, so exposure grows precisely when the market has moved against the investor.</p></article><article><h3>Knock-out stops the future</h3><p>A knock-out normally prevents the current and later trades; it does not reverse units already bought or sold. Guaranteed opening observations can modify that rule.</p></article><article><h3>KODD is the mirror—with no ceiling</h3><p>A decumulator sells more units when spot rises above its forward price. The opportunity cost of selling below market has no fixed upper bound if the underlying keeps rising.</p></article></section>
-    <section class="sources"><h2>Mechanics references</h2><p>The <a href="https://brdr.hkma.gov.hk/eng/doc-ldg/docId/20250317-2-EN">Hong Kong Monetary Authority’s current accumulator guidance</a> covers periodic purchases, knock-out cessation and multiplier conditions. The <a href="https://apps.sfc.hk/edistributionWeb/gateway/EN/circular/suitability/doc?refNo=24EC21">SFC–HKMA thematic review</a> explains that the discount reflects option premium and that accumulators and decumulators can amplify losses. Exact observation, guarantee and settlement language remains term-sheet specific. Compare the course’s <a href="termsheets/Specimen-3-OTC-Accumulator.pdf">fictional specimen term sheet</a>.</p></section>
-  </main>
-  <footer><strong>Derivatives 101</strong><span>Independent educational project · illustrative models only</span><a href="structured-products.html">All structured labs</a></footer>
-  <script type="module" src="./src/koda-kodd/main.js"></script>
-</body>
+    <p class="scope-note">
+      <b>Scope:</b
+      ><span
+        >Normalised initial spot of 100; monthly or weekly observations for
+        legibility; physical trades at one fixed forward price; simplified
+        guaranteed opening observations; zero-drift lognormal simulations.
+        Funding, dividends, fees, margin calls, early-unwind value, issuer
+        credit and hedging are omitted. The P&amp;L view compares strike cash
+        flows with the traded units’ market value when this illustrative
+        contract stops.</span
+      >
+    </p>
+    <main>
+      <section class="variant-summary" aria-live="polite">
+        <strong id="product-name">KODA · accumulator</strong>
+        <p id="product-description"></p>
+      </section>
+      <div class="lab-grid">
+        <aside class="controls" aria-label="KODA and KODD terms">
+          <div class="controls-head">
+            <h2>Terms</h2>
+            <button type="button" class="reset-button" id="reset">Reset</button>
+          </div>
+          <div class="controls-body" id="koda-controls"></div>
+        </aside>
+        <div class="content">
+          <section class="panel" aria-labelledby="koda-path-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Price above, obligation below</p>
+                <h2 id="koda-path-title">When does the quantity jump?</h2>
+                <p>
+                  The knock-out ends future trades. The forward price decides
+                  whether an active fixing uses the base or geared quantity. A
+                  guarantee can keep base-size trades alive briefly after a
+                  knock-out.
+                </p>
+              </div>
+              <div class="path-actions">
+                <div
+                  class="scenario-set"
+                  id="koda-scenarios"
+                  aria-label="Price path scenarios"
+                ></div>
+                <button type="button" class="resample" id="koda-resample">
+                  New random path
+                </button>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                class="path-chart koda-path-chart"
+                id="koda-path-chart"
+                viewBox="0 0 900 470"
+                role="img"
+                aria-label="Underlying price path and aligned fixing quantities"
+              ></svg>
+            </div>
+            <div class="outcome">
+              <strong>Path outcome</strong>
+              <p id="koda-outcome" aria-live="polite"></p>
+            </div>
+            <div
+              class="trade-breakdown"
+              id="koda-breakdown"
+              aria-live="polite"
+            ></div>
+          </section>
+          <section class="panel" aria-labelledby="koda-distribution-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Two thousand possible paths</p>
+                <h2 id="koda-distribution-title">
+                  How often does the bad-side size appear?
+                </h2>
+                <p>
+                  This is a scenario illustration, not a fair-value model. It
+                  isolates how volatility, knock-out and gearing alter the
+                  pathwise quantity and economic outcome.
+                </p>
+              </div>
+            </div>
+            <div class="stats" id="koda-stats"></div>
+            <div class="chart-wrap">
+              <svg
+                class="histogram"
+                id="koda-histogram"
+                viewBox="0 0 900 210"
+                role="img"
+                aria-label="Distribution of simulated KODA or KODD economic outcomes"
+              ></svg>
+            </div>
+            <p
+              class="simulation-status"
+              id="koda-simulation-status"
+              role="status"
+              aria-live="polite"
+            >
+              Calculating illustrative outcomes…
+            </p>
+          </section>
+          <section class="panel" aria-labelledby="koda-ledger-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Every fixing, in rule order</p>
+                <h2 id="koda-ledger-title">Observation and trade ledger</h2>
+                <p>
+                  A knock-out is tested before the normal size rule. A
+                  guaranteed opening observation is the exception: it can still
+                  execute at base size after the knock-out event.
+                </p>
+              </div>
+            </div>
+            <div class="rule-strip" id="koda-rule-strip"></div>
+            <div class="ledger-wrap">
+              <table class="ledger koda-ledger">
+                <thead>
+                  <tr>
+                    <th>Fixing</th>
+                    <th>Spot</th>
+                    <th>KO test</th>
+                    <th>Size rule</th>
+                    <th>Units</th>
+                    <th>Client cash flow</th>
+                    <th>Cumulative units</th>
+                    <th>State</th>
+                  </tr>
+                </thead>
+                <tbody id="koda-ledger-body"></tbody>
+                <tfoot>
+                  <tr id="koda-ledger-total"></tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+      <section class="explain">
+        <article>
+          <h3>Gearing changes quantity</h3>
+          <p>
+            The forward price does not move. On the adverse side, the same price
+            applies to a larger number of units, so exposure grows precisely
+            when the market has moved against the investor.
+          </p>
+        </article>
+        <article>
+          <h3>Knock-out stops the future</h3>
+          <p>
+            A knock-out normally prevents the current and later trades; it does
+            not reverse units already bought or sold. Guaranteed opening
+            observations can modify that rule.
+          </p>
+        </article>
+        <article>
+          <h3>KODD is the mirror—with no ceiling</h3>
+          <p>
+            A decumulator sells more units when spot rises above its forward
+            price. The opportunity cost of selling below market has no fixed
+            upper bound if the underlying keeps rising.
+          </p>
+        </article>
+      </section>
+      <section class="sources">
+        <h2>Mechanics references</h2>
+        <p>
+          The
+          <a href="https://brdr.hkma.gov.hk/eng/doc-ldg/docId/20250317-2-EN"
+            >Hong Kong Monetary Authority’s current accumulator guidance</a
+          >
+          covers periodic purchases, knock-out cessation and multiplier
+          conditions. The
+          <a
+            href="https://apps.sfc.hk/edistributionWeb/gateway/EN/circular/suitability/doc?refNo=24EC21"
+            >SFC–HKMA thematic review</a
+          >
+          explains that the discount reflects option premium and that
+          accumulators and decumulators can amplify losses. Exact observation,
+          guarantee and settlement language remains term-sheet specific. Compare
+          the course’s
+          <a href="termsheets/Specimen-3-OTC-Accumulator.pdf"
+            >fictional specimen term sheet</a
+          >.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <strong>Derivatives 101</strong
+      ><span>Independent educational project · illustrative models only</span
+      ><a href="structured-products.html">All structured labs</a>
+    </footer>
+    <script type="module" src="./src/koda-kodd/main.js"></script>
+  </body>
 </html>

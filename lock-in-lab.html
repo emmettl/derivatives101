@@ -1,39 +1,240 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Compare par lock-in and step-up minimum repayment mechanics path by path.">
-  <meta name="theme-color" content="#f7f9fa">
-  <meta property="og:type" content="website"><meta property="og:site_name" content="Derivatives 101">
-  <meta property="og:title" content="Derivatives 101 — Lock-In Mechanics Lab">
-  <meta property="og:description" content="Watch observation events change the minimum future redemption without ending the note.">
-  <meta property="og:url" content="https://emmettl.github.io/derivatives101/lock-in-lab.html">
-  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Derivatives 101 — Lock-In Mechanics Lab">
-  <meta name="twitter:description" content="Watch observation events change the minimum future redemption without ending the note.">
-  <meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <title>Derivatives 101 — Lock-In Mechanics Lab</title>
-  <link rel="stylesheet" href="structured-labs.css?v=18">
-</head>
-<body data-lab="lock">
-  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="structured-products.html">Structured Product Labs</a><a href="coupon-memory-lab.html">Coupon Lab</a></div></nav></header>
-  <div class="hero"><p class="eyebrow">Lab 03 · Persistent contract state</p><h1>Lock-In Mechanics</h1><p class="lede">“Lock-in” is a family of mechanisms, not one universal payoff. Compare a barrier reverse convertible whose par redemption becomes secured with a participation note whose minimum maturity payment ratchets upward.</p></div>
-  <p class="scope-note"><b>Scope:</b><span>Single underlying and discrete observations. Physical delivery applies only to unprotected downside in the par lock-in variant and uses 100 nominal ÷ strike 100 = 1.000 unit; the step-up variant is cash-settled.</span></p>
-  <main>
-    <section class="variant-summary" aria-live="polite"><strong id="variant-name">Par lock-in</strong><p id="variant-description"></p></section>
-    <div class="lab-grid">
-      <aside class="controls" aria-label="Lock-in terms"><div class="controls-head"><h2>Terms</h2><button type="button" class="reset-button" id="reset">Reset</button></div><div class="controls-body" id="controls"></div></aside>
-      <div class="content">
-        <section class="panel" aria-labelledby="path-title"><div class="panel-head"><div><p class="eyebrow">One market, changing floor</p><h2 id="path-title">What became irrevocable?</h2><p>A lock-in changes the minimum future redemption. Unlike an autocall, the note remains alive and later market levels can still matter.</p></div><div class="path-actions"><div class="scenario-set" id="scenarios" aria-label="Path scenarios"></div><button type="button" class="resample" id="resample">New random path</button></div></div><div class="chart-wrap"><svg class="path-chart" id="path-chart" viewBox="0 0 900 360" role="img" aria-label="Selected underlying path with lock-in events"></svg></div><div class="outcome"><strong>Path outcome</strong><p id="path-outcome" aria-live="polite"></p></div><div class="settlement-breakdown" id="settlement-breakdown" aria-live="polite"></div></section>
-        <section class="panel" aria-labelledby="distribution-title"><div class="panel-head"><div><p class="eyebrow">Two thousand markets</p><h2 id="distribution-title">How often does the floor improve?</h2><p>A lock-in can be valuable without being triggered in every market, and a partial floor may still leave principal at risk.</p></div></div><div class="stats" id="stats"></div><div class="chart-wrap"><svg class="histogram" id="histogram" viewBox="0 0 900 210" role="img" aria-label="Distribution of simulated lock-in note returns"></svg></div><p class="simulation-status" id="simulation-status" role="status" aria-live="polite">Calculating illustrative outcomes…</p></section>
-        <section class="panel" aria-labelledby="ledger-title"><div class="panel-head"><div><p class="eyebrow">Persistent state</p><h2 id="ledger-title">Observation ledger</h2><p>Once the floor rises, a later fall does not reverse it. The final redemption compares the ordinary payoff with the highest locked floor.</p></div></div><div class="rule-strip" id="rule-strip"></div><div class="ledger-wrap"><table class="ledger"><thead><tr><th>Date</th><th>Underlying</th><th>Lock-in test</th><th>New floor</th><th>Coupon paid</th><th>Note state</th></tr></thead><tbody id="ledger-body"></tbody><tfoot><tr id="ledger-total"></tr></tfoot></table></div></section>
-      </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Compare par lock-in and step-up minimum repayment mechanics path by path."
+    />
+    <meta name="theme-color" content="#f7f9fa" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta
+      property="og:title"
+      content="Derivatives 101 — Lock-In Mechanics Lab"
+    />
+    <meta
+      property="og:description"
+      content="Watch observation events change the minimum future redemption without ending the note."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/lock-in-lab.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Derivatives 101 — Lock-In Mechanics Lab"
+    />
+    <meta
+      name="twitter:description"
+      content="Watch observation events change the minimum future redemption without ending the note."
+    />
+    <meta
+      name="twitter:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <title>Derivatives 101 — Lock-In Mechanics Lab</title>
+    <link rel="stylesheet" href="structured-labs.css?v=18" />
+  </head>
+  <body data-lab="lock">
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="structured-products.html">Structured Product Labs</a
+          ><a href="coupon-memory-lab.html">Coupon Lab</a>
+        </div>
+      </nav>
+    </header>
+    <div class="hero">
+      <p class="eyebrow">Lab 03 · Persistent contract state</p>
+      <h1>Lock-In Mechanics</h1>
+      <p class="lede">
+        “Lock-in” is a family of mechanisms, not one universal payoff. Compare a
+        barrier reverse convertible whose par redemption becomes secured with a
+        participation note whose minimum maturity payment ratchets upward.
+      </p>
     </div>
-    <section class="explain"><article><h3>Not early redemption</h3><p>The product remains outstanding after a lock-in event. Later observations and maturity still occur.</p></article><article><h3>Par lock-in</h3><p>A qualifying observation secures redemption of 100 at maturity, even if a later sell-off would otherwise activate downside.</p></article><article><h3>Step-up minimum</h3><p>Qualifying observations ratchet a minimum maturity payment upward. The final payment is the greater of that floor and the ordinary participation payoff.</p></article></section>
-    <section class="sources"><h2>Mechanics references</h2><p>Published “lock-in” structures use materially different rules. This lab therefore labels its two illustrative conventions explicitly rather than treating lock-in as a universal payoff. See this <a href="https://www.sec.gov/Archives/edgar/data/895421/000095010324017637/dp222012_424b2-cmrlisps.htm">SEC-filed minimum-repayment example</a> for a structure in which qualifying observations step up a maturity floor.</p></section>
-  </main>
-  <footer><strong>Derivatives 101</strong><span>Independent educational project · illustrative models only</span><a href="structured-products.html">All structured labs</a></footer>
-  <script type="module" src="./src/structured/main.js"></script>
-</body>
+    <p class="scope-note">
+      <b>Scope:</b
+      ><span
+        >Single underlying and discrete observations. Physical delivery applies
+        only to unprotected downside in the par lock-in variant and uses 100
+        nominal ÷ strike 100 = 1.000 unit; the step-up variant is
+        cash-settled.</span
+      >
+    </p>
+    <main>
+      <section class="variant-summary" aria-live="polite">
+        <strong id="variant-name">Par lock-in</strong>
+        <p id="variant-description"></p>
+      </section>
+      <div class="lab-grid">
+        <aside class="controls" aria-label="Lock-in terms">
+          <div class="controls-head">
+            <h2>Terms</h2>
+            <button type="button" class="reset-button" id="reset">Reset</button>
+          </div>
+          <div class="controls-body" id="controls"></div>
+        </aside>
+        <div class="content">
+          <section class="panel" aria-labelledby="path-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">One market, changing floor</p>
+                <h2 id="path-title">What became irrevocable?</h2>
+                <p>
+                  A lock-in changes the minimum future redemption. Unlike an
+                  autocall, the note remains alive and later market levels can
+                  still matter.
+                </p>
+              </div>
+              <div class="path-actions">
+                <div
+                  class="scenario-set"
+                  id="scenarios"
+                  aria-label="Path scenarios"
+                ></div>
+                <button type="button" class="resample" id="resample">
+                  New random path
+                </button>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                class="path-chart"
+                id="path-chart"
+                viewBox="0 0 900 360"
+                role="img"
+                aria-label="Selected underlying path with lock-in events"
+              ></svg>
+            </div>
+            <div class="outcome">
+              <strong>Path outcome</strong>
+              <p id="path-outcome" aria-live="polite"></p>
+            </div>
+            <div
+              class="settlement-breakdown"
+              id="settlement-breakdown"
+              aria-live="polite"
+            ></div>
+          </section>
+          <section class="panel" aria-labelledby="distribution-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Two thousand markets</p>
+                <h2 id="distribution-title">
+                  How often does the floor improve?
+                </h2>
+                <p>
+                  A lock-in can be valuable without being triggered in every
+                  market, and a partial floor may still leave principal at risk.
+                </p>
+              </div>
+            </div>
+            <div class="stats" id="stats"></div>
+            <div class="chart-wrap">
+              <svg
+                class="histogram"
+                id="histogram"
+                viewBox="0 0 900 210"
+                role="img"
+                aria-label="Distribution of simulated lock-in note returns"
+              ></svg>
+            </div>
+            <p
+              class="simulation-status"
+              id="simulation-status"
+              role="status"
+              aria-live="polite"
+            >
+              Calculating illustrative outcomes…
+            </p>
+          </section>
+          <section class="panel" aria-labelledby="ledger-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Persistent state</p>
+                <h2 id="ledger-title">Observation ledger</h2>
+                <p>
+                  Once the floor rises, a later fall does not reverse it. The
+                  final redemption compares the ordinary payoff with the highest
+                  locked floor.
+                </p>
+              </div>
+            </div>
+            <div class="rule-strip" id="rule-strip"></div>
+            <div class="ledger-wrap">
+              <table class="ledger">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Underlying</th>
+                    <th>Lock-in test</th>
+                    <th>New floor</th>
+                    <th>Coupon paid</th>
+                    <th>Note state</th>
+                  </tr>
+                </thead>
+                <tbody id="ledger-body"></tbody>
+                <tfoot>
+                  <tr id="ledger-total"></tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+      <section class="explain">
+        <article>
+          <h3>Not early redemption</h3>
+          <p>
+            The product remains outstanding after a lock-in event. Later
+            observations and maturity still occur.
+          </p>
+        </article>
+        <article>
+          <h3>Par lock-in</h3>
+          <p>
+            A qualifying observation secures redemption of 100 at maturity, even
+            if a later sell-off would otherwise activate downside.
+          </p>
+        </article>
+        <article>
+          <h3>Step-up minimum</h3>
+          <p>
+            Qualifying observations ratchet a minimum maturity payment upward.
+            The final payment is the greater of that floor and the ordinary
+            participation payoff.
+          </p>
+        </article>
+      </section>
+      <section class="sources">
+        <h2>Mechanics references</h2>
+        <p>
+          Published “lock-in” structures use materially different rules. This
+          lab therefore labels its two illustrative conventions explicitly
+          rather than treating lock-in as a universal payoff. See this
+          <a
+            href="https://www.sec.gov/Archives/edgar/data/895421/000095010324017637/dp222012_424b2-cmrlisps.htm"
+            >SEC-filed minimum-repayment example</a
+          >
+          for a structure in which qualifying observations step up a maturity
+          floor.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <strong>Derivatives 101</strong
+      ><span>Independent educational project · illustrative models only</span
+      ><a href="structured-products.html">All structured labs</a>
+    </footer>
+    <script type="module" src="./src/structured/main.js"></script>
+  </body>
 </html>

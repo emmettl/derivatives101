@@ -1,39 +1,241 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Trace fixed, conditional and memory coupons through every observation date.">
-  <meta name="theme-color" content="#f7f9fa">
-  <meta property="og:type" content="website"><meta property="og:site_name" content="Derivatives 101">
-  <meta property="og:title" content="Derivatives 101 — Conditional Coupon and Memory Lab">
-  <meta property="og:description" content="See coupons become paid, missed, banked and recovered along one market path.">
-  <meta property="og:url" content="https://emmettl.github.io/derivatives101/coupon-memory-lab.html">
-  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Derivatives 101 — Conditional Coupon and Memory Lab">
-  <meta name="twitter:description" content="See coupons become paid, missed, banked and recovered along one market path.">
-  <meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <title>Derivatives 101 — Conditional Coupon &amp; Memory Lab</title>
-  <link rel="stylesheet" href="structured-labs.css?v=18">
-</head>
-<body data-lab="coupon">
-  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="structured-products.html">Structured Product Labs</a><a href="reverse-convertible-lab.html">Lifecycle Lab</a></div></nav></header>
-  <div class="hero"><p class="eyebrow">Lab 02 · Cash-flow state</p><h1>Conditional Coupons &amp; Memory</h1><p class="lede">A headline coupon rate is not necessarily an amount owed. Follow each observation to see whether income is paid, lost forever or carried in a memory balance.</p></div>
-  <p class="scope-note"><b>Scope:</b><span>Single underlying, coupon test before call test, European downside barrier and no issuer default. Physical delivery uses 100 nominal ÷ strike 100 = 1.000 unit; real documentation may specify different ordering or fractional-unit treatment.</span></p>
-  <main>
-    <section class="variant-summary" aria-live="polite"><strong id="variant-name">Conditional coupon with memory</strong><p id="variant-description"></p></section>
-    <div class="lab-grid">
-      <aside class="controls" aria-label="Coupon terms"><div class="controls-head"><h2>Terms</h2><button type="button" class="reset-button" id="reset">Reset</button></div><div class="controls-body" id="controls"></div></aside>
-      <div class="content">
-        <section class="panel" aria-labelledby="path-title"><div class="panel-head"><div><p class="eyebrow">One market, every payment</p><h2 id="path-title">What happened to each coupon?</h2><p>The memory balance is contractual state: it increases after a failed coupon test and clears only when the chosen rules permit catch-up.</p></div><div class="path-actions"><div class="scenario-set" id="scenarios" aria-label="Path scenarios"></div><button type="button" class="resample" id="resample">New random path</button></div></div><div class="chart-wrap"><svg class="path-chart" id="path-chart" viewBox="0 0 900 360" role="img" aria-label="Selected underlying path with coupon and call events"></svg></div><div class="outcome"><strong>Path outcome</strong><p id="path-outcome" aria-live="polite"></p></div><div class="settlement-breakdown" id="settlement-breakdown" aria-live="polite"></div></section>
-        <section class="panel" aria-labelledby="distribution-title"><div class="panel-head"><div><p class="eyebrow">Two thousand markets</p><h2 id="distribution-title">Headline rate versus realised income</h2><p>Missed coupons and early redemption change the income actually received.</p></div></div><div class="stats" id="stats"></div><div class="chart-wrap"><svg class="histogram" id="histogram" viewBox="0 0 900 210" role="img" aria-label="Distribution of simulated coupon-note returns"></svg></div><p class="simulation-status" id="simulation-status" role="status" aria-live="polite">Calculating illustrative outcomes…</p></section>
-        <section class="panel" aria-labelledby="ledger-title"><div class="panel-head"><div><p class="eyebrow">The coupon account</p><h2 id="ledger-title">Observation ledger</h2><p>The current coupon is tested first; memory catch-up is then calculated; finally the automatic-call test is applied.</p></div></div><div class="rule-strip" id="rule-strip"></div><div class="ledger-wrap"><table class="ledger"><thead><tr><th>Date</th><th>Underlying</th><th>Coupon test</th><th>Coupon paid</th><th>Memory balance</th><th>Call test</th></tr></thead><tbody id="ledger-body"></tbody><tfoot><tr id="ledger-total"></tr></tfoot></table></div></section>
-      </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Trace fixed, conditional and memory coupons through every observation date."
+    />
+    <meta name="theme-color" content="#f7f9fa" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta
+      property="og:title"
+      content="Derivatives 101 — Conditional Coupon and Memory Lab"
+    />
+    <meta
+      property="og:description"
+      content="See coupons become paid, missed, banked and recovered along one market path."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/coupon-memory-lab.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Derivatives 101 — Conditional Coupon and Memory Lab"
+    />
+    <meta
+      name="twitter:description"
+      content="See coupons become paid, missed, banked and recovered along one market path."
+    />
+    <meta
+      name="twitter:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <title>Derivatives 101 — Conditional Coupon &amp; Memory Lab</title>
+    <link rel="stylesheet" href="structured-labs.css?v=18" />
+  </head>
+  <body data-lab="coupon">
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="structured-products.html">Structured Product Labs</a
+          ><a href="reverse-convertible-lab.html">Lifecycle Lab</a>
+        </div>
+      </nav>
+    </header>
+    <div class="hero">
+      <p class="eyebrow">Lab 02 · Cash-flow state</p>
+      <h1>Conditional Coupons &amp; Memory</h1>
+      <p class="lede">
+        A headline coupon rate is not necessarily an amount owed. Follow each
+        observation to see whether income is paid, lost forever or carried in a
+        memory balance.
+      </p>
     </div>
-    <section class="explain"><article><h3>Fixed</h3><p>Every scheduled coupon is paid while the note remains outstanding, independent of the observed underlying level.</p></article><article><h3>Conditional</h3><p>A failed observation means that period’s coupon is lost. A later recovery does not repair it.</p></article><article><h3>Memory</h3><p>A failed coupon is banked. If a later coupon test passes, the current coupon and accumulated eligible coupons are paid together.</p></article></section>
-    <section class="sources"><h2>Mechanics references</h2><p>The memory convention modeled here follows examples where a passing coupon observation pays both the current coupon and previously unpaid coupons, including on an automatic-call date when the coupon test also passes. See this <a href="https://www.sec.gov/Archives/edgar/data/1045520/000191870426015743/form424b2.htm">SEC-filed memory-coupon autocall</a>. The delivery-unit convention follows an <a href="https://www.sec.gov/Archives/edgar/data/806085/000119312507216025/d424b2.htm">SEC-filed physical-delivery example</a>. Exact ordering and settlement terms remain product-specific.</p></section>
-  </main>
-  <footer><strong>Derivatives 101</strong><span>Independent educational project · illustrative models only</span><a href="structured-products.html">All structured labs</a></footer>
-  <script type="module" src="./src/structured/main.js"></script>
-</body>
+    <p class="scope-note">
+      <b>Scope:</b
+      ><span
+        >Single underlying, coupon test before call test, European downside
+        barrier and no issuer default. Physical delivery uses 100 nominal ÷
+        strike 100 = 1.000 unit; real documentation may specify different
+        ordering or fractional-unit treatment.</span
+      >
+    </p>
+    <main>
+      <section class="variant-summary" aria-live="polite">
+        <strong id="variant-name">Conditional coupon with memory</strong>
+        <p id="variant-description"></p>
+      </section>
+      <div class="lab-grid">
+        <aside class="controls" aria-label="Coupon terms">
+          <div class="controls-head">
+            <h2>Terms</h2>
+            <button type="button" class="reset-button" id="reset">Reset</button>
+          </div>
+          <div class="controls-body" id="controls"></div>
+        </aside>
+        <div class="content">
+          <section class="panel" aria-labelledby="path-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">One market, every payment</p>
+                <h2 id="path-title">What happened to each coupon?</h2>
+                <p>
+                  The memory balance is contractual state: it increases after a
+                  failed coupon test and clears only when the chosen rules
+                  permit catch-up.
+                </p>
+              </div>
+              <div class="path-actions">
+                <div
+                  class="scenario-set"
+                  id="scenarios"
+                  aria-label="Path scenarios"
+                ></div>
+                <button type="button" class="resample" id="resample">
+                  New random path
+                </button>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                class="path-chart"
+                id="path-chart"
+                viewBox="0 0 900 360"
+                role="img"
+                aria-label="Selected underlying path with coupon and call events"
+              ></svg>
+            </div>
+            <div class="outcome">
+              <strong>Path outcome</strong>
+              <p id="path-outcome" aria-live="polite"></p>
+            </div>
+            <div
+              class="settlement-breakdown"
+              id="settlement-breakdown"
+              aria-live="polite"
+            ></div>
+          </section>
+          <section class="panel" aria-labelledby="distribution-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Two thousand markets</p>
+                <h2 id="distribution-title">
+                  Headline rate versus realised income
+                </h2>
+                <p>
+                  Missed coupons and early redemption change the income actually
+                  received.
+                </p>
+              </div>
+            </div>
+            <div class="stats" id="stats"></div>
+            <div class="chart-wrap">
+              <svg
+                class="histogram"
+                id="histogram"
+                viewBox="0 0 900 210"
+                role="img"
+                aria-label="Distribution of simulated coupon-note returns"
+              ></svg>
+            </div>
+            <p
+              class="simulation-status"
+              id="simulation-status"
+              role="status"
+              aria-live="polite"
+            >
+              Calculating illustrative outcomes…
+            </p>
+          </section>
+          <section class="panel" aria-labelledby="ledger-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">The coupon account</p>
+                <h2 id="ledger-title">Observation ledger</h2>
+                <p>
+                  The current coupon is tested first; memory catch-up is then
+                  calculated; finally the automatic-call test is applied.
+                </p>
+              </div>
+            </div>
+            <div class="rule-strip" id="rule-strip"></div>
+            <div class="ledger-wrap">
+              <table class="ledger">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Underlying</th>
+                    <th>Coupon test</th>
+                    <th>Coupon paid</th>
+                    <th>Memory balance</th>
+                    <th>Call test</th>
+                  </tr>
+                </thead>
+                <tbody id="ledger-body"></tbody>
+                <tfoot>
+                  <tr id="ledger-total"></tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+      <section class="explain">
+        <article>
+          <h3>Fixed</h3>
+          <p>
+            Every scheduled coupon is paid while the note remains outstanding,
+            independent of the observed underlying level.
+          </p>
+        </article>
+        <article>
+          <h3>Conditional</h3>
+          <p>
+            A failed observation means that period’s coupon is lost. A later
+            recovery does not repair it.
+          </p>
+        </article>
+        <article>
+          <h3>Memory</h3>
+          <p>
+            A failed coupon is banked. If a later coupon test passes, the
+            current coupon and accumulated eligible coupons are paid together.
+          </p>
+        </article>
+      </section>
+      <section class="sources">
+        <h2>Mechanics references</h2>
+        <p>
+          The memory convention modeled here follows examples where a passing
+          coupon observation pays both the current coupon and previously unpaid
+          coupons, including on an automatic-call date when the coupon test also
+          passes. See this
+          <a
+            href="https://www.sec.gov/Archives/edgar/data/1045520/000191870426015743/form424b2.htm"
+            >SEC-filed memory-coupon autocall</a
+          >. The delivery-unit convention follows an
+          <a
+            href="https://www.sec.gov/Archives/edgar/data/806085/000119312507216025/d424b2.htm"
+            >SEC-filed physical-delivery example</a
+          >. Exact ordering and settlement terms remain product-specific.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <strong>Derivatives 101</strong
+      ><span>Independent educational project · illustrative models only</span
+      ><a href="structured-products.html">All structured labs</a>
+    </footer>
+    <script type="module" src="./src/structured/main.js"></script>
+  </body>
 </html>

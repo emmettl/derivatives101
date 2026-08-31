@@ -1,62 +1,266 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Interactive labs for structured-product payoffs, lifecycle events, valuation, contract state and specification analysis.">
-  <meta name="theme-color" content="#f7f9fa">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Derivatives 101">
-  <meta property="og:title" content="Derivatives 101 — Structured Product Labs">
-  <meta property="og:description" content="Follow one or more market paths through barriers, coupon tests, early redemption and lock-in events.">
-  <meta property="og:url" content="https://emmettl.github.io/derivatives101/structured-products.html">
-  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Derivatives 101 — Structured Product Labs">
-  <meta name="twitter:description" content="Follow one or more market paths through barriers, coupon tests, early redemption and lock-in events.">
-  <meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <title>Derivatives 101 — Structured Product Labs</title>
-  <link rel="stylesheet" href="structured-labs.css?v=18">
-</head>
-<body>
-  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="payoff-explorer.html">Payoff Explorer</a><a href="option-lab.html">Option Lab</a></div></nav></header>
-  <div class="hero">
-    <p class="eyebrow">Path-dependent products</p>
-    <h1>Structured Product Labs</h1>
-    <p class="lede">A terminal payoff chart cannot explain a contract whose state changes along the way. These labs follow one market path event by event, then put that example back into a distribution of simulated outcomes.</p>
-  </div>
-  <main>
-    <div class="sequence" aria-label="Shared evaluation sequence">
-      <div><span>01</span><b>Observe the underlying(s)</b></div>
-      <div><span>02</span><b>Update contract state</b></div>
-      <div><span>03</span><b>Test cash flows and calls</b></div>
-      <div><span>04</span><b>Determine redemption</b></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Interactive labs for structured-product payoffs, lifecycle events, valuation, contract state and specification analysis."
+    />
+    <meta name="theme-color" content="#f7f9fa" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta
+      property="og:title"
+      content="Derivatives 101 — Structured Product Labs"
+    />
+    <meta
+      property="og:description"
+      content="Follow one or more market paths through barriers, coupon tests, early redemption and lock-in events."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/structured-products.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Derivatives 101 — Structured Product Labs"
+    />
+    <meta
+      name="twitter:description"
+      content="Follow one or more market paths through barriers, coupon tests, early redemption and lock-in events."
+    />
+    <meta
+      name="twitter:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <title>Derivatives 101 — Structured Product Labs</title>
+    <link rel="stylesheet" href="structured-labs.css?v=18" />
+  </head>
+  <body>
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="payoff-explorer.html">Payoff Explorer</a
+          ><a href="option-lab.html">Option Lab</a>
+        </div>
+      </nav>
+    </header>
+    <div class="hero">
+      <p class="eyebrow">Path-dependent products</p>
+      <h1>Structured Product Labs</h1>
+      <p class="lede">
+        A terminal payoff chart cannot explain a contract whose state changes
+        along the way. These labs follow one market path event by event, then
+        put that example back into a distribution of simulated outcomes.
+      </p>
     </div>
-    <section class="hub" aria-label="Structured product labs">
-      <a class="hub-card" href="reverse-convertible-lab.html"><span class="number">LAB 01</span><h2>Reverse Convertible Lifecycle</h2><p>Compare plain, barrier, callable and autocallable structures, then see whether the investor ends with cash principal or delivered underlying units.</p><strong>Follow the lifecycle →</strong></a>
-      <a class="hub-card" href="coupon-memory-lab.html"><span class="number">LAB 02</span><h2>Conditional Coupons &amp; Memory</h2><p>Watch coupons become paid, lost or banked, then separate the cash received from any underlying delivered at maturity.</p><strong>Trace the coupon ledger →</strong></a>
-      <a class="hub-card" href="lock-in-lab.html"><span class="number">LAB 03</span><h2>Lock-In Mechanics</h2><p>Separate a par lock-in from a step-up minimum repayment. A lock-in changes the future payoff state; it does not normally end the note.</p><strong>See the floor change →</strong></a>
-      <a class="hub-card" href="basket-lab.html"><span class="number">LAB 04</span><h2>Baskets &amp; Worst-Of</h2><p>Compare averaging with a least-performing reference across the same three paths, then see how correlation changes the distribution of outcomes.</p><strong>Compare the underlyings →</strong></a>
-      <a class="hub-card" href="koda-kodd-lab.html"><span class="number">LAB 05</span><h2>KODA / KODD Lifecycle</h2><p>Align the underlying path with the quantity bought or sold at every fixing, then see exactly when the bad-side gearing changes the obligation.</p><strong>Watch the quantity jump →</strong></a>
-      <a class="hub-card" href="participation-lab.html"><span class="number">LAB 06</span><h2>Outperformance &amp; Bonus</h2><p>Compare the barrier states, payoff formulas and option budget behind plain outperformance, bonus and bonus-outperformance certificates.</p><strong>Allocate the dividend budget →</strong></a>
-      <a class="hub-card" href="term-sheet-decoder.html"><span class="number">LAB 07</span><h2>Term Sheet Decoder</h2><p>Resolve ambiguous comparisons, event ordering, disrupted fixings, memory treatment and settlement into executable rules and boundary tests.</p><strong>Turn prose into a specification →</strong></a>
-      <a class="hub-card" href="value-before-maturity.html"><span class="number">LAB 08</span><h2>Value Before Maturity</h2><p>Separate issue price, estimated value, model value and an indicative bid, then attribute the movement to time, markets, issuer spread and exit cost.</p><strong>Explain the early-exit value →</strong></a>
-      <a class="hub-card" href="risk-fingerprints.html"><span class="number">LAB 09</span><h2>Risk Fingerprints</h2><p>Compare the delta, gamma, volatility exposure and carry of a capital-protected note with a reverse convertible, then test finite market shocks.</p><strong>See the risk change →</strong></a>
-      <a class="hub-card" href="credit-liquidity.html"><span class="number">LAB 10</span><h2>Promise, Price &amp; Recovery</h2><p>Separate contractual protection, issuer-adjusted model value, an executable secondary bid and an unsecured recovery scenario.</p><strong>Trace the routes to cash →</strong></a>
-      <a class="hub-card" href="dynamic-hedging.html"><span class="number">LAB 11</span><h2>Same Destination, Different Journey</h2><p>Delta-hedge the same European call across different paths, then compare hedge P&amp;L, turnover, costs and rebalance rules.</p><strong>Follow the hedge →</strong></a>
-      <a class="hub-card" href="volatility-skew.html"><span class="number">LAB 12</span><h2>One Volatility Is Not Enough</h2><p>Turn flat volatility, downside skew and smile-shaped curves into option prices, coupon budgets and participation terms.</p><strong>Read between the strikes →</strong></a>
-      <a class="hub-card" href="currency-risk.html"><span class="number">LAB 13</span><h2>Whose Currency Is the Risk?</h2><p>Separate foreign-asset performance, terminal FX translation and fixed-rate quanto conversion, then turn vague currency wording into executable rules.</p><strong>Trace the conversion →</strong></a>
-      <a class="hub-card" href="stepdown-autocall.html"><span class="number">LAB 14</span><h2>A Lower Bar Is Easier to Hit</h2><p>Trace a descending call schedule against one path, compare it with a fixed trigger and keep coupon, call and maturity-protection tests separate.</p><strong>Follow the staircase →</strong></a>
-      <a class="hub-card" href="forward-carry.html"><span class="number">LAB 15</span><h2>Spot Is Not the Forward</h2><p>Bridge spot through financing and dividends to a future delivery level, then see carry change moneyness, option values and participation.</p><strong>Build the forward →</strong></a>
-      <a class="hub-card" href="specification-capstone.html"><span class="number">LAB 16</span><h2>From Term Sheet to Test Suite</h2><p>Resolve one fictional note into normalized rules, state transitions, a worked lifecycle trace, settlement outputs and boundary tests.</p><strong>Compile the specification →</strong></a>
-      <a class="hub-card" href="options-a-la-carte.html"><span class="number">LAB 17</span><h2>Options à la carte</h2><p>Combine up to four calls or puts, attach optional barriers and see butterflies, condors, strangles, spreads and custom recipes emerge leg by leg.</p><strong>Build the strategy →</strong></a>
-    </section>
-    <section class="explain" aria-label="Why three views are needed">
-      <article><h3>Payoff</h3><p>What redemption follows from a terminal level, given the contract state already established.</p></article>
-      <article><h3>One path</h3><p>Which observation or breach changed the contract, and in what order the rules fired.</p></article>
-      <article><h3>Many paths</h3><p>How frequently early redemption, missed income or principal loss occurs under the illustrative model.</p></article>
-    </section>
-  </main>
-  <footer><strong>Derivatives 101</strong><span>Independent educational project · illustrative models only</span><a href="./">Course home</a></footer>
-</body>
+    <main>
+      <div class="sequence" aria-label="Shared evaluation sequence">
+        <div><span>01</span><b>Observe the underlying(s)</b></div>
+        <div><span>02</span><b>Update contract state</b></div>
+        <div><span>03</span><b>Test cash flows and calls</b></div>
+        <div><span>04</span><b>Determine redemption</b></div>
+      </div>
+      <section class="hub" aria-label="Structured product labs">
+        <a class="hub-card" href="reverse-convertible-lab.html"
+          ><span class="number">LAB 01</span>
+          <h2>Reverse Convertible Lifecycle</h2>
+          <p>
+            Compare plain, barrier, callable and autocallable structures, then
+            see whether the investor ends with cash principal or delivered
+            underlying units.
+          </p>
+          <strong>Follow the lifecycle →</strong></a
+        >
+        <a class="hub-card" href="coupon-memory-lab.html"
+          ><span class="number">LAB 02</span>
+          <h2>Conditional Coupons &amp; Memory</h2>
+          <p>
+            Watch coupons become paid, lost or banked, then separate the cash
+            received from any underlying delivered at maturity.
+          </p>
+          <strong>Trace the coupon ledger →</strong></a
+        >
+        <a class="hub-card" href="lock-in-lab.html"
+          ><span class="number">LAB 03</span>
+          <h2>Lock-In Mechanics</h2>
+          <p>
+            Separate a par lock-in from a step-up minimum repayment. A lock-in
+            changes the future payoff state; it does not normally end the note.
+          </p>
+          <strong>See the floor change →</strong></a
+        >
+        <a class="hub-card" href="basket-lab.html"
+          ><span class="number">LAB 04</span>
+          <h2>Baskets &amp; Worst-Of</h2>
+          <p>
+            Compare averaging with a least-performing reference across the same
+            three paths, then see how correlation changes the distribution of
+            outcomes.
+          </p>
+          <strong>Compare the underlyings →</strong></a
+        >
+        <a class="hub-card" href="koda-kodd-lab.html"
+          ><span class="number">LAB 05</span>
+          <h2>KODA / KODD Lifecycle</h2>
+          <p>
+            Align the underlying path with the quantity bought or sold at every
+            fixing, then see exactly when the bad-side gearing changes the
+            obligation.
+          </p>
+          <strong>Watch the quantity jump →</strong></a
+        >
+        <a class="hub-card" href="participation-lab.html"
+          ><span class="number">LAB 06</span>
+          <h2>Outperformance &amp; Bonus</h2>
+          <p>
+            Compare the barrier states, payoff formulas and option budget behind
+            plain outperformance, bonus and bonus-outperformance certificates.
+          </p>
+          <strong>Allocate the dividend budget →</strong></a
+        >
+        <a class="hub-card" href="term-sheet-decoder.html"
+          ><span class="number">LAB 07</span>
+          <h2>Term Sheet Decoder</h2>
+          <p>
+            Resolve ambiguous comparisons, event ordering, disrupted fixings,
+            memory treatment and settlement into executable rules and boundary
+            tests.
+          </p>
+          <strong>Turn prose into a specification →</strong></a
+        >
+        <a class="hub-card" href="value-before-maturity.html"
+          ><span class="number">LAB 08</span>
+          <h2>Value Before Maturity</h2>
+          <p>
+            Separate issue price, estimated value, model value and an indicative
+            bid, then attribute the movement to time, markets, issuer spread and
+            exit cost.
+          </p>
+          <strong>Explain the early-exit value →</strong></a
+        >
+        <a class="hub-card" href="risk-fingerprints.html"
+          ><span class="number">LAB 09</span>
+          <h2>Risk Fingerprints</h2>
+          <p>
+            Compare the delta, gamma, volatility exposure and carry of a
+            capital-protected note with a reverse convertible, then test finite
+            market shocks.
+          </p>
+          <strong>See the risk change →</strong></a
+        >
+        <a class="hub-card" href="credit-liquidity.html"
+          ><span class="number">LAB 10</span>
+          <h2>Promise, Price &amp; Recovery</h2>
+          <p>
+            Separate contractual protection, issuer-adjusted model value, an
+            executable secondary bid and an unsecured recovery scenario.
+          </p>
+          <strong>Trace the routes to cash →</strong></a
+        >
+        <a class="hub-card" href="dynamic-hedging.html"
+          ><span class="number">LAB 11</span>
+          <h2>Same Destination, Different Journey</h2>
+          <p>
+            Delta-hedge the same European call across different paths, then
+            compare hedge P&amp;L, turnover, costs and rebalance rules.
+          </p>
+          <strong>Follow the hedge →</strong></a
+        >
+        <a class="hub-card" href="volatility-skew.html"
+          ><span class="number">LAB 12</span>
+          <h2>One Volatility Is Not Enough</h2>
+          <p>
+            Turn flat volatility, downside skew and smile-shaped curves into
+            option prices, coupon budgets and participation terms.
+          </p>
+          <strong>Read between the strikes →</strong></a
+        >
+        <a class="hub-card" href="currency-risk.html"
+          ><span class="number">LAB 13</span>
+          <h2>Whose Currency Is the Risk?</h2>
+          <p>
+            Separate foreign-asset performance, terminal FX translation and
+            fixed-rate quanto conversion, then turn vague currency wording into
+            executable rules.
+          </p>
+          <strong>Trace the conversion →</strong></a
+        >
+        <a class="hub-card" href="stepdown-autocall.html"
+          ><span class="number">LAB 14</span>
+          <h2>A Lower Bar Is Easier to Hit</h2>
+          <p>
+            Trace a descending call schedule against one path, compare it with a
+            fixed trigger and keep coupon, call and maturity-protection tests
+            separate.
+          </p>
+          <strong>Follow the staircase →</strong></a
+        >
+        <a class="hub-card" href="forward-carry.html"
+          ><span class="number">LAB 15</span>
+          <h2>Spot Is Not the Forward</h2>
+          <p>
+            Bridge spot through financing and dividends to a future delivery
+            level, then see carry change moneyness, option values and
+            participation.
+          </p>
+          <strong>Build the forward →</strong></a
+        >
+        <a class="hub-card" href="specification-capstone.html"
+          ><span class="number">LAB 16</span>
+          <h2>From Term Sheet to Test Suite</h2>
+          <p>
+            Resolve one fictional note into normalized rules, state transitions,
+            a worked lifecycle trace, settlement outputs and boundary tests.
+          </p>
+          <strong>Compile the specification →</strong></a
+        >
+        <a class="hub-card" href="options-a-la-carte.html"
+          ><span class="number">LAB 17</span>
+          <h2>Options à la carte</h2>
+          <p>
+            Combine up to four calls or puts, attach optional barriers and see
+            butterflies, condors, strangles, spreads and custom recipes emerge
+            leg by leg.
+          </p>
+          <strong>Build the strategy →</strong></a
+        >
+      </section>
+      <section class="explain" aria-label="Why three views are needed">
+        <article>
+          <h3>Payoff</h3>
+          <p>
+            What redemption follows from a terminal level, given the contract
+            state already established.
+          </p>
+        </article>
+        <article>
+          <h3>One path</h3>
+          <p>
+            Which observation or breach changed the contract, and in what order
+            the rules fired.
+          </p>
+        </article>
+        <article>
+          <h3>Many paths</h3>
+          <p>
+            How frequently early redemption, missed income or principal loss
+            occurs under the illustrative model.
+          </p>
+        </article>
+      </section>
+    </main>
+    <footer>
+      <strong>Derivatives 101</strong
+      ><span>Independent educational project · illustrative models only</span
+      ><a href="./">Course home</a>
+    </footer>
+  </body>
 </html>

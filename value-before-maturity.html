@@ -1,40 +1,255 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Explore how time, markets, issuer credit and exit costs affect a capital-protected note before maturity.">
-  <meta name="theme-color" content="#f7f9fa">
-  <meta property="og:type" content="website"><meta property="og:site_name" content="Derivatives 101">
-  <meta property="og:title" content="Derivatives 101 — Value Before Maturity">
-  <meta property="og:description" content="Separate maturity payoff, model value and an illustrative secondary-market bid.">
-  <meta property="og:url" content="https://emmettl.github.io/derivatives101/value-before-maturity.html">
-  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Derivatives 101 — Value Before Maturity"><meta name="twitter:description" content="See why unchanged spot does not imply an unchanged note value."><meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <title>Derivatives 101 — Value Before Maturity</title>
-  <link rel="stylesheet" href="structured-labs.css?v=18">
-</head>
-<body>
-  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="structured-products.html">Structured Product Labs</a><a href="payoff-explorer.html#cpn">Maturity payoff</a></div></nav></header>
-  <div class="hero"><p class="eyebrow">Lab 08 · Secondary value</p><h1>Value Before Maturity</h1><p class="lede">Capital protection describes a payment at maturity, subject to issuer performance. It does not promise that the note can be sold for 100 today.</p></div>
-  <p class="scope-note"><b>Scope:</b><span>A fictional five-year, 100% capital-protected participation note. The model separates a credit-adjusted bond and call option, then deducts an illustrative exit cost. It is not a tradable valuation.</span></p>
-  <main>
-    <section class="variant-summary" aria-live="polite"><strong id="valuation-headline">Spot unchanged at 100</strong><p id="valuation-summary"></p></section>
-    <div class="lab-grid">
-      <aside class="controls" aria-label="Current valuation inputs"><div class="controls-head"><h2>Today</h2><button type="button" class="reset-button" id="valuation-reset">Reset</button></div><div class="controls-body"><div class="control-block"><span class="control-title">Scenarios</span><div class="radio-set" id="valuation-scenarios"></div><p class="control-help">Scenarios change the same seven valuation inputs shown below.</p></div><div id="valuation-controls"></div></div></aside>
-      <div class="content">
-        <section class="panel" aria-labelledby="value-stack-title"><div class="panel-head"><div><p class="eyebrow">One note, three numbers</p><h2 id="value-stack-title">Issue price ≠ model value ≠ bid</h2><p>The note’s current model value is the sum of its issuer bond and option components. A potential exit price may then include a further deduction.</p></div></div>
-          <div class="issue-strip" id="issue-strip"></div>
-          <div class="value-stack-preview"><div class="value-stack-scale"><span>0</span><span>Issue price 100</span><span id="value-scale-max">120</span></div><div class="value-stack-track" id="value-stack" role="img" aria-label="Current model value split into issuer bond and option components"><span class="value-stack-bond"></span><span class="value-stack-option"></span><i class="issue-price-marker" aria-hidden="true"></i></div><div class="value-stack-labels" id="value-stack-labels"></div><p class="valuation-message" id="valuation-message"></p></div>
-        </section>
-        <section class="panel" aria-labelledby="curve-title"><div class="panel-head"><div><p class="eyebrow">Today versus maturity</p><h2 id="curve-title">The payoff line is not today’s price</h2><p>The maturity payoff assumes the issuer performs and no time remains. Today’s model value reflects the remaining funding, option and credit inputs.</p></div></div><div class="chart-wrap"><svg class="path-chart valuation-curve" id="valuation-curve" viewBox="0 0 900 360" role="img" aria-label="Illustrative current model value, indicative bid and maturity payoff across underlying levels"></svg></div><div class="payoff-legend valuation-legend"><span><i class="legend-current"></i>Current model value</span><span><i class="legend-bid"></i>Indicative bid</span><span><i class="legend-maturity"></i>Maturity payoff if issuer performs</span><span><i class="legend-issue"></i>Issue price</span></div><div class="settlement-breakdown" id="valuation-comparison"></div></section>
-        <section class="panel" aria-labelledby="driver-title"><div class="panel-head"><div><p class="eyebrow">Movement bridge</p><h2 id="driver-title">Why did the value move?</h2><p>Starting from the issue-date estimated value, the bridge changes one input at a time and finishes with the exit deduction.</p></div></div><div class="driver-preview" id="valuation-drivers"></div><p class="attribution-note" id="attribution-note"></p></section>
-        <section class="panel" aria-labelledby="convention-title"><div class="panel-head"><div><p class="eyebrow">Valuation convention</p><h2 id="convention-title">What exactly has been modelled?</h2><p>A useful specification identifies the payoff, model, market inputs, credit treatment and price convention separately.</p></div></div><div class="rule-strip"><b>Issue price</b><i>≠</i><span>estimated value</span><i>≠</i><span>model mid</span><i>≠</i><b>executable bid</b></div><div class="ledger-wrap"><table class="ledger valuation-rules"><thead><tr><th>Layer</th><th>Illustrative rule</th><th>What remains outside it</th></tr></thead><tbody id="valuation-rules"></tbody></table></div></section>
-      </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Explore how time, markets, issuer credit and exit costs affect a capital-protected note before maturity."
+    />
+    <meta name="theme-color" content="#f7f9fa" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta
+      property="og:title"
+      content="Derivatives 101 — Value Before Maturity"
+    />
+    <meta
+      property="og:description"
+      content="Separate maturity payoff, model value and an illustrative secondary-market bid."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/value-before-maturity.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Derivatives 101 — Value Before Maturity"
+    />
+    <meta
+      name="twitter:description"
+      content="See why unchanged spot does not imply an unchanged note value."
+    />
+    <meta
+      name="twitter:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <title>Derivatives 101 — Value Before Maturity</title>
+    <link rel="stylesheet" href="structured-labs.css?v=18" />
+  </head>
+  <body>
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="structured-products.html">Structured Product Labs</a
+          ><a href="payoff-explorer.html#cpn">Maturity payoff</a>
+        </div>
+      </nav>
+    </header>
+    <div class="hero">
+      <p class="eyebrow">Lab 08 · Secondary value</p>
+      <h1>Value Before Maturity</h1>
+      <p class="lede">
+        Capital protection describes a payment at maturity, subject to issuer
+        performance. It does not promise that the note can be sold for 100
+        today.
+      </p>
     </div>
-    <section class="explain"><article><h3>Protection has a date</h3><p>The 100 floor applies at contractual maturity and remains an unsecured promise of the issuer. It is not a continuous market-value floor.</p></article><article><h3>Spot is only one input</h3><p>Time, rates, dividends, volatility and issuer spread can offset or magnify the effect of the underlying—even when spot does not move.</p></article><article><h3>A bid is another layer</h3><p>A model value is not necessarily executable. Liquidity, size, dealer spread and unwind costs can create another deduction.</p></article></section>
-    <section class="sources"><h2>Valuation references</h2><p><a href="https://www.finra.org/investors/insights/structured-notes-principal-protection">FINRA’s structured-note overview</a> explains that initial estimated value is generally below issue price and that an early sale may occur at a substantial discount. A recent <a href="https://www.sec.gov/Archives/edgar/data/19617/000191870426018630/form424b2.htm">SEC-filed pricing supplement</a> describes how funding rates, credit, hedging costs, fees and dealer discounts can affect estimated and secondary-market values. Exact issuer models and bid conventions differ.</p></section>
-  </main>
-  <footer><strong>Derivatives 101</strong><span>Independent educational project · illustrative valuation only</span><a href="structured-products.html">All structured labs</a></footer>
-  <script type="module" src="./src/legacy/valuation/main.js"></script>
-</body>
+    <p class="scope-note">
+      <b>Scope:</b
+      ><span
+        >A fictional five-year, 100% capital-protected participation note. The
+        model separates a credit-adjusted bond and call option, then deducts an
+        illustrative exit cost. It is not a tradable valuation.</span
+      >
+    </p>
+    <main>
+      <section class="variant-summary" aria-live="polite">
+        <strong id="valuation-headline">Spot unchanged at 100</strong>
+        <p id="valuation-summary"></p>
+      </section>
+      <div class="lab-grid">
+        <aside class="controls" aria-label="Current valuation inputs">
+          <div class="controls-head">
+            <h2>Today</h2>
+            <button type="button" class="reset-button" id="valuation-reset">
+              Reset
+            </button>
+          </div>
+          <div class="controls-body">
+            <div class="control-block">
+              <span class="control-title">Scenarios</span>
+              <div class="radio-set" id="valuation-scenarios"></div>
+              <p class="control-help">
+                Scenarios change the same seven valuation inputs shown below.
+              </p>
+            </div>
+            <div id="valuation-controls"></div>
+          </div>
+        </aside>
+        <div class="content">
+          <section class="panel" aria-labelledby="value-stack-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">One note, three numbers</p>
+                <h2 id="value-stack-title">Issue price ≠ model value ≠ bid</h2>
+                <p>
+                  The note’s current model value is the sum of its issuer bond
+                  and option components. A potential exit price may then include
+                  a further deduction.
+                </p>
+              </div>
+            </div>
+            <div class="issue-strip" id="issue-strip"></div>
+            <div class="value-stack-preview">
+              <div class="value-stack-scale">
+                <span>0</span><span>Issue price 100</span
+                ><span id="value-scale-max">120</span>
+              </div>
+              <div
+                class="value-stack-track"
+                id="value-stack"
+                role="img"
+                aria-label="Current model value split into issuer bond and option components"
+              >
+                <span class="value-stack-bond"></span
+                ><span class="value-stack-option"></span
+                ><i class="issue-price-marker" aria-hidden="true"></i>
+              </div>
+              <div class="value-stack-labels" id="value-stack-labels"></div>
+              <p class="valuation-message" id="valuation-message"></p>
+            </div>
+          </section>
+          <section class="panel" aria-labelledby="curve-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Today versus maturity</p>
+                <h2 id="curve-title">The payoff line is not today’s price</h2>
+                <p>
+                  The maturity payoff assumes the issuer performs and no time
+                  remains. Today’s model value reflects the remaining funding,
+                  option and credit inputs.
+                </p>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                class="path-chart valuation-curve"
+                id="valuation-curve"
+                viewBox="0 0 900 360"
+                role="img"
+                aria-label="Illustrative current model value, indicative bid and maturity payoff across underlying levels"
+              ></svg>
+            </div>
+            <div class="payoff-legend valuation-legend">
+              <span><i class="legend-current"></i>Current model value</span
+              ><span><i class="legend-bid"></i>Indicative bid</span
+              ><span
+                ><i class="legend-maturity"></i>Maturity payoff if issuer
+                performs</span
+              ><span><i class="legend-issue"></i>Issue price</span>
+            </div>
+            <div class="settlement-breakdown" id="valuation-comparison"></div>
+          </section>
+          <section class="panel" aria-labelledby="driver-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Movement bridge</p>
+                <h2 id="driver-title">Why did the value move?</h2>
+                <p>
+                  Starting from the issue-date estimated value, the bridge
+                  changes one input at a time and finishes with the exit
+                  deduction.
+                </p>
+              </div>
+            </div>
+            <div class="driver-preview" id="valuation-drivers"></div>
+            <p class="attribution-note" id="attribution-note"></p>
+          </section>
+          <section class="panel" aria-labelledby="convention-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Valuation convention</p>
+                <h2 id="convention-title">What exactly has been modelled?</h2>
+                <p>
+                  A useful specification identifies the payoff, model, market
+                  inputs, credit treatment and price convention separately.
+                </p>
+              </div>
+            </div>
+            <div class="rule-strip">
+              <b>Issue price</b><i>≠</i><span>estimated value</span><i>≠</i
+              ><span>model mid</span><i>≠</i><b>executable bid</b>
+            </div>
+            <div class="ledger-wrap">
+              <table class="ledger valuation-rules">
+                <thead>
+                  <tr>
+                    <th>Layer</th>
+                    <th>Illustrative rule</th>
+                    <th>What remains outside it</th>
+                  </tr>
+                </thead>
+                <tbody id="valuation-rules"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+      <section class="explain">
+        <article>
+          <h3>Protection has a date</h3>
+          <p>
+            The 100 floor applies at contractual maturity and remains an
+            unsecured promise of the issuer. It is not a continuous market-value
+            floor.
+          </p>
+        </article>
+        <article>
+          <h3>Spot is only one input</h3>
+          <p>
+            Time, rates, dividends, volatility and issuer spread can offset or
+            magnify the effect of the underlying—even when spot does not move.
+          </p>
+        </article>
+        <article>
+          <h3>A bid is another layer</h3>
+          <p>
+            A model value is not necessarily executable. Liquidity, size, dealer
+            spread and unwind costs can create another deduction.
+          </p>
+        </article>
+      </section>
+      <section class="sources">
+        <h2>Valuation references</h2>
+        <p>
+          <a
+            href="https://www.finra.org/investors/insights/structured-notes-principal-protection"
+            >FINRA’s structured-note overview</a
+          >
+          explains that initial estimated value is generally below issue price
+          and that an early sale may occur at a substantial discount. A recent
+          <a
+            href="https://www.sec.gov/Archives/edgar/data/19617/000191870426018630/form424b2.htm"
+            >SEC-filed pricing supplement</a
+          >
+          describes how funding rates, credit, hedging costs, fees and dealer
+          discounts can affect estimated and secondary-market values. Exact
+          issuer models and bid conventions differ.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <strong>Derivatives 101</strong
+      ><span>Independent educational project · illustrative valuation only</span
+      ><a href="structured-products.html">All structured labs</a>
+    </footer>
+    <script type="module" src="./src/legacy/valuation/main.js"></script>
+  </body>
 </html>

@@ -1,67 +1,259 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Turn ambiguous structured-note language into explicit rules, event ordering and acceptance tests.">
-  <meta name="theme-color" content="#f7f9fa">
-  <meta property="og:type" content="website"><meta property="og:site_name" content="Derivatives 101">
-  <meta property="og:title" content="Derivatives 101 — Term Sheet Decoder">
-  <meta property="og:description" content="Resolve ambiguous clauses, inspect the resulting event flow and generate specification-ready tests.">
-  <meta property="og:url" content="https://emmettl.github.io/derivatives101/term-sheet-decoder.html">
-  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Derivatives 101 — Term Sheet Decoder"><meta name="twitter:description" content="From product prose to precise rules and acceptance tests."><meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <title>Derivatives 101 — Term Sheet Decoder</title>
-  <link rel="stylesheet" href="structured-labs.css?v=18">
-</head>
-<body>
-  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="structured-products.html">Structured Product Labs</a><a href="reverse-convertible-lab.html">Lifecycle example</a></div></nav></header>
-  <div class="hero"><p class="eyebrow">Lab 07 · From prose to rules</p><h1>Term Sheet Decoder</h1><p class="lede">A product name is not a specification. Resolve the clauses that change economic outcomes, then turn the result into an event sequence and testable examples.</p></div>
-  <p class="scope-note"><b>Case study:</b><span>A fictional three-year, single-underlying autocallable reverse convertible. The lab teaches requirements analysis, not drafting advice; real legal terms and market conventions control.</span></p>
-  <main>
-    <section class="variant-summary" aria-live="polite"><strong id="decoder-count">32 possible specifications</strong><p id="decoder-summary">Five apparently small binary decisions create 32 executable contracts beneath the same headline description.</p></section>
-    <div class="decoder-layout">
-      <aside class="decoder-clauses" aria-label="Draft clauses">
-        <div class="controls-head"><h2>Draft clauses</h2><button type="button" class="reset-button" id="decoder-reset">Reset</button></div>
-        <div id="decoder-clause-list"></div>
-      </aside>
-      <div class="content">
-        <section class="panel" aria-labelledby="resolution-title">
-          <div class="panel-head decoder-detail-head"><div><p class="eyebrow" id="clause-category">Selected clause</p><h2 id="resolution-title"></h2><p id="clause-problem"></p></div><span class="ambiguity-badge" id="clause-severity"></span></div>
-          <blockquote class="draft-language" id="draft-language"></blockquote>
-          <div class="resolution-preview" id="resolution-options" aria-label="Clause resolutions"></div>
-          <div class="impact-compare" id="impact-compare" aria-live="polite"></div>
-        </section>
-
-        <section class="panel" aria-labelledby="flow-title">
-          <div class="panel-head"><div><p class="eyebrow">Executable sequence</p><h2 id="flow-title">What happens on an observation date?</h2><p>The order is part of the economics. Changing it can alter the payment even when every market input is identical.</p></div></div>
-          <ol class="event-flow" id="event-flow" aria-label="Selected observation event flow"></ol>
-          <p class="flow-note" id="flow-note" aria-live="polite"></p>
-        </section>
-
-        <section class="panel" aria-labelledby="compiled-title">
-          <div class="panel-head"><div><p class="eyebrow">Compiled specification</p><h2 id="compiled-title">Could two developers build the same result?</h2><p>The resolved rules define inputs, state, comparisons, event order and settlement without relying on the product name.</p></div><button type="button" class="resample" id="copy-spec">Copy specification</button></div>
-          <div class="spec-overview" id="spec-overview"></div>
-          <div class="rule-strip" id="decoder-rule-strip"></div>
-          <div class="ledger-wrap"><table class="ledger decoder-rules"><thead><tr><th>ID</th><th>Rule</th><th>Executable definition</th></tr></thead><tbody id="compiled-rules"></tbody></table></div>
-          <p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
-        </section>
-
-        <section class="panel" aria-labelledby="tests-title">
-          <div class="panel-head"><div><p class="eyebrow">Boundary examples</p><h2 id="tests-title">Acceptance tests generated from the rules</h2><p>Each test sits exactly where plausible interpretations diverge. Change a clause above and the expected result changes here.</p></div></div>
-          <div class="acceptance-tests" id="acceptance-tests"></div>
-        </section>
-
-        <section class="panel" aria-labelledby="ready-title">
-          <div class="panel-head"><div><p class="eyebrow">Definition of ready</p><h2 id="ready-title">What belongs in the specification?</h2><p>Payoff language is only one part. A buildable requirement also identifies data, dates, state, exceptional events and settlement outputs.</p></div></div>
-          <div class="ready-grid" id="ready-grid"></div>
-          <div class="open-questions"><strong>Explicitly outside this fictional case</strong><p>Corporate-action adjustments, tax treatment, issuer default, hedging, secondary-market valuation and jurisdiction-specific legal drafting.</p></div>
-        </section>
-      </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Turn ambiguous structured-note language into explicit rules, event ordering and acceptance tests."
+    />
+    <meta name="theme-color" content="#f7f9fa" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta property="og:title" content="Derivatives 101 — Term Sheet Decoder" />
+    <meta
+      property="og:description"
+      content="Resolve ambiguous clauses, inspect the resulting event flow and generate specification-ready tests."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/term-sheet-decoder.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Derivatives 101 — Term Sheet Decoder" />
+    <meta
+      name="twitter:description"
+      content="From product prose to precise rules and acceptance tests."
+    />
+    <meta
+      name="twitter:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <title>Derivatives 101 — Term Sheet Decoder</title>
+    <link rel="stylesheet" href="structured-labs.css?v=18" />
+  </head>
+  <body>
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="structured-products.html">Structured Product Labs</a
+          ><a href="reverse-convertible-lab.html">Lifecycle example</a>
+        </div>
+      </nav>
+    </header>
+    <div class="hero">
+      <p class="eyebrow">Lab 07 · From prose to rules</p>
+      <h1>Term Sheet Decoder</h1>
+      <p class="lede">
+        A product name is not a specification. Resolve the clauses that change
+        economic outcomes, then turn the result into an event sequence and
+        testable examples.
+      </p>
     </div>
-    <section class="explain"><article><h3>Names are shorthand</h3><p>“Autocallable reverse convertible” identifies a family. It does not settle comparison operators, calendars, ordering or delivery mechanics.</p></article><article><h3>Boundaries reveal ambiguity</h3><p>Test the exact barrier, a same-day coupon and call, a missing fixing and a fractional delivery entitlement. Ordinary examples often hide the gaps.</p></article><article><h3>State must persist</h3><p>A barrier breach and a memory balance survive beyond the observation that created them. Recording only current inputs cannot reproduce the contract.</p></article></section>
-    <section class="sources"><h2>Reference examples</h2><p>This is a fictional case rather than a model term sheet. Public filings show why the details matter: this <a href="https://www.sec.gov/Archives/edgar/data/70858/000191870425014721/bofa-3pd10816_424b2.htm">SEC-filed autocallable note</a> specifies inclusive comparisons, coupon treatment on a call date and postponement for disruption events. <a href="https://www.finra.org/investors/alerts/structured-notes-principal-protection-note-terms-your-investment">FINRA’s structured-note overview</a> explains that final documents also need clear treatment of issuer credit, initial value, fees and liquidity. Exact conventions are product-specific.</p></section>
-  </main>
-  <footer><strong>Derivatives 101</strong><span>Independent educational project · fictional case study</span><a href="structured-products.html">All structured labs</a></footer>
-  <script type="module" src="./src/decoder/main.js"></script>
-</body>
+    <p class="scope-note">
+      <b>Case study:</b
+      ><span
+        >A fictional three-year, single-underlying autocallable reverse
+        convertible. The lab teaches requirements analysis, not drafting advice;
+        real legal terms and market conventions control.</span
+      >
+    </p>
+    <main>
+      <section class="variant-summary" aria-live="polite">
+        <strong id="decoder-count">32 possible specifications</strong>
+        <p id="decoder-summary">
+          Five apparently small binary decisions create 32 executable contracts
+          beneath the same headline description.
+        </p>
+      </section>
+      <div class="decoder-layout">
+        <aside class="decoder-clauses" aria-label="Draft clauses">
+          <div class="controls-head">
+            <h2>Draft clauses</h2>
+            <button type="button" class="reset-button" id="decoder-reset">
+              Reset
+            </button>
+          </div>
+          <div id="decoder-clause-list"></div>
+        </aside>
+        <div class="content">
+          <section class="panel" aria-labelledby="resolution-title">
+            <div class="panel-head decoder-detail-head">
+              <div>
+                <p class="eyebrow" id="clause-category">Selected clause</p>
+                <h2 id="resolution-title"></h2>
+                <p id="clause-problem"></p>
+              </div>
+              <span class="ambiguity-badge" id="clause-severity"></span>
+            </div>
+            <blockquote class="draft-language" id="draft-language"></blockquote>
+            <div
+              class="resolution-preview"
+              id="resolution-options"
+              aria-label="Clause resolutions"
+            ></div>
+            <div
+              class="impact-compare"
+              id="impact-compare"
+              aria-live="polite"
+            ></div>
+          </section>
+
+          <section class="panel" aria-labelledby="flow-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Executable sequence</p>
+                <h2 id="flow-title">What happens on an observation date?</h2>
+                <p>
+                  The order is part of the economics. Changing it can alter the
+                  payment even when every market input is identical.
+                </p>
+              </div>
+            </div>
+            <ol
+              class="event-flow"
+              id="event-flow"
+              aria-label="Selected observation event flow"
+            ></ol>
+            <p class="flow-note" id="flow-note" aria-live="polite"></p>
+          </section>
+
+          <section class="panel" aria-labelledby="compiled-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Compiled specification</p>
+                <h2 id="compiled-title">
+                  Could two developers build the same result?
+                </h2>
+                <p>
+                  The resolved rules define inputs, state, comparisons, event
+                  order and settlement without relying on the product name.
+                </p>
+              </div>
+              <button type="button" class="resample" id="copy-spec">
+                Copy specification
+              </button>
+            </div>
+            <div class="spec-overview" id="spec-overview"></div>
+            <div class="rule-strip" id="decoder-rule-strip"></div>
+            <div class="ledger-wrap">
+              <table class="ledger decoder-rules">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Rule</th>
+                    <th>Executable definition</th>
+                  </tr>
+                </thead>
+                <tbody id="compiled-rules"></tbody>
+              </table>
+            </div>
+            <p
+              class="copy-status"
+              id="copy-status"
+              role="status"
+              aria-live="polite"
+            ></p>
+          </section>
+
+          <section class="panel" aria-labelledby="tests-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Boundary examples</p>
+                <h2 id="tests-title">
+                  Acceptance tests generated from the rules
+                </h2>
+                <p>
+                  Each test sits exactly where plausible interpretations
+                  diverge. Change a clause above and the expected result changes
+                  here.
+                </p>
+              </div>
+            </div>
+            <div class="acceptance-tests" id="acceptance-tests"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="ready-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Definition of ready</p>
+                <h2 id="ready-title">What belongs in the specification?</h2>
+                <p>
+                  Payoff language is only one part. A buildable requirement also
+                  identifies data, dates, state, exceptional events and
+                  settlement outputs.
+                </p>
+              </div>
+            </div>
+            <div class="ready-grid" id="ready-grid"></div>
+            <div class="open-questions">
+              <strong>Explicitly outside this fictional case</strong>
+              <p>
+                Corporate-action adjustments, tax treatment, issuer default,
+                hedging, secondary-market valuation and jurisdiction-specific
+                legal drafting.
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+      <section class="explain">
+        <article>
+          <h3>Names are shorthand</h3>
+          <p>
+            “Autocallable reverse convertible” identifies a family. It does not
+            settle comparison operators, calendars, ordering or delivery
+            mechanics.
+          </p>
+        </article>
+        <article>
+          <h3>Boundaries reveal ambiguity</h3>
+          <p>
+            Test the exact barrier, a same-day coupon and call, a missing fixing
+            and a fractional delivery entitlement. Ordinary examples often hide
+            the gaps.
+          </p>
+        </article>
+        <article>
+          <h3>State must persist</h3>
+          <p>
+            A barrier breach and a memory balance survive beyond the observation
+            that created them. Recording only current inputs cannot reproduce
+            the contract.
+          </p>
+        </article>
+      </section>
+      <section class="sources">
+        <h2>Reference examples</h2>
+        <p>
+          This is a fictional case rather than a model term sheet. Public
+          filings show why the details matter: this
+          <a
+            href="https://www.sec.gov/Archives/edgar/data/70858/000191870425014721/bofa-3pd10816_424b2.htm"
+            >SEC-filed autocallable note</a
+          >
+          specifies inclusive comparisons, coupon treatment on a call date and
+          postponement for disruption events.
+          <a
+            href="https://www.finra.org/investors/alerts/structured-notes-principal-protection-note-terms-your-investment"
+            >FINRA’s structured-note overview</a
+          >
+          explains that final documents also need clear treatment of issuer
+          credit, initial value, fees and liquidity. Exact conventions are
+          product-specific.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <strong>Derivatives 101</strong
+      ><span>Independent educational project · fictional case study</span
+      ><a href="structured-products.html">All structured labs</a>
+    </footer>
+    <script type="module" src="./src/decoder/main.js"></script>
+  </body>
 </html>

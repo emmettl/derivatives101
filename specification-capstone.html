@@ -1,39 +1,379 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Take a fictional structured note from ambiguous clauses to normalized terms, lifecycle logic, settlement and executable acceptance tests.">
-  <meta name="theme-color" content="#f7f9fa">
-  <meta property="og:type" content="website"><meta property="og:site_name" content="Derivatives 101">
-  <meta property="og:title" content="Derivatives 101 — From Term Sheet to Test Suite">
-  <meta property="og:description" content="A requirements capstone for turning product language into an executable structured-note specification.">
-  <meta property="og:url" content="https://emmettl.github.io/derivatives101/specification-capstone.html">
-  <meta property="og:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Derivatives 101 — From Term Sheet to Test Suite"><meta name="twitter:description" content="Resolve the contract, trace a path and inspect the boundary tests."><meta name="twitter:image" content="https://emmettl.github.io/derivatives101/og.png">
-  <title>Derivatives 101 — From Term Sheet to Test Suite</title>
-  <link rel="stylesheet" href="structured-labs.css?v=18"><link rel="stylesheet" href="specification-capstone.css?v=1">
-</head>
-<body>
-  <header class="site-head"><nav aria-label="Course navigation"><a class="brand" href="./">Derivatives 101</a><div class="nav-links"><a href="structured-products.html">Structured Product Labs</a><a href="term-sheet-decoder.html">Term Sheet Decoder</a></div></nav></header>
-  <div class="hero"><p class="eyebrow">Lab 16 · Specification capstone</p><h1>From Term Sheet to Test Suite</h1><p class="lede">A business analyst’s job is not finished when the payoff sounds right. Resolve the contract, make the state transitions explicit, walk a market path through it and prove the boundary behaviour before anyone builds.</p></div>
-  <p class="scope-note"><b>Case study:</b><span>An entirely fictional two-asset step-down autocall with conditional memory coupons. Dates and levels are normalized for teaching; this is a requirements exercise, not a model term sheet or investment recommendation.</span></p>
-  <main>
-    <section class="variant-summary spec-summary" aria-live="polite"><strong id="spec-headline">Executable specimen</strong><p id="spec-summary"></p></section>
-    <div class="lab-grid">
-      <aside class="controls" aria-label="Specification decisions"><div class="controls-head"><h2>Contract decisions</h2><button type="button" class="reset-button" id="spec-reset">Reset</button></div><div class="controls-body"><div class="control-block"><span class="control-title">Starting point</span><div class="radio-set" id="spec-profiles"></div></div><div id="spec-controls"></div><div class="control-block"><span class="control-title">Market path</span><div class="radio-set" id="spec-scenarios"></div><p class="control-help" id="scenario-note"></p></div></div></aside>
-      <div class="content">
-        <section class="panel" aria-labelledby="readiness-title"><div class="panel-head"><div><p class="eyebrow">Definition of ready</p><h2 id="readiness-title">Can this contract be built consistently?</h2><p>Completeness is not the same as consistency. A specification can fill every field and still contain a combination that cannot settle.</p></div><span class="spec-status" id="spec-status"></span></div><div class="spec-readiness" id="spec-readiness"></div><div class="spec-pipeline" id="spec-pipeline"></div><div class="spec-issues" id="spec-issues"></div></section>
-        <section class="panel" aria-labelledby="flow-title"><div class="panel-head"><div><p class="eyebrow">Executable lifecycle</p><h2 id="flow-title">Order turns clauses into behaviour</h2><p>The event sequence is part of the economics. The same levels can produce a different coupon when termination moves ahead of the coupon test.</p></div></div><ol class="event-flow spec-flow" id="spec-flow"></ol><p class="flow-note" id="spec-flow-note"></p></section>
-        <section class="panel" aria-labelledby="normalized-title"><div class="panel-head"><div><p class="eyebrow">Normalized rulebook</p><h2 id="normalized-title">One decision, one named rule</h2><p>Product language becomes buildable when each input, comparison, state update, termination condition and output has one explicit definition.</p></div><button type="button" class="resample" id="copy-spec">Copy specification</button></div><div class="spec-artifacts" id="spec-artifacts"></div><div class="ledger-wrap"><table class="ledger spec-rules"><thead><tr><th>ID</th><th>Concern</th><th>Executable definition</th></tr></thead><tbody id="spec-rules"></tbody></table></div><p class="copy-status" id="copy-status" role="status" aria-live="polite"></p></section>
-        <section class="panel" aria-labelledby="trace-title"><div class="panel-head"><div><p class="eyebrow">Worked scenario</p><h2 id="trace-title">Trace one path through the contract</h2><p>A requirements example should expose state, not just a final number. Later observations remain visible after a call, but are explicitly inactive.</p></div></div><div class="spec-gate" id="trace-gate"></div><div id="trace-output"><div class="spec-trace-stats" id="trace-stats"></div><div class="chart-wrap"><svg class="path-chart spec-path-chart" id="spec-path-chart" viewBox="0 0 900 360" role="img" aria-label="Two asset paths, contractual reference and step-down call triggers"></svg></div><div class="payoff-legend spec-legend"><span><i class="legend-spec-a"></i>Asset A</span><span><i class="legend-spec-b"></i>Asset B</span><span><i class="legend-spec-reference"></i>Applicable reference</span><span><i class="legend-spec-trigger"></i>Call trigger</span></div><div class="ledger-wrap"><table class="ledger spec-trace-ledger"><thead><tr><th>Date</th><th>Asset A</th><th>Asset B</th><th>Reference</th><th>Call test</th><th>Coupon event</th><th>Memory after</th><th>State after</th></tr></thead><tbody id="trace-ledger"></tbody></table></div><div class="settlement-breakdown" id="trace-settlement"></div><div class="outcome"><strong>Settlement narrative</strong><p id="trace-narrative"></p></div></div></section>
-        <section class="panel" aria-labelledby="tests-title"><div class="panel-head"><div><p class="eyebrow">Executable evidence</p><h2 id="tests-title">Boundary tests change with the rules</h2><p>Ordinary examples often pass under several interpretations. Equality, just-below, same-day and post-termination cases expose the specification.</p></div></div><div class="ledger-wrap"><table class="ledger spec-tests"><thead><tr><th>ID</th><th>Boundary</th><th>Given</th><th>Expected result</th><th>Status</th></tr></thead><tbody id="spec-tests"></tbody></table></div></section>
-        <section class="panel" aria-labelledby="handoff-title"><div class="panel-head"><div><p class="eyebrow">BA handoff pack</p><h2 id="handoff-title">What leaves the analysis desk?</h2><p>A specification is a connected set of artefacts. Each one answers a different implementation or review question.</p></div></div><div class="handoff-grid"><article><span>01</span><h3>Decision log</h3><p>Chosen convention, alternatives considered, owner, rationale and effective product version.</p></article><article><span>02</span><h3>Normalized terms</h3><p>Inputs, data source, dates, operators, schedules, units, rounding and outputs.</p></article><article><span>03</span><h3>State model</h3><p>Allowed states, persistent fields, event ordering, transitions and terminal conditions.</p></article><article><span>04</span><h3>Worked examples</h3><p>At least one ordinary path, a same-day collision and every settlement branch.</p></article><article><span>05</span><h3>Acceptance tests</h3><p>Equality, just-above, just-below, disrupted, repeated and post-termination cases.</p></article><article><span>06</span><h3>Scope &amp; lineage</h3><p>Explicit exclusions, source document version, approvals and traceability from clause to test.</p></article></div></section>
-      </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Take a fictional structured note from ambiguous clauses to normalized terms, lifecycle logic, settlement and executable acceptance tests."
+    />
+    <meta name="theme-color" content="#f7f9fa" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta
+      property="og:title"
+      content="Derivatives 101 — From Term Sheet to Test Suite"
+    />
+    <meta
+      property="og:description"
+      content="A requirements capstone for turning product language into an executable structured-note specification."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/specification-capstone.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Derivatives 101 — From Term Sheet to Test Suite"
+    />
+    <meta
+      name="twitter:description"
+      content="Resolve the contract, trace a path and inspect the boundary tests."
+    />
+    <meta
+      name="twitter:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <title>Derivatives 101 — From Term Sheet to Test Suite</title>
+    <link rel="stylesheet" href="structured-labs.css?v=18" />
+    <link rel="stylesheet" href="specification-capstone.css?v=1" />
+  </head>
+  <body>
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="structured-products.html">Structured Product Labs</a
+          ><a href="term-sheet-decoder.html">Term Sheet Decoder</a>
+        </div>
+      </nav>
+    </header>
+    <div class="hero">
+      <p class="eyebrow">Lab 16 · Specification capstone</p>
+      <h1>From Term Sheet to Test Suite</h1>
+      <p class="lede">
+        A business analyst’s job is not finished when the payoff sounds right.
+        Resolve the contract, make the state transitions explicit, walk a market
+        path through it and prove the boundary behaviour before anyone builds.
+      </p>
     </div>
-    <section class="explain"><article><h3>Completeness</h3><p>Every required decision has a value. “Market convention” and product names do not count as values.</p></article><article><h3>Consistency</h3><p>The selected rules can operate together. Physical settlement, for example, must identify a deliverable and ratio.</p></article><article><h3>Evidence</h3><p>Worked traces and boundary tests demonstrate that the prose, algorithm and expected cash flows mean the same thing.</p></article></section>
-    <section class="sources"><h2>Why this discipline matters</h2><p>The <a href="https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins-76">SEC’s structured-notes bulletin</a> highlights payoff formulas, reference assets, barriers, call features, issuer credit and liquidity as terms investors need to understand. <a href="https://www.finra.org/investors/alerts/structured-notes-principal-protection-note-terms-your-investment">FINRA’s investor guidance</a> likewise stresses that structured-note terms can differ significantly and points readers to the prospectus and pricing supplement. For product governance, <a href="https://www.finra.org/rules-guidance/notices/05-26">FINRA Notice 05-26</a> describes clear, specific and practical review guidelines, while <a href="https://www.finra.org/rules-guidance/notices/12-03">Notice 12-03</a> discusses the difficulty of understanding novel or complicated derivative-like features. This fictional capstone turns those general concerns into a simplified analysis workflow; it is not legal drafting guidance.</p></section>
-  </main>
-  <footer><strong>Derivatives 101</strong><span>Independent educational project · fictional specification only</span><a href="structured-products.html">All structured labs</a></footer>
-  <script type="module" src="./src/specification/main.js"></script>
-</body>
+    <p class="scope-note">
+      <b>Case study:</b
+      ><span
+        >An entirely fictional two-asset step-down autocall with conditional
+        memory coupons. Dates and levels are normalized for teaching; this is a
+        requirements exercise, not a model term sheet or investment
+        recommendation.</span
+      >
+    </p>
+    <main>
+      <section class="variant-summary spec-summary" aria-live="polite">
+        <strong id="spec-headline">Executable specimen</strong>
+        <p id="spec-summary"></p>
+      </section>
+      <div class="lab-grid">
+        <aside class="controls" aria-label="Specification decisions">
+          <div class="controls-head">
+            <h2>Contract decisions</h2>
+            <button type="button" class="reset-button" id="spec-reset">
+              Reset
+            </button>
+          </div>
+          <div class="controls-body">
+            <div class="control-block">
+              <span class="control-title">Starting point</span>
+              <div class="radio-set" id="spec-profiles"></div>
+            </div>
+            <div id="spec-controls"></div>
+            <div class="control-block">
+              <span class="control-title">Market path</span>
+              <div class="radio-set" id="spec-scenarios"></div>
+              <p class="control-help" id="scenario-note"></p>
+            </div>
+          </div>
+        </aside>
+        <div class="content">
+          <section class="panel" aria-labelledby="readiness-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Definition of ready</p>
+                <h2 id="readiness-title">
+                  Can this contract be built consistently?
+                </h2>
+                <p>
+                  Completeness is not the same as consistency. A specification
+                  can fill every field and still contain a combination that
+                  cannot settle.
+                </p>
+              </div>
+              <span class="spec-status" id="spec-status"></span>
+            </div>
+            <div class="spec-readiness" id="spec-readiness"></div>
+            <div class="spec-pipeline" id="spec-pipeline"></div>
+            <div class="spec-issues" id="spec-issues"></div>
+          </section>
+          <section class="panel" aria-labelledby="flow-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Executable lifecycle</p>
+                <h2 id="flow-title">Order turns clauses into behaviour</h2>
+                <p>
+                  The event sequence is part of the economics. The same levels
+                  can produce a different coupon when termination moves ahead of
+                  the coupon test.
+                </p>
+              </div>
+            </div>
+            <ol class="event-flow spec-flow" id="spec-flow"></ol>
+            <p class="flow-note" id="spec-flow-note"></p>
+          </section>
+          <section class="panel" aria-labelledby="normalized-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Normalized rulebook</p>
+                <h2 id="normalized-title">One decision, one named rule</h2>
+                <p>
+                  Product language becomes buildable when each input,
+                  comparison, state update, termination condition and output has
+                  one explicit definition.
+                </p>
+              </div>
+              <button type="button" class="resample" id="copy-spec">
+                Copy specification
+              </button>
+            </div>
+            <div class="spec-artifacts" id="spec-artifacts"></div>
+            <div class="ledger-wrap">
+              <table class="ledger spec-rules">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Concern</th>
+                    <th>Executable definition</th>
+                  </tr>
+                </thead>
+                <tbody id="spec-rules"></tbody>
+              </table>
+            </div>
+            <p
+              class="copy-status"
+              id="copy-status"
+              role="status"
+              aria-live="polite"
+            ></p>
+          </section>
+          <section class="panel" aria-labelledby="trace-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Worked scenario</p>
+                <h2 id="trace-title">Trace one path through the contract</h2>
+                <p>
+                  A requirements example should expose state, not just a final
+                  number. Later observations remain visible after a call, but
+                  are explicitly inactive.
+                </p>
+              </div>
+            </div>
+            <div class="spec-gate" id="trace-gate"></div>
+            <div id="trace-output">
+              <div class="spec-trace-stats" id="trace-stats"></div>
+              <div class="chart-wrap">
+                <svg
+                  class="path-chart spec-path-chart"
+                  id="spec-path-chart"
+                  viewBox="0 0 900 360"
+                  role="img"
+                  aria-label="Two asset paths, contractual reference and step-down call triggers"
+                ></svg>
+              </div>
+              <div class="payoff-legend spec-legend">
+                <span><i class="legend-spec-a"></i>Asset A</span
+                ><span><i class="legend-spec-b"></i>Asset B</span
+                ><span
+                  ><i class="legend-spec-reference"></i>Applicable
+                  reference</span
+                ><span><i class="legend-spec-trigger"></i>Call trigger</span>
+              </div>
+              <div class="ledger-wrap">
+                <table class="ledger spec-trace-ledger">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Asset A</th>
+                      <th>Asset B</th>
+                      <th>Reference</th>
+                      <th>Call test</th>
+                      <th>Coupon event</th>
+                      <th>Memory after</th>
+                      <th>State after</th>
+                    </tr>
+                  </thead>
+                  <tbody id="trace-ledger"></tbody>
+                </table>
+              </div>
+              <div class="settlement-breakdown" id="trace-settlement"></div>
+              <div class="outcome">
+                <strong>Settlement narrative</strong>
+                <p id="trace-narrative"></p>
+              </div>
+            </div>
+          </section>
+          <section class="panel" aria-labelledby="tests-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Executable evidence</p>
+                <h2 id="tests-title">Boundary tests change with the rules</h2>
+                <p>
+                  Ordinary examples often pass under several interpretations.
+                  Equality, just-below, same-day and post-termination cases
+                  expose the specification.
+                </p>
+              </div>
+            </div>
+            <div class="ledger-wrap">
+              <table class="ledger spec-tests">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Boundary</th>
+                    <th>Given</th>
+                    <th>Expected result</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="spec-tests"></tbody>
+              </table>
+            </div>
+          </section>
+          <section class="panel" aria-labelledby="handoff-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">BA handoff pack</p>
+                <h2 id="handoff-title">What leaves the analysis desk?</h2>
+                <p>
+                  A specification is a connected set of artefacts. Each one
+                  answers a different implementation or review question.
+                </p>
+              </div>
+            </div>
+            <div class="handoff-grid">
+              <article>
+                <span>01</span>
+                <h3>Decision log</h3>
+                <p>
+                  Chosen convention, alternatives considered, owner, rationale
+                  and effective product version.
+                </p>
+              </article>
+              <article>
+                <span>02</span>
+                <h3>Normalized terms</h3>
+                <p>
+                  Inputs, data source, dates, operators, schedules, units,
+                  rounding and outputs.
+                </p>
+              </article>
+              <article>
+                <span>03</span>
+                <h3>State model</h3>
+                <p>
+                  Allowed states, persistent fields, event ordering, transitions
+                  and terminal conditions.
+                </p>
+              </article>
+              <article>
+                <span>04</span>
+                <h3>Worked examples</h3>
+                <p>
+                  At least one ordinary path, a same-day collision and every
+                  settlement branch.
+                </p>
+              </article>
+              <article>
+                <span>05</span>
+                <h3>Acceptance tests</h3>
+                <p>
+                  Equality, just-above, just-below, disrupted, repeated and
+                  post-termination cases.
+                </p>
+              </article>
+              <article>
+                <span>06</span>
+                <h3>Scope &amp; lineage</h3>
+                <p>
+                  Explicit exclusions, source document version, approvals and
+                  traceability from clause to test.
+                </p>
+              </article>
+            </div>
+          </section>
+        </div>
+      </div>
+      <section class="explain">
+        <article>
+          <h3>Completeness</h3>
+          <p>
+            Every required decision has a value. “Market convention” and product
+            names do not count as values.
+          </p>
+        </article>
+        <article>
+          <h3>Consistency</h3>
+          <p>
+            The selected rules can operate together. Physical settlement, for
+            example, must identify a deliverable and ratio.
+          </p>
+        </article>
+        <article>
+          <h3>Evidence</h3>
+          <p>
+            Worked traces and boundary tests demonstrate that the prose,
+            algorithm and expected cash flows mean the same thing.
+          </p>
+        </article>
+      </section>
+      <section class="sources">
+        <h2>Why this discipline matters</h2>
+        <p>
+          The
+          <a
+            href="https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins-76"
+            >SEC’s structured-notes bulletin</a
+          >
+          highlights payoff formulas, reference assets, barriers, call features,
+          issuer credit and liquidity as terms investors need to understand.
+          <a
+            href="https://www.finra.org/investors/alerts/structured-notes-principal-protection-note-terms-your-investment"
+            >FINRA’s investor guidance</a
+          >
+          likewise stresses that structured-note terms can differ significantly
+          and points readers to the prospectus and pricing supplement. For
+          product governance,
+          <a href="https://www.finra.org/rules-guidance/notices/05-26"
+            >FINRA Notice 05-26</a
+          >
+          describes clear, specific and practical review guidelines, while
+          <a href="https://www.finra.org/rules-guidance/notices/12-03"
+            >Notice 12-03</a
+          >
+          discusses the difficulty of understanding novel or complicated
+          derivative-like features. This fictional capstone turns those general
+          concerns into a simplified analysis workflow; it is not legal drafting
+          guidance.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <strong>Derivatives 101</strong
+      ><span
+        >Independent educational project · fictional specification only</span
+      ><a href="structured-products.html">All structured labs</a>
+    </footer>
+    <script type="module" src="./src/specification/main.js"></script>
+  </body>
 </html>

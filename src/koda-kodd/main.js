@@ -1,6 +1,7 @@
 "use strict";
 
 import * as KodaKoddEngine from "./engine.ts";
+import { attachHorizontalInspector } from "../shared/svg-interaction";
 
 const $ = (id) => document.getElementById(id),
   colors = {
@@ -127,6 +128,139 @@ const config = {
   ],
 };
 const state = { params: { ...config.defaults }, scenario: "random", seed: 183047 };
+let pathContext = null,
+  histogramContext = null,
+  selectedPathDay = null,
+  selectedHistogramValue = null;
+
+const pathInspector = attachHorizontalInspector($("koda-path-chart"), () => {
+  if (!pathContext) return null;
+  const { result, end, Y, Q } = pathContext;
+  return {
+    width: 900,
+    left: 58,
+    right: 132,
+    top: 22,
+    bottom: 432,
+    minimum: 0,
+    maximum: end,
+    step: 1,
+    value: Math.min(end, selectedPathDay ?? result.terminationDay),
+    label: "KODA or KODD path day selection",
+    inspect(day) {
+      const spot = result.path[day],
+        event = latestKodaEvent(result, day),
+        exact = event?.day === day,
+        cash = result.events
+          .filter((item) => item.day <= day)
+          .reduce((total, item) => total + item.cash, 0),
+        units = event?.cumulativeUnits ?? 0,
+        valuationSpot = result.path[Math.min(day, result.terminationDay)],
+        mark = units * valuationSpot,
+        pnl = state.params.kind === "koda" ? mark - cash : cash - mark;
+      return {
+        title: `${pathTime(day)} · day ${day}`,
+        rows: [
+          { label: "Underlying", value: spot.toFixed(1), color: colors.steel },
+          {
+            label: "Fixing state",
+            value:
+              day > result.terminationDay
+                ? result.knockedOut
+                  ? "Contract ended · knocked out"
+                  : "Contract ended"
+                : exact
+                  ? event.status
+                  : "Between fixings",
+          },
+          { label: "Quantity", value: exact ? event.quantity.toFixed(0) : "—" },
+          { label: "Cumulative units", value: units.toFixed(0) },
+          { label: "Mark-to-date P&L", value: signed(pnl, 0) },
+        ],
+        points: [
+          { y: Y(spot), color: colors.steel },
+          ...(exact && event.quantity
+            ? [{ y: Q(event.quantity), color: event.geared ? colors.brick : colors.amber }]
+            : []),
+        ],
+      };
+    },
+    onSelect(day) {
+      selectedPathDay = day;
+      updateKodaLinkedState(day);
+    },
+    onInspect(day) {
+      updateKodaLinkedState(day);
+    },
+    onHide() {
+      updateKodaLinkedState(selectedPathDay ?? result.terminationDay);
+    },
+  };
+});
+
+const histogramInspector = attachHorizontalInspector($("koda-histogram"), () => {
+  if (!histogramContext) return null;
+  const { lo, hi, binWidth, counts, total, Y } = histogramContext,
+    minimum = lo + binWidth / 2,
+    maximum = hi - binWidth / 2,
+    value = Math.max(minimum, Math.min(maximum, selectedHistogramValue ?? 0));
+  return {
+    width: 900,
+    left: 55,
+    right: 20,
+    top: 18,
+    bottom: 170,
+    minimum,
+    maximum,
+    plotMinimum: lo,
+    plotMaximum: hi,
+    step: binWidth,
+    value,
+    label: "KODA or KODD P&L distribution selection",
+    inspect(returnValue) {
+      const index = Math.max(
+          0,
+          Math.min(counts.length - 1, Math.round((returnValue - minimum) / binWidth)),
+        ),
+        count = counts[index],
+        lower = lo + index * binWidth,
+        upper = lower + binWidth;
+      return {
+        title: `P&L ${signed(returnValue, 1)}%`,
+        rows: [
+          { label: "Range", value: `${signed(lower, 1)}% to ${signed(upper, 1)}%` },
+          { label: "Paths", value: count.toLocaleString() },
+          { label: "Share", value: `${((count / total) * 100).toFixed(1)}%` },
+        ],
+        points: [{ y: Y(count), color: returnValue < 0 ? colors.brick : colors.jade }],
+      };
+    },
+    onSelect(returnValue) {
+      selectedHistogramValue = returnValue;
+    },
+  };
+});
+
+function pathTime(day) {
+  if (day === 0) return "Today";
+  return `${(day / KodaKoddEngine.DAYS).toFixed(2)} years`;
+}
+function latestKodaEvent(result, day) {
+  return result.events.findLast((event) => event.day <= day) ?? null;
+}
+function updateKodaLinkedState(day) {
+  if (!pathContext) return;
+  const bounded = Math.max(0, Math.min(pathContext.end, day)),
+    event = latestKodaEvent(pathContext.result, bounded);
+  $("koda-ledger-body")
+    ?.querySelectorAll("tr[data-event-day]")
+    .forEach((row) =>
+      row.classList.toggle(
+        "selected-observation",
+        event != null && Number(row.dataset.eventDay) === event.day,
+      ),
+    );
+}
 function svgEl(name, attrs = {}, text = "") {
   const node = document.createElementNS("http://www.w3.org/2000/svg", name);
   Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
@@ -472,6 +606,9 @@ function drawPath(result) {
     "aria-label",
     `${state.params.kind.toUpperCase()} path stops at ${result.valuationSpot.toFixed(1)} after ${result.life.toFixed(2)} years; ${result.totalUnits.toFixed(0)} units traded across ${result.executedFixings} fixings, including ${result.gearedFixings} geared fixings.`,
   );
+  selectedPathDay = Math.min(end, selectedPathDay ?? result.terminationDay);
+  pathContext = { result, end, Y, Q };
+  pathInspector.refresh();
 }
 
 function outcomeText(result) {
@@ -548,6 +685,7 @@ function renderLedger(result) {
         event.cumulativeUnits.toFixed(0),
         event.status,
       ];
+    row.dataset.eventDay = event.day;
     values.forEach((value, index) => {
       const cell = document.createElement("td");
       cell.textContent = value;
@@ -606,6 +744,7 @@ function renderPath() {
   $("koda-outcome").textContent = outcomeText(result);
   renderBreakdown(result);
   renderLedger(result);
+  updateKodaLinkedState(selectedPathDay ?? result.terminationDay);
   renderRules();
   scheduleSimulation();
 }
@@ -636,6 +775,7 @@ function drawHistogram(returns) {
     const midpoint = lo + ((index + 0.5) / bins) * span;
     svg.append(
       svgEl("rect", {
+        class: "interactive-histogram-bar",
         x: m.l + index * barW + 0.7,
         y: Y(count),
         width: Math.max(1, barW - 1.4),
@@ -674,6 +814,9 @@ function drawHistogram(returns) {
       "Economic P&L, % of base scheduled notional",
     ),
   );
+  const binWidth = span / bins;
+  histogramContext = { lo, hi: lo + span, binWidth, counts, total: returns.length, Y };
+  histogramInspector.refresh();
 }
 let simulationTimer,
   simulationVersion = 0,

@@ -1,6 +1,7 @@
 "use strict";
 
 import * as ParticipationEngine from "./engine.ts";
+import { attachHorizontalInspector } from "../shared/svg-interaction";
 
 const $ = (id) => document.getElementById(id),
   colors = {
@@ -85,8 +86,8 @@ const controls = [
     key: "finalLevel",
     type: "range",
     label: "Both paths finish at",
-    min: 75,
-    max: 135,
+    min: 30,
+    max: 175,
     step: 1,
     format: (v) => v.toFixed(0),
   },
@@ -128,6 +129,172 @@ const controls = [
   },
 ];
 const state = { params: { ...defaults } };
+let pairedContext = null,
+  payoffContext = null,
+  histogramContext = null,
+  selectedPathDay = 0,
+  selectedHistogramValue = null;
+
+const pairedInspector = attachHorizontalInspector($("paired-path-chart"), () => {
+  if (!pairedContext) return null;
+  const { result, end, Y } = pairedContext;
+  return {
+    width: 900,
+    left: 55,
+    right: 125,
+    top: 22,
+    bottom: 308,
+    minimum: 0,
+    maximum: end,
+    step: 1,
+    value: Math.min(end, selectedPathDay),
+    label: "Paired path day selection",
+    inspect(day) {
+      const safeLevel = result.paths.safe[day],
+        touchLevel = result.paths.touch[day],
+        safeBreached = barrierStateThrough(result.paths.safe, day),
+        touchBreached = barrierStateThrough(result.paths.touch, day);
+      return {
+        title: `${pathTime(day, end)} · day ${day}`,
+        rows: [
+          { label: "Path A", value: safeLevel.toFixed(1), color: colors.jade },
+          { label: "Path B", value: touchLevel.toFixed(1), color: colors.brick },
+          {
+            label: "A barrier state",
+            value: safeBreached ? "Breached" : barrierStateLabel(day, end),
+          },
+          {
+            label: "B barrier state",
+            value: touchBreached ? "Breached" : barrierStateLabel(day, end),
+          },
+        ],
+        points: [
+          { y: Y(safeLevel), color: colors.jade },
+          { y: Y(touchLevel), color: colors.brick },
+        ],
+      };
+    },
+    onSelect(day) {
+      selectedPathDay = day;
+    },
+  };
+});
+
+const payoffInspector = attachHorizontalInspector($("participation-payoff-chart"), () => {
+  if (!payoffContext) return null;
+  const { Y } = payoffContext;
+  return {
+    width: 760,
+    left: 54,
+    right: 18,
+    top: 22,
+    bottom: 305,
+    minimum: 30,
+    maximum: 175,
+    step: 1,
+    value: state.params.finalLevel,
+    label: "Participation payoff expiry level selection",
+    inspect(level) {
+      const breached = ParticipationEngine.redemption(level, true, state.params),
+        intact = ParticipationEngine.redemption(level, false, state.params);
+      return {
+        title: `Underlying at maturity ${level.toFixed(0)}`,
+        rows: [
+          { label: "Underlying", value: level.toFixed(1), color: colors.ink },
+          {
+            label: "After breach",
+            value: breached.toFixed(1),
+            color: colors.brick,
+          },
+          ...(ParticipationEngine.hasBonus(state.params)
+            ? [{ label: "Barrier intact", value: intact.toFixed(1), color: colors.jade }]
+            : []),
+          {
+            label: ParticipationEngine.hasBonus(state.params)
+              ? "Intact product return"
+              : "Product return",
+            value: `${signed(intact - 100, 1)}%`,
+          },
+        ],
+        points: [
+          { y: Y(level), color: colors.ink },
+          { y: Y(breached), color: colors.brick },
+          ...(ParticipationEngine.hasBonus(state.params)
+            ? [{ y: Y(intact), color: colors.jade }]
+            : []),
+        ],
+      };
+    },
+    onSelect(level) {
+      state.params.finalLevel = level;
+      const control = $("participation-finalLevel");
+      if (control) control.value = level;
+      updateOutputs();
+      renderAll();
+    },
+  };
+});
+
+const histogramInspector = attachHorizontalInspector($("participation-histogram"), () => {
+  if (!histogramContext) return null;
+  const { lo, hi, binWidth, counts, total, Y } = histogramContext,
+    minimum = lo + binWidth / 2,
+    maximum = hi - binWidth / 2,
+    value = Math.max(minimum, Math.min(maximum, selectedHistogramValue ?? 0));
+  return {
+    width: 900,
+    left: 55,
+    right: 20,
+    top: 18,
+    bottom: 170,
+    minimum,
+    maximum,
+    plotMinimum: lo,
+    plotMaximum: hi,
+    step: binWidth,
+    value,
+    label: "Participation return distribution selection",
+    inspect(returnValue) {
+      const index = Math.max(
+          0,
+          Math.min(counts.length - 1, Math.round((returnValue - minimum) / binWidth)),
+        ),
+        count = counts[index],
+        lower = lo + index * binWidth,
+        upper = lower + binWidth;
+      return {
+        title: `Return ${signed(returnValue, 1)}%`,
+        rows: [
+          { label: "Range", value: `${signed(lower, 1)}% to ${signed(upper, 1)}%` },
+          { label: "Paths", value: count.toLocaleString() },
+          { label: "Share", value: `${((count / total) * 100).toFixed(1)}%` },
+        ],
+        points: [{ y: Y(count), color: returnValue < 0 ? colors.brick : colors.jade }],
+      };
+    },
+    onSelect(returnValue) {
+      selectedHistogramValue = returnValue;
+    },
+  };
+});
+
+function pathTime(day, end) {
+  if (day === 0) return "Today";
+  if (day === end) return "Maturity";
+  return `${((day / ParticipationEngine.DAYS) * 12).toFixed(1)} months`;
+}
+function barrierStateLabel(day, end) {
+  if (!ParticipationEngine.hasBonus(state.params)) return "No barrier";
+  return state.params.monitoring === "maturity" && day < end ? "Not tested" : "Intact";
+}
+function barrierStateThrough(path, day) {
+  if (!ParticipationEngine.hasBonus(state.params)) return false;
+  if (state.params.monitoring === "maturity")
+    return day === path.length - 1 && path[day] <= state.params.barrier;
+  for (let index = 1; index <= day; index += 1)
+    if (path[index] <= state.params.barrier) return true;
+  return false;
+}
 function svgEl(name, attrs = {}, text = "") {
   const node = document.createElementNS("http://www.w3.org/2000/svg", name);
   Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
@@ -317,6 +484,9 @@ function drawPaths(result) {
     "aria-label",
     `Two paths finish at ${result.final.toFixed(0)}. The first barrier state is ${result.safe.breached ? "breached" : "intact"} and redemption is ${result.safe.redemption.toFixed(1)}. The second state is ${result.touch.breached ? "breached" : "intact"} and redemption is ${result.touch.redemption.toFixed(1)}.`,
   );
+  selectedPathDay = Math.min(selectedPathDay, end);
+  pairedContext = { result, end, Y };
+  pairedInspector.refresh();
 }
 function renderOutcomes(result) {
   const host = $("paired-outcomes");
@@ -456,6 +626,8 @@ function drawPayoff() {
       ? `Outperformance payoff has one-for-one downside and ${(state.params.participation * 100).toFixed(0)} percent upside participation above 100.`
       : `Barrier-intact redemption is at least ${state.params.bonus}; after breach the payoff follows the ${state.params.product === "bonus" ? "underlying" : "outperformance line"}.`,
   );
+  payoffContext = { Y };
+  payoffInspector.refresh();
   const legend = $("participation-payoff-legend");
   legend.innerHTML = "";
   const entries =
@@ -564,6 +736,7 @@ function drawHistogram(returns) {
     const midpoint = lo + ((index + 0.5) / bins) * span;
     svg.append(
       svgEl("rect", {
+        class: "interactive-histogram-bar",
         x: m.l + index * barW + 0.7,
         y: Y(count),
         width: Math.max(1, barW - 1.4),
@@ -602,6 +775,9 @@ function drawHistogram(returns) {
       "Product return at maturity",
     ),
   );
+  const binWidth = span / bins;
+  histogramContext = { lo, hi: lo + span, binWidth, counts, total: returns.length, Y };
+  histogramInspector.refresh();
 }
 function renderRules() {
   const hasBonus = ParticipationEngine.hasBonus(state.params),

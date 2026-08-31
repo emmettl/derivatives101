@@ -1,6 +1,7 @@
 "use strict";
 
 import * as BasketEngine from "./engine.ts";
+import { attachHorizontalInspector } from "../shared/svg-interaction";
 
 const $ = (id) => document.getElementById(id),
   colors = {
@@ -143,6 +144,136 @@ const config = {
   ],
 };
 const state = { params: { ...config.defaults }, scenario: "random", seed: 904271 };
+let pathContext = null,
+  histogramContext = null,
+  selectedPathDay = null,
+  selectedHistogramValue = null;
+
+const pathInspector = attachHorizontalInspector($("basket-path-chart"), () => {
+  if (!pathContext) return null;
+  const { result, referencePath, end, Y } = pathContext;
+  return {
+    width: 900,
+    left: 54,
+    right: 126,
+    top: 24,
+    bottom: 340,
+    minimum: 0,
+    maximum: end,
+    step: 1,
+    value: Math.min(end, selectedPathDay ?? result.terminationDay),
+    label: "Basket path day selection",
+    inspect(day) {
+      const levels = result.paths.map((path) => path[day]),
+        reference = referencePath[day],
+        event = latestBasketEvent(result, day),
+        exact = event?.day === day;
+      return {
+        title: `${year(day)} · day ${day}`,
+        rows: [
+          ...levels.map((level, index) => ({
+            label: BasketEngine.NAMES[index],
+            value: level.toFixed(1),
+            color: [colors.amber, colors.jade, colors.brick][index],
+          })),
+          {
+            label: state.params.basis === "worst" ? "Worst-of reference" : "Basket reference",
+            value: reference.toFixed(1),
+            color: colors.ink,
+          },
+          {
+            label: "Contract state",
+            value: exact
+              ? event.state === "Alive"
+                ? `${event.couponTest} · ${event.decision}`
+                : event.state
+              : event
+                ? `Between observations · last ${event.state.toLowerCase()}`
+                : "Before first observation",
+          },
+        ],
+        points: [
+          ...levels.map((level, index) => ({
+            y: Y(level),
+            color: [colors.amber, colors.jade, colors.brick][index],
+          })),
+          { y: Y(reference), color: colors.ink },
+        ],
+      };
+    },
+    onSelect(day) {
+      selectedPathDay = day;
+      updateBasketLinkedState(day);
+    },
+    onInspect(day) {
+      updateBasketLinkedState(day);
+    },
+    onHide() {
+      updateBasketLinkedState(selectedPathDay ?? result.terminationDay);
+    },
+  };
+});
+
+const histogramInspector = attachHorizontalInspector($("basket-histogram"), () => {
+  if (!histogramContext) return null;
+  const { lo, hi, binWidth, counts, total, Y } = histogramContext,
+    minimum = lo + binWidth / 2,
+    maximum = hi - binWidth / 2,
+    value = Math.max(minimum, Math.min(maximum, selectedHistogramValue ?? 0));
+  return {
+    width: 900,
+    left: 50,
+    right: 20,
+    top: 18,
+    bottom: 172,
+    minimum,
+    maximum,
+    plotMinimum: lo,
+    plotMaximum: hi,
+    step: binWidth,
+    value,
+    label: "Basket return distribution selection",
+    inspect(returnValue) {
+      const index = Math.max(
+          0,
+          Math.min(counts.length - 1, Math.round((returnValue - minimum) / binWidth)),
+        ),
+        count = counts[index],
+        lower = lo + index * binWidth,
+        upper = lower + binWidth;
+      return {
+        title: `Return ${money(returnValue)}`,
+        rows: [
+          { label: "Range", value: `${money(lower)} to ${money(upper)}` },
+          { label: "Baskets", value: count.toLocaleString() },
+          { label: "Share", value: `${((count / total) * 100).toFixed(1)}%` },
+        ],
+        points: [{ y: Y(count), color: returnValue < 0 ? colors.brick : colors.jade }],
+      };
+    },
+    onSelect(returnValue) {
+      selectedHistogramValue = returnValue;
+    },
+  };
+});
+
+function latestBasketEvent(result, day) {
+  return result.events.findLast((event) => event.day <= day) ?? null;
+}
+function updateBasketLinkedState(day) {
+  if (!pathContext) return;
+  const bounded = Math.max(0, Math.min(pathContext.end, day)),
+    event = latestBasketEvent(pathContext.result, bounded);
+  renderRanking(pathContext.result, bounded);
+  $("basket-ledger-body")
+    ?.querySelectorAll("tr[data-event-day]")
+    .forEach((row) =>
+      row.classList.toggle(
+        "selected-observation",
+        event != null && Number(row.dataset.eventDay) === event.day,
+      ),
+    );
+}
 function svgEl(name, attrs = {}, text = "") {
   const node = document.createElementNS("http://www.w3.org/2000/svg", name);
   Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
@@ -481,11 +612,18 @@ function drawPath(result) {
     "aria-label",
     `Three underlying paths ending at ${result.endLevels.map((value) => value.toFixed(1)).join(", ")}; ${state.params.basis === "worst" ? "worst-of" : "average"} reference ${result.endReference.toFixed(1)}`,
   );
+  selectedPathDay = Math.min(end, selectedPathDay ?? result.terminationDay);
+  pathContext = { result, referencePath, end, Y };
+  pathInspector.refresh();
 }
-function renderRanking(result) {
+function renderRanking(result, day = result.terminationDay) {
   const host = $("terminal-ranking");
   host.innerHTML = "";
-  result.ranking.forEach((item, index) => {
+  const levels = result.paths.map((path) => path[Math.min(day, path.length - 1)]),
+    ranking = levels
+      .map((level, index) => ({ name: BasketEngine.NAMES[index], level, index }))
+      .sort((a, b) => b.level - a.level);
+  ranking.forEach((item, index) => {
     const row = document.createElement("div"),
       rank = document.createElement("span"),
       name = document.createElement("b"),
@@ -497,6 +635,7 @@ function renderRanking(result) {
     row.append(rank, name, value);
     host.append(row);
   });
+  host.setAttribute("aria-label", `Underlying ranking at ${year(day)}`);
 }
 function outcomeText(result) {
   const referenceName =
@@ -567,6 +706,7 @@ function renderLedger(result) {
         event.coupon.toFixed(2),
         event.state === "Alive" ? `${event.couponTest} · ${event.decision}` : event.state,
       ];
+    row.dataset.eventDay = event.day;
     values.forEach((value, index) => {
       const cell = document.createElement("td");
       cell.textContent = value;
@@ -621,10 +761,10 @@ function renderPath() {
   updateOutputs();
   const result = pathData();
   drawPath(result);
-  renderRanking(result);
   $("basket-outcome").textContent = outcomeText(result);
   renderSettlement(result);
   renderLedger(result);
+  updateBasketLinkedState(selectedPathDay ?? result.terminationDay);
   renderRules();
   scheduleSimulation();
 }
@@ -653,6 +793,7 @@ function drawHistogram(returns) {
     const midpoint = lo + ((index + 0.5) / n) * span;
     svg.append(
       svgEl("rect", {
+        class: "interactive-histogram-bar",
         x: m.l + index * barW + 0.7,
         y: Y(count),
         width: Math.max(1, barW - 1.4),
@@ -687,6 +828,9 @@ function drawHistogram(returns) {
       "Total return per 100 invested",
     ),
   );
+  const binWidth = span / n;
+  histogramContext = { lo, hi: lo + span, binWidth, counts, total: returns.length, Y };
+  histogramInspector.refresh();
 }
 let simulationTimer,
   simulationVersion = 0,

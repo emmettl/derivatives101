@@ -2,6 +2,7 @@
 
 import * as StructuredEngine from "./engine.ts";
 import { colors, configs } from "./config.js";
+import { attachHorizontalInspector } from "../shared/svg-interaction";
 
 const $ = (id) => document.getElementById(id),
   mode = document.body.dataset.lab;
@@ -12,6 +13,9 @@ const config = configs[mode],
     seed: 904271,
     simulationVersion: 0,
   };
+let currentResult = null,
+  currentPathGeometry = null,
+  selectedObservation = 0;
 
 function svgEl(name, attrs = {}, text = "") {
   const node = document.createElementNS("http://www.w3.org/2000/svg", name);
@@ -29,6 +33,93 @@ function year(day) {
   const value = day / StructuredEngine.DAYS;
   return value < 1 ? `Month ${Math.round(value * 12)}` : `Year ${value.toFixed(value % 1 ? 2 : 0)}`;
 }
+
+function nearestObservation(day) {
+  return currentResult?.events.reduce(
+    (best, event, index) =>
+      Math.abs(event.day - day) < Math.abs(currentResult.events[best].day - day) ? index : best,
+    0,
+  );
+}
+function observationRows(event) {
+  if (mode === "rc")
+    return [
+      { label: "Underlying", value: event.level.toFixed(1), color: colors.ink },
+      {
+        label: "Barrier",
+        value:
+          state.params.variant === "plain"
+            ? "Not applicable"
+            : event.barrierState
+              ? "Breached"
+              : "Clear",
+        color: event.barrierState ? colors.brick : colors.jade,
+      },
+      { label: "Coupon", value: event.coupon.toFixed(2) },
+      { label: "Decision", value: event.decision },
+    ];
+  if (mode === "coupon")
+    return [
+      { label: "Underlying", value: event.level.toFixed(1), color: colors.ink },
+      {
+        label: "Coupon test",
+        value: event.couponTest,
+        color: event.couponTest === "Miss" ? colors.brick : colors.jade,
+      },
+      { label: "Coupon paid", value: event.coupon.toFixed(2) },
+      { label: "Memory bank", value: String(event.memoryBank) },
+      { label: "Decision", value: event.decision },
+    ];
+  return [
+    { label: "Underlying", value: event.level.toFixed(1), color: colors.ink },
+    {
+      label: "Lock test",
+      value: event.lockChanged ? "New floor" : "No new lock",
+      color: event.lockChanged ? colors.jade : colors.muted,
+    },
+    { label: "Locked floor", value: event.lockedFloor.toFixed(1) },
+    { label: "State", value: event.state },
+  ];
+}
+function highlightObservation(index) {
+  $("ledger-body")
+    .querySelectorAll("[data-event-index]")
+    .forEach((row) =>
+      row.classList.toggle("selected-observation", Number(row.dataset.eventIndex) === index),
+    );
+}
+
+const pathInspector = attachHorizontalInspector($("path-chart"), () => {
+  if (!currentResult || !currentPathGeometry || !currentResult.events.length) return null;
+  const events = currentResult.events,
+    first = events[0],
+    last = events.at(-1),
+    interval = events.length > 1 ? events[1].day - first.day : Math.max(1, last.day);
+  return {
+    width: 900,
+    left: currentPathGeometry.m.l,
+    right: currentPathGeometry.m.r,
+    top: currentPathGeometry.m.t,
+    bottom: 360 - currentPathGeometry.m.b,
+    minimum: first.day,
+    maximum: last.day,
+    step: interval,
+    value: events[selectedObservation]?.day ?? first.day,
+    label: "Observation date",
+    inspect(day) {
+      const event = events[nearestObservation(day)];
+      return {
+        title: `${year(event.day)} · ${event.state}`,
+        rows: observationRows(event),
+        points: [{ y: currentPathGeometry.Y(event.level), color: colors.ink }],
+      };
+    },
+    onSelect(day) {
+      selectedObservation = nearestObservation(day);
+      highlightObservation(selectedObservation);
+    },
+  };
+});
 
 function renderControls() {
   const host = $("controls");
@@ -246,6 +337,9 @@ function drawPath(result) {
     h = 360,
     X = (day) => m.l + (day / end) * (w - m.l - m.r),
     Y = (value) => m.t + ((max - value) / (max - min)) * (h - m.t - m.b);
+  currentResult = result;
+  selectedObservation = Math.min(selectedObservation, Math.max(0, result.events.length - 1));
+  currentPathGeometry = { m, Y };
   for (let i = 0; i <= 4; i++) {
     const value = min + ((max - min) * i) / 4,
       y = Y(value);
@@ -345,6 +439,7 @@ function drawPath(result) {
     "aria-label",
     `Underlying path from 100 to ${result.finalLevel.toFixed(1)}; ${result.called ? result.callKind + " after " + result.life.toFixed(1) + " years" : "held to maturity"}`,
   );
+  pathInspector.refresh();
 }
 function outcomeText(result) {
   if (mode === "rc") {
@@ -418,9 +513,10 @@ function renderLedger(result) {
     total = $("ledger-total");
   body.innerHTML = "";
   total.innerHTML = "";
-  result.events.forEach((event) => {
+  result.events.forEach((event, eventIndex) => {
     const row = document.createElement("tr"),
       cells = [];
+    row.dataset.eventIndex = String(eventIndex);
     if (mode === "rc")
       cells.push(
         year(event.day),
@@ -462,6 +558,7 @@ function renderLedger(result) {
     });
     body.append(row);
   });
+  highlightObservation(selectedObservation);
   const first = document.createElement("th");
   first.scope = "row";
   first.textContent = "Totals";

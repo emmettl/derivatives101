@@ -52,6 +52,8 @@ export function vanillaPrice(
 export function hitProbability(market: Market, barrierType: BarrierType, barrier: number): number {
   if (barrierType === "none") return 0;
   const direction = barrierType.startsWith("down") ? "down" : "up";
+  if (!Number.isFinite(barrier)) return 0;
+  if (direction === "down" && barrier <= 0) return 0;
   if (
     (direction === "down" && barrier >= market.spot) ||
     (direction === "up" && barrier <= market.spot)

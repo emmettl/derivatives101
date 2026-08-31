@@ -1,4 +1,5 @@
 import * as engine from "./engine";
+import { attachHorizontalInspector, attachPlaneInspector } from "../../shared/svg-interaction";
 
 (function () {
   "use strict";
@@ -27,6 +28,93 @@ import * as engine from "./engine";
   ];
   let state = defaults();
   let framePending = false;
+  let mapContext = null,
+    payoffContext = null;
+
+  const mapInspector = attachPlaneInspector(byId("currency-map"), () => {
+    if (!mapContext) return null;
+    return {
+      ...mapContext,
+      xMinimum: 50,
+      xMaximum: 160,
+      yMinimum: 60,
+      yMaximum: 140,
+      xStep: 1,
+      yStep: 1,
+      xValue: state.equityTerminal,
+      yValue: state.fxTerminal,
+      label:
+        "Home-currency return map. Hover to inspect; click or drag to set terminal equity and FX together.",
+      inspect: (equityTerminal, fxTerminal) => {
+        const result = engine.outcomes({ ...state, equityTerminal, fxTerminal });
+        return {
+          title: `Equity ${equityTerminal.toFixed(0)} · FX ${fxTerminal.toFixed(0)}`,
+          rows: [
+            { label: "Local equity", value: signedPercent(result.localReturn) },
+            { label: "FX move", value: signedPercent(result.fxReturn) },
+            {
+              label: "Home return",
+              value: signedPercent(result.directHomeReturn),
+              color: result.directHomeReturn >= 0 ? "#3e8e7e" : "#b5443a",
+            },
+          ],
+        };
+      },
+      onSelect: (equityTerminal, fxTerminal) => {
+        state.equityTerminal = equityTerminal;
+        state.fxTerminal = fxTerminal;
+        state.id = "custom";
+        syncControls();
+        render();
+      },
+    };
+  });
+  const payoffInspector = attachHorizontalInspector(byId("currency-payoff-chart"), () => {
+    if (!payoffContext) return null;
+    const { y } = payoffContext;
+    return {
+      width: 900,
+      left: 64,
+      right: 24,
+      top: 24,
+      bottom: 300,
+      minimum: 50,
+      maximum: 160,
+      step: 1,
+      value: state.equityTerminal,
+      label:
+        "Quanto and terminal-FX redemption chart. Hover to compare; click or drag to set terminal equity.",
+      inspect: (equityTerminal) => {
+        const result = engine.outcomes({ ...state, equityTerminal });
+        return {
+          title: `Foreign equity ${equityTerminal.toFixed(0)}`,
+          rows: [
+            {
+              label: "Quanto redemption",
+              value: result.quantoRedemption.toFixed(2),
+              color: "#2c5670",
+            },
+            {
+              label: "Terminal-FX redemption",
+              value: result.compoRedemption.toFixed(2),
+              color: "#3e8e7e",
+            },
+            { label: "Selected FX", value: state.fxTerminal.toFixed(0) },
+          ],
+          points: [
+            { y: y(result.quantoRedemption), color: "#2c5670" },
+            { y: y(result.compoRedemption), color: "#3e8e7e" },
+          ],
+        };
+      },
+      onSelect: (equityTerminal) => {
+        state.equityTerminal = equityTerminal;
+        state.id = "custom";
+        syncControls();
+        render();
+      },
+    };
+  });
 
   function defaults() {
     return { id: "upFlat", equityTerminal: 125, fxTerminal: 100, strike: 100, participation: 1 };
@@ -148,6 +236,15 @@ import * as engine from "./engine";
       )
       .join(" ");
     svg.innerHTML = `<title>Home-currency return map</title><desc>The local equity factor is multiplied by the FX factor. Green cells are gains, red cells are losses, and the curved line shows combinations with zero home-currency return.</desc>${cells}<path class="currency-zero-line" d="${zeroPath}"></path>${equityLevels.map((tick) => `<text class="axis" x="${left + (equityLevels.indexOf(tick) + 0.5) * cellWidth}" y="${height - bottom + 20}" text-anchor="middle">${tick.toFixed(0)}</text>`).join("")}${fxLevels.map((tick) => `<text class="axis" x="${left - 10}" y="${top + (fxLevels.length - 1 - fxLevels.indexOf(tick) + 0.5) * cellHeight + 3}" text-anchor="end">${tick}</text>`).join("")}<line class="currency-selected-cross" x1="${selectedX}" x2="${selectedX}" y1="${Math.max(top, selectedY - 12)}" y2="${Math.min(height - bottom, selectedY + 12)}"></line><line class="currency-selected-cross" x1="${Math.max(left, selectedX - 12)}" x2="${Math.min(width - right, selectedX + 12)}" y1="${selectedY}" y2="${selectedY}"></line><circle class="currency-selected-point" cx="${selectedX}" cy="${selectedY}" r="6"></circle><text class="axis currency-axis-title" x="${(left + width - right) / 2}" y="${height - 9}" text-anchor="middle">Foreign equity terminal level</text><text class="axis currency-axis-title" x="16" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 16 ${(top + height - bottom) / 2})">FX index: home currency per foreign currency</text>`;
+    mapContext = {
+      width,
+      height,
+      left: left + cellWidth / 2,
+      right: right + cellWidth / 2,
+      top: top + cellHeight / 2,
+      bottom: bottom + cellHeight / 2,
+    };
+    mapInspector.refresh();
   }
 
   function renderOptions(result) {
@@ -216,6 +313,8 @@ import * as engine from "./engine";
     );
     const selected = engine.outcomes(state);
     svg.innerHTML = `<title>Quanto and terminally converted redemptions</title><desc>Both examples add a call payoff to 100 principal. The quanto line uses a fixed conversion factor of one. The other line uses the selected terminal FX factor.</desc>${yTicks.map((tick) => `<line class="grid" x1="${left}" x2="${width - right}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${left - 8}" y="${y(tick) + 3}" text-anchor="end">${tick.toFixed(0)}</text>`).join("")}${xTicks.map((tick) => `<line class="grid" x1="${x(tick)}" x2="${x(tick)}" y1="${top}" y2="${height - bottom}"></line><text class="axis" x="${x(tick)}" y="${height - bottom + 18}" text-anchor="middle">${tick}</text>`).join("")}<line class="currency-principal-line" x1="${left}" x2="${width - right}" y1="${y(100)}" y2="${y(100)}"></line><path class="currency-quanto-line" d="${path("quantoRedemption")}"></path><path class="currency-compo-line" d="${path("compoRedemption")}"></path><line class="currency-payoff-guide" x1="${x(state.equityTerminal)}" x2="${x(state.equityTerminal)}" y1="${top}" y2="${height - bottom}"></line><circle class="currency-payoff-point quanto" cx="${x(state.equityTerminal)}" cy="${y(selected.quantoRedemption)}" r="5"></circle><circle class="currency-payoff-point compo" cx="${x(state.equityTerminal)}" cy="${y(selected.compoRedemption)}" r="5"></circle><text class="axis currency-axis-title" x="${(left + width - right) / 2}" y="${height - 8}" text-anchor="middle">Foreign equity terminal level</text><text class="axis currency-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">Home-currency redemption</text>`;
+    payoffContext = { y };
+    payoffInspector.refresh();
   }
 
   function renderFlow(result) {

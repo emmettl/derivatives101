@@ -1,8 +1,11 @@
 import { $, C, fmt, pct, rng, normals, frame, ticks, statCards } from "../core";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
   let obs = "cont",
-    seed = 13579;
+    seed = 13579,
+    selectedTerminal = 100,
+    payoffContext = null;
   ["bn-l", "bn-b", "bn-t", "bn-v", "bn-q"].forEach((i) => ($(i).oninput = run));
   document.querySelectorAll("#bn-obs button").forEach(
     (b) =>
@@ -17,6 +20,42 @@ import { $, C, fmt, pct, rng, normals, frame, ticks, statCards } from "../core";
     seed = (seed * 1103515245 + 12345) >>> 0;
     run();
   };
+  const payoffInspector = attachHorizontalInspector($("bn-pay"), () => {
+    if (!payoffContext) return null;
+    const { f, lo, hi, bar, bonus } = payoffContext;
+    return {
+      width: 760,
+      left: f.m.l,
+      right: f.m.r,
+      top: f.m.t,
+      bottom: 320 - f.m.b,
+      minimum: lo,
+      maximum: hi,
+      step: 1,
+      value: selectedTerminal,
+      label:
+        "Bonus certificate payoff diagram. Hover to compare barrier states; click or drag to pin a terminal level.",
+      inspect: (spot) => {
+        const breached = spot;
+        const intact = spot >= bonus ? spot : bonus;
+        return {
+          title: `Terminal underlying ${spot.toFixed(0)}%`,
+          rows: [
+            { label: "Barrier intact", value: fmt(intact, 2), color: C.jade },
+            { label: "Barrier breached", value: fmt(breached, 2), color: C.brick },
+            { label: "Barrier level", value: `${bar.toFixed(0)}%` },
+          ],
+          points: [
+            { y: f.Y(intact), color: C.jade },
+            ...(Math.abs(intact - breached) > 0.01 ? [{ y: f.Y(breached), color: C.brick }] : []),
+          ],
+        };
+      },
+      onSelect: (spot) => {
+        selectedTerminal = spot;
+      },
+    };
+  });
 
   function run() {
     const bonus = +$("bn-l").value,
@@ -84,6 +123,9 @@ import { $, C, fmt, pct, rng, normals, frame, ticks, statCards } from "../core";
     f.text(bar, hi * 0.96, "barrier " + bar, C.brick, 10.5);
     f.text(bonus, hi * 0.05, "bonus " + bonus, C.jade, 10.5);
     f.text(Math.min(hi - 16, (bar + bonus) / 2), bonus + hi * 0.07, "bonus paid", C.jade, 10.5);
+    payoffContext = { f, lo, hi, bar, bonus };
+    selectedTerminal = Math.max(lo, Math.min(hi, selectedTerminal));
+    payoffInspector.refresh();
 
     /* Monte Carlo — price process is ex-dividend, so the certificate never receives q */
     const paths = 2000,

@@ -95,7 +95,11 @@ function updateLeg(index: number, field: keyof OptionLeg, value: OptionLeg[keyof
       item.barrier = Number(value);
       break;
   }
-  if (field === "barrierType" && item.barrierType.startsWith("down") && item.barrier >= state.spot)
+  if (
+    field === "barrierType" &&
+    item.barrierType.startsWith("down") &&
+    (item.barrier <= 0 || item.barrier >= state.spot)
+  )
     item.barrier = state.spot * 0.75;
   if (field === "barrierType" && item.barrierType.startsWith("up") && item.barrier <= state.spot)
     item.barrier = state.spot * 1.25;

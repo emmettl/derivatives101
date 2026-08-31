@@ -50,7 +50,14 @@ export interface PlotFrame {
     weight?: number,
   ) => void;
   dot: (x: number, y: number, color: string) => void;
-  bar: (x0: number, x1: number, y0: number, y1: number, color: string, opacity?: number) => void;
+  bar: (
+    x0: number,
+    x1: number,
+    y0: number,
+    y1: number,
+    color: string,
+    opacity?: number,
+  ) => SVGRectElement;
 }
 
 export interface StatCard {
@@ -345,16 +352,16 @@ export function frame(svg: SVGSVGElement, options: FrameOptions): PlotFrame {
       );
     },
     bar(x0, x1, y0, y1, color, opacity = 1) {
-      g.append(
-        el("rect", {
-          x: X(x0),
-          y: Y(y1),
-          width: Math.max(1, X(x1) - X(x0)),
-          height: Math.max(0, Y(y0) - Y(y1)),
-          fill: color,
-          opacity,
-        }),
-      );
+      const bar = el("rect", {
+        x: X(x0),
+        y: Y(y1),
+        width: Math.max(1, X(x1) - X(x0)),
+        height: Math.max(0, Y(y0) - Y(y1)),
+        fill: color,
+        opacity,
+      });
+      g.append(bar);
+      return bar;
     },
   };
 }
@@ -400,13 +407,23 @@ export function histogram(
   const width = (options.hi - options.lo) / bins;
   counts.forEach((count, index) => {
     const x0 = options.lo + index * width;
-    plot.bar(
+    const bar = plot.bar(
       x0 + width * 0.08,
       x0 + width * 0.92,
       0,
       count,
       x0 + width / 2 < (options.split ?? -1e9) ? C.brick : C.jade,
       0.85,
+    );
+    bar.classList.add("interactive-histogram-bar");
+    const lower = x0;
+    const upper = x0 + width;
+    bar.append(
+      el(
+        "title",
+        {},
+        `${count.toLocaleString()} simulated outcomes between ${(options.xfmt ?? ((value) => value.toFixed(1)))(lower)} and ${(options.xfmt ?? ((value) => value.toFixed(1)))(upper)}`,
+      ),
     );
   });
   if (options.split != null) plot.vline(options.split, C.ink, "4 4");

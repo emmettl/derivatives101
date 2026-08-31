@@ -3,6 +3,7 @@
   --jade:#3e8e7e;--brick:#b5443a;--paper:#fff;--tint:#f2f5f7;--tint2:#e6ecf0;--muted:#64798a;--line:#d3dbe2
 }
 *{box-sizing:border-box}
+.ledger tbody tr.selected-observation td{background:rgba(228,163,64,.12)}
 html{scroll-behavior:smooth}
 body{margin:0;background:#f7f9fa;color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
 button,input,select{font:inherit}a{color:inherit}
@@ -32,6 +33,25 @@ main{max-width:1360px;margin:0 auto;padding:0 22px 70px}
 .panel-head{display:flex;align-items:start;justify-content:space-between;gap:22px;padding:20px 22px 14px}.panel-head p{max-width:690px;margin:6px 0 0;color:var(--muted);font-size:12px}
 .path-actions{display:flex;align-items:end;flex-direction:column;gap:7px}.scenario-set{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}.scenario-set button{padding:7px 9px;text-align:center}.resample{border:0;border-radius:6px;background:var(--amber);color:var(--ink);padding:8px 11px;font-size:11px;font-weight:900;cursor:pointer}.resample:hover{background:#efb454}
 .chart-wrap{margin:0 14px}.path-chart,.histogram{display:block;width:100%;height:auto;border:1px solid var(--line);background:#fff}
+.interactive-chart-host{position:relative}
+.svg-interactive{cursor:crosshair;touch-action:pan-y}
+.svg-interactive:focus{outline:3px solid rgba(228,163,64,.45);outline-offset:2px}
+.svg-inspector{pointer-events:none}
+.svg-inspector-line{stroke:#0b1e2d;stroke-width:1.2;stroke-dasharray:3 4;opacity:.72}
+.svg-inspector-point{stroke:#fff;stroke-width:2}
+.svg-inspector-point.plane{fill:#e4a340}
+.svg-chart-tooltip{position:absolute;top:14px;z-index:6;width:190px;padding:9px 10px;border:1px solid #456171;border-radius:7px;background:rgba(7,22,32,.94);box-shadow:0 8px 24px rgba(7,22,32,.16);color:#fff;pointer-events:none;font-size:10px;font-variant-numeric:tabular-nums}
+.svg-chart-tooltip[hidden]{display:none}
+.svg-chart-tooltip strong{display:block;margin-bottom:5px;color:#e4a340;font-size:11px}
+.svg-chart-tooltip span{display:flex;justify-content:space-between;gap:10px;margin-top:3px;color:#c6d5dc}
+.svg-chart-tooltip i{overflow:hidden;text-overflow:ellipsis;font-style:normal;white-space:nowrap}
+.svg-chart-tooltip b{color:inherit;white-space:nowrap}
+.svg-chart-hint{position:absolute;z-index:5;top:8px;right:10px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.92);color:var(--deep);padding:5px 8px;font-size:9px;font-weight:800;pointer-events:none}
+.interactive-histogram-bar{transition:opacity .12s ease}
+.interactive-histogram-bar:hover{opacity:1}
+@media(max-width:680px){.svg-chart-tooltip{top:8px;right:8px;left:auto!important;width:160px;font-size:9px}}
+@media(max-width:680px){.svg-chart-hint{position:static;display:inline-block;margin:0 0 6px 2px}}
+@media(prefers-reduced-motion:reduce){.interactive-histogram-bar{transition:none}}
 .path-chart text,.histogram text{font-family:"Segoe UI",system-ui,sans-serif}.path-chart .grid,.histogram .grid{stroke:var(--line);stroke-width:1}.path-chart .axis,.histogram .axis{fill:var(--muted);font-size:10px}.path-chart .level-label{font-size:10px;font-weight:800}.path-chart .path-main{fill:none;stroke:var(--steel);stroke-width:3}.path-chart .path-after{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 5;opacity:.6}.path-chart .observation{fill:#fff;stroke:var(--steel);stroke-width:1.5}.path-chart .event-dot{stroke:#fff;stroke-width:2}.path-chart .event-label{fill:var(--ink);font-size:10px;font-weight:800}
 .outcome{display:grid;grid-template-columns:140px minmax(0,1fr);gap:16px;margin:14px 22px 20px;padding-top:14px;border-top:1px solid var(--line)}.outcome strong{color:var(--amber-d);font-size:10px;letter-spacing:.1em;text-transform:uppercase}.outcome p{margin:0;color:var(--deep);font-size:12px}
 .settlement-breakdown{display:grid;grid-template-columns:repeat(3,1fr);margin:0 22px 20px;border-top:2px solid var(--deep);border-bottom:1px solid var(--line)}.settlement-breakdown>div{padding:12px 14px;border-right:1px solid var(--line)}.settlement-breakdown>div:last-child{border-right:0}.settlement-breakdown span{display:block;color:var(--muted);font-size:9px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}.settlement-breakdown strong{display:block;margin-top:3px;font:700 19px Cambria,Georgia,serif;font-variant-numeric:tabular-nums}.settlement-breakdown p{margin:3px 0 0;color:var(--muted);font-size:10px}

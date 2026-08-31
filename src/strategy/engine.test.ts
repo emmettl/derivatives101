@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { MAX_LEGS, clonePreset, presets } from "./config";
-import { legOutcome, metrics, riskMeasures, scenarioMatrix } from "./engine";
+import {
+  hitProbability,
+  legOutcome,
+  metrics,
+  premium,
+  riskMeasures,
+  scenarioMatrix,
+} from "./engine";
 import { simulateStrategy } from "./simulation";
 import type { Market, OptionLeg } from "./types";
 
@@ -36,6 +43,14 @@ describe("strategy presets", () => {
 });
 
 describe("risk and path mechanics", () => {
+  it("keeps a zero legacy barrier from producing NaN", () => {
+    const downIn = clonePreset(presets.longCall, market.spot).legs[0];
+    downIn.barrierType = "down-in";
+    downIn.barrier = 0;
+    expect(hitProbability(market, downIn.barrierType, downIn.barrier)).toBe(0);
+    expect(Number.isFinite(premium(market, downIn).premium)).toBe(true);
+  });
+
   it("uses the opening value as the unshocked scenario baseline", () => {
     const condor = clonePreset(presets.ironCondor, market.spot).legs;
     const scenarios = scenarioMatrix(market, condor, [-0.1, 0, 0.1], [-0.05, 0, 0.05]);

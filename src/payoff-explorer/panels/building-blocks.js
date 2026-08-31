@@ -1,4 +1,5 @@
 import { $, C, fmt, frame, ticks } from "../core";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 /* Payoff conventions, stated once so they cannot drift:
    lc / lp / sp  -> P&L at expiry on the option position, baseline 0.
@@ -9,6 +10,8 @@ import { $, C, fmt, frame, ticks } from "../core";
   let type = "lc";
   const K = $("bk-k"),
     P = $("bk-p");
+  let selectedSpot = 100,
+    chartContext = null;
   const SPEC = {
     lc: {
       name: "Long call",
@@ -62,6 +65,44 @@ import { $, C, fmt, frame, ticks } from "../core";
       }),
   );
   [K, P].forEach((i) => (i.oninput = draw));
+
+  const inspector = attachHorizontalInspector($("bk-svg"), () => {
+    if (!chartContext) return null;
+    const { f, lo, hi, f0, base, sp } = chartContext;
+    return {
+      width: 760,
+      left: f.m.l,
+      right: f.m.r,
+      top: f.m.t,
+      bottom: 420 - f.m.b,
+      minimum: lo,
+      maximum: hi,
+      step: 1,
+      value: selectedSpot,
+      label: `${sp.name} payoff diagram. Hover to inspect; click or drag to pin an expiry level.`,
+      inspect: (spot) => {
+        const payoff = f0(spot);
+        return {
+          title: `Underlying at expiry ${spot.toFixed(0)}`,
+          rows: [
+            {
+              label: sp.base === 100 ? "Redemption" : "Position P/L",
+              value: fmt(payoff, 2),
+              color: sp.col,
+            },
+            {
+              label: "Versus baseline",
+              value: `${payoff >= base ? "+" : "−"}${fmt(Math.abs(payoff - base), 2)}`,
+            },
+          ],
+          points: [{ y: f.Y(payoff), color: sp.col }],
+        };
+      },
+      onSelect: (spot) => {
+        selectedSpot = spot;
+      },
+    };
+  });
 
   function draw() {
     const k = +K.value,
@@ -122,6 +163,9 @@ import { $, C, fmt, frame, ticks } from "../core";
     })();
     f.line(pts, sp.col, 3.2);
     f.text(k, yhi - (yhi - ylo) * 0.04, "strike " + k, C.muted, 11);
+    chartContext = { f, lo, hi, f0, base, sp };
+    selectedSpot = Math.max(lo, Math.min(hi, selectedSpot));
+    inspector.refresh();
 
     const B = bounds(type, k, pr);
     const bestTxt = B.best == null ? "unlimited" : fmt(B.best, 1);

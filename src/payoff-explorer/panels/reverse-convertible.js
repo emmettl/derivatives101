@@ -1,8 +1,11 @@
 import { $, C, el, fmt, pct, rng, normals, frame, ticks, statCards, histogram } from "../core";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
   let obs = "eu",
-    seed = 987654;
+    seed = 987654,
+    selectedTerminal = 100,
+    payoffContext = null;
   const ids = ["rc-c", "rc-b", "rc-a", "rc-t", "rc-f", "rc-v"];
   document.querySelectorAll("#rc-obs button").forEach(
     (b) =>
@@ -18,6 +21,41 @@ import { $, C, el, fmt, pct, rng, normals, frame, ticks, statCards, histogram } 
     seed = (seed * 1103515245 + 12345) >>> 0;
     run();
   };
+  const payoffInspector = attachHorizontalInspector($("rc-pay"), () => {
+    if (!payoffContext) return null;
+    const { f, bar, totCpn } = payoffContext;
+    const redemption = (spot) =>
+      bar > 0 ? (spot < bar ? spot + totCpn : 100 + totCpn) : Math.min(spot, 100) + totCpn;
+    return {
+      width: 760,
+      left: f.m.l,
+      right: f.m.r,
+      top: f.m.t,
+      bottom: 300 - f.m.b,
+      minimum: 0,
+      maximum: 150,
+      step: 1,
+      value: selectedTerminal,
+      label:
+        "Reverse convertible redemption diagram. Hover to inspect; click or drag to pin a terminal level.",
+      inspect: (spot) => {
+        const value = redemption(spot);
+        const downside = bar > 0 && spot < bar;
+        return {
+          title: `Terminal underlying ${spot.toFixed(0)}%`,
+          rows: [
+            { label: "Redemption", value: fmt(value, 2), color: downside ? C.brick : C.jade },
+            { label: "Displayed state", value: downside ? "Downside branch" : "Principal repaid" },
+            { label: "Coupons", value: fmt(totCpn, 2) },
+          ],
+          points: [{ y: f.Y(value), color: downside ? C.brick : C.jade }],
+        };
+      },
+      onSelect: (spot) => {
+        selectedTerminal = spot;
+      },
+    };
+  });
 
   function run() {
     const cpn = +$("rc-c").value / 100,
@@ -103,6 +141,8 @@ import { $, C, el, fmt, pct, rng, normals, frame, ticks, statCards, histogram } 
       );
     }
     f.text(125, 100 + totCpn + 8, "par + " + fmt(totCpn, 0) + " of coupons", C.jade, 11);
+    payoffContext = { f, bar, totCpn };
+    payoffInspector.refresh();
 
     /* Monte Carlo */
     const paths = 2000,

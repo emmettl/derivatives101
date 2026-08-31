@@ -1,7 +1,11 @@
 import { $, C, fmt, bsCall, frame, ticks, statCards } from "../core";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
-  let capped = false;
+  let capped = false,
+    selectedTerminal = 100,
+    rateContext = null,
+    payoffContext = null;
   ["cp-r", "cp-t", "cp-pr", "cp-v", "cp-q", "cp-f"].forEach((i) => ($(i).oninput = run));
   document.querySelectorAll("#cp-cap button").forEach(
     (b) =>
@@ -24,6 +28,76 @@ import { $, C, fmt, bsCall, frame, ticks, statCards } from "../core";
     const part = budget > 0 && callCost > 0 ? budget / callCost : 0;
     return { floor, budget, callCost, part };
   }
+
+  const rateInspector = attachHorizontalInspector($("cp-curve"), () => {
+    if (!rateContext) return null;
+    const { f, T, prot, vol, q, fee } = rateContext;
+    return {
+      width: 760,
+      left: f.m.l,
+      right: f.m.r,
+      top: f.m.t,
+      bottom: 300 - f.m.b,
+      minimum: -1,
+      maximum: 8,
+      step: 0.1,
+      value: +$("cp-r").value / 100,
+      label: "Participation across issuer funding rates. Click or drag to set the funding rate.",
+      inspect: (ratePercent) => {
+        const terms = build(ratePercent / 100, T, prot, vol, q, fee);
+        const participation = Math.min(3, terms.part);
+        return {
+          title: `Funding rate ${ratePercent.toFixed(2)}%`,
+          rows: [
+            {
+              label: "Participation",
+              value: terms.part > 0 ? `${terms.part.toFixed(2)}×` : "Unbuildable",
+              color: terms.part > 0 ? C.jade : C.brick,
+            },
+            { label: "Option budget", value: fmt(terms.budget, 2) },
+            { label: "Floor cost", value: fmt(terms.floor, 2) },
+          ],
+          points: [{ y: f.Y(participation), color: terms.part > 0 ? C.jade : C.brick }],
+        };
+      },
+      onSelect: (ratePercent) => {
+        $("cp-r").value = Math.round(ratePercent * 100);
+        run();
+      },
+    };
+  });
+  const payoffInspector = attachHorizontalInspector($("cp-pay"), () => {
+    if (!payoffContext) return null;
+    const { f, hi, pay, prot, part } = payoffContext;
+    return {
+      width: 760,
+      left: f.m.l,
+      right: f.m.r,
+      top: f.m.t,
+      bottom: 280 - f.m.b,
+      minimum: 0,
+      maximum: hi,
+      step: 1,
+      value: selectedTerminal,
+      label:
+        "Capital-protected payoff diagram. Hover to inspect; click or drag to pin a terminal level.",
+      inspect: (spot) => {
+        const redemption = pay(spot);
+        return {
+          title: `Terminal underlying ${spot.toFixed(0)}%`,
+          rows: [
+            { label: "Redemption", value: fmt(redemption, 2), color: C.jade },
+            { label: "Protection floor", value: fmt(prot, 2) },
+            { label: "Participation", value: part > 0 ? `${part.toFixed(2)}×` : "Unbuildable" },
+          ],
+          points: [{ y: f.Y(redemption), color: C.jade }],
+        };
+      },
+      onSelect: (spot) => {
+        selectedTerminal = spot;
+      },
+    };
+  });
 
   function run() {
     const rate = +$("cp-r").value / 10000,
@@ -76,6 +150,8 @@ import { $, C, fmt, bsCall, frame, ticks, statCards } from "../core";
     f.dot(rate * 100, Math.min(3, B.part), C.ink);
     f.text(-0.4, 2.72, "unbuildable", C.brick, 10.5);
     f.text(6.4, 1.12, "1:1 participation", C.muted, 10.5);
+    rateContext = { f, T, prot, vol, q, fee };
+    rateInspector.refresh();
 
     /* payoff */
     const hi = 200;
@@ -115,6 +191,8 @@ import { $, C, fmt, bsCall, frame, ticks, statCards } from "../core";
     );
     f2.vline(100, C.line);
     f2.text(30, prot + 10, "floor at " + prot, C.jade, 10.5);
+    payoffContext = { f: f2, hi, pay, prot, part: B.part };
+    payoffInspector.refresh();
 
     $("cp-terms").innerHTML =
       "<tr><td>Bond floor</td><td>" +

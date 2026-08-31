@@ -1,8 +1,11 @@
 import { $, C, fmt, pct, rng, normals, frame, ticks, statCards } from "../core";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
   let mode = "plain",
-    seed = 24680;
+    seed = 24680,
+    selectedTerminal = 100,
+    payoffContext = null;
   ["dc-c", "dc-p", "dc-b", "dc-t", "dc-v"].forEach((i) => ($(i).oninput = run));
   document.querySelectorAll("#dc-type button").forEach(
     (b) =>
@@ -21,6 +24,48 @@ import { $, C, fmt, pct, rng, normals, frame, ticks, statCards } from "../core";
     run();
   };
   $("dc-b-row").style.display = "none";
+  const payoffInspector = attachHorizontalInspector($("dc-pay"), () => {
+    if (!payoffContext) return null;
+    const { f, lo, hi, cap, px, isBar } = payoffContext;
+    return {
+      width: 760,
+      left: f.m.l,
+      right: f.m.r,
+      top: f.m.t,
+      bottom: 320 - f.m.b,
+      minimum: lo,
+      maximum: hi,
+      step: 1,
+      value: selectedTerminal,
+      label:
+        "Discount certificate payoff diagram. Hover to compare states; click or drag to pin a terminal level.",
+      inspect: (spot) => {
+        const broken = Math.min(spot, cap);
+        const intact = isBar ? cap : broken;
+        return {
+          title: `Terminal underlying ${spot.toFixed(0)}%`,
+          rows: [
+            {
+              label: isBar ? "Barrier intact" : "Redemption",
+              value: fmt(intact, 2),
+              color: C.jade,
+            },
+            ...(isBar ? [{ label: "Barrier breached", value: fmt(broken, 2), color: C.deep }] : []),
+            { label: "Return on price", value: `${((broken / px - 1) * 100).toFixed(1)}%` },
+          ],
+          points: [
+            { y: f.Y(intact), color: C.jade },
+            ...(isBar && Math.abs(intact - broken) > 0.01
+              ? [{ y: f.Y(broken), color: C.deep }]
+              : []),
+          ],
+        };
+      },
+      onSelect: (spot) => {
+        selectedTerminal = spot;
+      },
+    };
+  });
 
   function run() {
     const cap = +$("dc-c").value,
@@ -122,6 +167,9 @@ import { $, C, fmt, pct, rng, normals, frame, ticks, statCards } from "../core";
     }
     f.text(px, hi * 0.96, "breakeven " + px, C.brick, 10.5);
     f.text(cap, hi * 0.05, "cap " + cap, C.steel, 10.5);
+    payoffContext = { f, lo, hi, cap, px, isBar };
+    selectedTerminal = Math.max(lo, Math.min(hi, selectedTerminal));
+    payoffInspector.refresh();
 
     /* Monte Carlo */
     const paths = 2000,

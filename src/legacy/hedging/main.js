@@ -1,4 +1,5 @@
 import * as engine from "./engine";
+import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
   "use strict";
@@ -51,6 +52,105 @@ import * as engine from "./engine";
   ];
   let state = defaults();
   let framePending = false;
+  let latestResult = null;
+  let pathContext = null;
+  let ratioContext = null;
+  let selectedDay = 0;
+  let pathInspector;
+  let ratioInspector;
+
+  function recordAt(day) {
+    return latestResult?.records[Math.max(0, Math.min(state.steps, Math.round(day)))];
+  }
+
+  function highlightLedger(day) {
+    const rows = [...byId("hedge-ledger").querySelectorAll("[data-day]")];
+    rows.forEach((row) => row.classList.remove("selected-observation"));
+    if (!rows.length) return;
+    const nearest = rows.reduce((best, row) =>
+      Math.abs(Number(row.dataset.day) - day) < Math.abs(Number(best.dataset.day) - day)
+        ? row
+        : best,
+    );
+    nearest.classList.add("selected-observation");
+  }
+
+  pathInspector = attachHorizontalInspector(byId("hedge-path-chart"), () => {
+    if (!latestResult || !pathContext) return null;
+    return {
+      width: 900,
+      left: 62,
+      right: 24,
+      top: 24,
+      bottom: 302,
+      minimum: 0,
+      maximum: state.steps,
+      step: 1,
+      value: selectedDay,
+      label: "Trading day",
+      inspect(day) {
+        const record = recordAt(day);
+        return {
+          title: record.day === state.steps ? "Maturity" : `Day ${record.day}`,
+          rows: [
+            { label: "Underlying", value: record.spot.toFixed(2), color: "#15607c" },
+            { label: "Call value", value: record.optionValue.toFixed(2) },
+            { label: "Option delta", value: record.delta.toFixed(3) },
+            { label: "Share hedge", value: record.hedge.toFixed(3), color: "#b45d2a" },
+          ],
+          points: [{ y: pathContext.y(record.spot), color: "#15607c" }],
+        };
+      },
+      onInspect(day) {
+        ratioInspector?.show(Math.round(day));
+      },
+      onSelect(day) {
+        selectedDay = Math.round(day);
+        highlightLedger(selectedDay);
+        ratioInspector?.show(selectedDay, true);
+      },
+    };
+  });
+
+  ratioInspector = attachHorizontalInspector(byId("hedge-ratio-chart"), () => {
+    if (!latestResult || !ratioContext) return null;
+    return {
+      width: 900,
+      left: 62,
+      right: 24,
+      top: 24,
+      bottom: 232,
+      minimum: 0,
+      maximum: state.steps,
+      step: 1,
+      value: selectedDay,
+      label: "Trading day",
+      inspect(day) {
+        const record = recordAt(day);
+        return {
+          title: record.day === state.steps ? "Maturity" : `Day ${record.day}`,
+          rows: [
+            { label: "Share hedge", value: record.hedge.toFixed(3), color: "#b45d2a" },
+            { label: "− option delta", value: (-record.delta).toFixed(3), color: "#15607c" },
+            { label: "Trade", value: Math.abs(record.trade) < 1e-12 ? "—" : signed(record.trade) },
+            { label: "Trade cost", value: record.transactionCost.toFixed(3) },
+          ],
+          points: [
+            { y: ratioContext.y(record.hedge), color: "#b45d2a" },
+            { y: ratioContext.y(-record.delta), color: "#15607c" },
+          ],
+        };
+      },
+      onInspect(day) {
+        pathInspector?.show(Math.round(day));
+      },
+      onSelect(day) {
+        selectedDay = Math.round(day);
+        highlightLedger(selectedDay);
+        pathInspector?.show(selectedDay, true);
+      },
+    };
+  });
 
   function defaults() {
     return {
@@ -182,6 +282,8 @@ import * as engine from "./engine";
       (_, index) => minimum + ((maximum - minimum) * index) / 5,
     );
     svg.innerHTML = `<title>Underlying path</title><desc>The underlying begins at 100 and reaches the selected terminal spot after 252 trading days.</desc>${grid(xTicks, yTicks, x, y, width, height, left, right, top, bottom, (day) => (day === 0 ? "Start" : day === 252 ? "Maturity" : `Day ${day}`))}<line class="hedge-strike-line" x1="${left}" x2="${width - right}" y1="${y(state.strike)}" y2="${y(state.strike)}"></line><path class="hedge-spot-line" d="${path}"></path><circle class="hedge-end-point" cx="${x(state.steps)}" cy="${y(state.endSpot)}" r="5"></circle><text class="axis hedge-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">Underlying level</text>`;
+    pathContext = { y };
+    pathInspector.refresh();
   }
 
   function renderRatioChart(result) {
@@ -209,6 +311,8 @@ import * as engine from "./engine";
     const xTicks = [0, 63, 126, 189, 252],
       yTicks = [-1, -0.75, -0.5, -0.25, 0];
     svg.innerHTML = `<title>Option delta and discrete share hedge</title><desc>The negative option delta moves continuously in the model. The share position only changes at the selected rebalance dates.</desc>${grid(xTicks, yTicks, x, y, width, height, left, right, top, bottom, (day) => (day === 0 ? "Start" : day === 252 ? "Maturity" : `Day ${day}`))}<path class="hedge-delta-line" d="${deltaPath}"></path><path class="hedge-share-line" d="${hedgePath}"></path><text class="axis hedge-axis-title" x="14" y="${(top + height - bottom) / 2}" text-anchor="middle" transform="rotate(-90 14 ${(top + height - bottom) / 2})">Shares per call</text>`;
+    ratioContext = { y };
+    ratioInspector.refresh();
   }
 
   function renderAttribution(result) {
@@ -284,7 +388,7 @@ import * as engine from "./engine";
     byId("hedge-ledger").innerHTML = sampleLedger(result.records)
       .map(
         (record) =>
-          `<tr><td>${record.day === 0 ? "Start" : record.day === state.steps ? "Maturity" : record.day}</td><td>${record.spot.toFixed(2)}</td><td>${record.delta.toFixed(3)}</td><td>${record.hedge.toFixed(3)}</td><td class="${record.trade < 0 ? "event-negative" : record.trade > 0 ? "event-positive" : "event-neutral"}">${Math.abs(record.trade) < 1e-12 ? "—" : signed(record.trade)}</td><td class="${record.portfolio < 0 ? "event-negative" : "event-positive"}">${signed(record.portfolio)}</td></tr>`,
+          `<tr data-day="${record.day}"><td>${record.day === 0 ? "Start" : record.day === state.steps ? "Maturity" : record.day}</td><td>${record.spot.toFixed(2)}</td><td>${record.delta.toFixed(3)}</td><td>${record.hedge.toFixed(3)}</td><td class="${record.trade < 0 ? "event-negative" : record.trade > 0 ? "event-positive" : "event-neutral"}">${Math.abs(record.trade) < 1e-12 ? "—" : signed(record.trade)}</td><td class="${record.portfolio < 0 ? "event-negative" : "event-positive"}">${signed(record.portfolio)}</td></tr>`,
       )
       .join("");
   }
@@ -331,6 +435,8 @@ import * as engine from "./engine";
 
   function render() {
     const result = engine.simulate(state);
+    latestResult = result;
+    selectedDay = Math.max(0, Math.min(state.steps, selectedDay));
     renderChoices();
     renderOutputs();
     byId("hedge-headline").textContent = `${frequencyName()} hedge · ${pathName().toLowerCase()}`;
@@ -371,6 +477,7 @@ import * as engine from "./engine";
     renderAttribution(result);
     renderComparison();
     renderLedger(result);
+    highlightLedger(selectedDay);
     renderRules();
   }
 

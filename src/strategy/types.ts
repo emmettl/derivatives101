@@ -91,6 +91,35 @@ export interface ScenarioRow {
   cells: ScenarioCell[];
 }
 
+export interface StrategySimulationRequest {
+  id: number;
+  sample: number;
+  market: Market;
+  legs: OptionLeg[];
+  observedLow: number;
+  observedHigh: number;
+  seed: number;
+  paths?: number;
+  drawN?: number;
+  steps?: number;
+}
+
+export interface StrategySimulationResult {
+  id: number;
+  sample: number;
+  market: Market;
+  paths: Float64Array[];
+  pathPnls: Float64Array;
+  terminalPnls: Float64Array;
+  estimate: number;
+  currentValue: number;
+  probabilityOfProfit: number;
+  medianPnl: number;
+  percentile05: number;
+  percentile95: number;
+  steps: number;
+}
+
 export interface MarketControl {
   key: keyof Pick<
     StrategyState,

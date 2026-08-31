@@ -162,6 +162,7 @@
 .strategy-chart .strategy-total,
 .strategy-chart .strategy-leg {
   fill: none;
+  transition: opacity .14s ease, stroke-width .14s ease;
 }
 
 .strategy-chart .strategy-total {
@@ -173,6 +174,9 @@
   stroke-width: 1.7;
   opacity: .8;
 }
+
+.strategy-chart .strategy-leg.hidden { opacity: 0; }
+.strategy-chart .strategy-leg.emphasized { opacity: 1; stroke-width: 4; }
 
 .strategy-chart .strategy-leg-0 { stroke: var(--amber-d); }
 .strategy-chart .strategy-leg-1 { stroke: var(--jade); }
@@ -208,6 +212,76 @@
   stroke-width: 2;
 }
 
+.strategy-chart {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.strategy-chart:focus {
+  outline: 3px solid rgba(217, 145, 36, .4);
+  outline-offset: 2px;
+}
+
+.strategy-chart-wrap { position: relative; }
+
+.chart-gesture {
+  flex: 0 0 auto;
+  align-self: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--deep);
+  padding: 7px 10px;
+  font-size: 9px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.strategy-inspector.hidden,
+.strategy-inspector circle.hidden { display: none; }
+
+.strategy-inspector line {
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+  opacity: .65;
+}
+
+.strategy-inspector circle[data-point=total] {
+  fill: var(--ink);
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.strategy-inspector circle.leg-0 { fill: var(--amber-d); }
+.strategy-inspector circle.leg-1 { fill: var(--jade); }
+.strategy-inspector circle.leg-2 { fill: var(--brick); }
+.strategy-inspector circle.leg-3 { fill: var(--steel); }
+.strategy-inspector circle:not([data-point=total]) { stroke: #fff; stroke-width: 1.5; }
+
+.strategy-chart-tooltip {
+  position: absolute;
+  top: 15px;
+  z-index: 2;
+  width: 175px;
+  padding: 9px 10px;
+  border: 1px solid #456171;
+  border-radius: 7px;
+  background: rgba(7, 22, 32, .94);
+  box-shadow: 0 8px 24px rgba(7, 22, 32, .16);
+  color: #fff;
+  pointer-events: none;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.strategy-chart-tooltip[hidden] { display: none; }
+.strategy-chart-tooltip strong,
+.strategy-chart-tooltip span { display: flex; justify-content: space-between; gap: 8px; }
+.strategy-chart-tooltip strong { margin-bottom: 5px; color: var(--amber); font-size: 10px; }
+.strategy-chart-tooltip span { margin-top: 3px; color: #c6d5dc; }
+.strategy-chart-tooltip span.total { color: #fff; font-weight: 800; }
+.strategy-chart-tooltip b { color: inherit; }
+
 .strategy-axis-title {
   fill: var(--deep);
   font-weight: 800;
@@ -222,6 +296,84 @@
 .strategy-legend i.leg-1 { background: var(--jade); }
 .strategy-legend i.leg-2 { background: var(--brick); }
 .strategy-legend i.leg-3 { background: var(--steel); }
+
+.strategy-legend button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.strategy-legend button[aria-pressed=false] { opacity: .4; text-decoration: line-through; }
+.strategy-legend button:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
+/* Shared-path simulation */
+.simulation-head { align-items: center; }
+
+.simulation-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.simulation-actions span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.simulation-actions span.busy::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--amber-d);
+  animation: strategy-pulse .8s ease-in-out infinite alternate;
+}
+
+@keyframes strategy-pulse { to { opacity: .25; } }
+
+.simulation-button {
+  border: 0;
+  border-radius: 6px;
+  background: var(--amber);
+  color: var(--ink);
+  padding: 9px 12px;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.strategy-simulation-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  margin: 0 22px 14px;
+  background: var(--line);
+}
+
+.strategy-simulation-stats > div { padding: 13px; background: #fff; }
+.strategy-simulation-stats span { display: block; color: var(--muted); font-size: 8px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.strategy-simulation-stats strong { display: block; margin-top: 4px; font: 700 18px Cambria, Georgia, serif; font-variant-numeric: tabular-nums; }
+.strategy-simulation-stats p { margin: 3px 0 0; color: var(--muted); font-size: 9px; }
+
+.strategy-simulation-chart .simulation-label { fill: var(--deep); font-size: 9px; font-weight: 900; letter-spacing: .08em; }
+.strategy-simulation-chart .simulation-path { fill: none; stroke-width: 1.15; }
+.strategy-simulation-chart .simulation-path.positive { stroke: var(--jade); opacity: .38; }
+.strategy-simulation-chart .simulation-path.negative { stroke: var(--steel); opacity: .3; }
+.strategy-simulation-chart .simulation-bin.positive { fill: var(--jade); opacity: .78; }
+.strategy-simulation-chart .simulation-bin.negative { fill: var(--brick); opacity: .7; }
+.strategy-simulation-chart .simulation-start { stroke: var(--amber-d); stroke-width: 1.5; stroke-dasharray: 5 5; }
+.strategy-simulation-chart .simulation-zero { stroke: var(--ink); stroke-width: 1.5; }
+.strategy-simulation-note { margin: 11px 22px 20px; color: var(--deep); font-size: 10px; }
 
 /* Before-expiry risk */
 .strategy-risk-note {
@@ -442,6 +594,7 @@
   .compact-presets,
   .strategy-stats,
   .strategy-risk-stats,
+  .strategy-simulation-stats,
   .leg-builder,
   .barrier-state-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -456,6 +609,14 @@
   .leg-fields { grid-template-columns: repeat(2, 1fr); }
   .leg-field.wide { grid-column: 1 / -1; }
   .contribution-row { grid-template-columns: 105px minmax(0, 1fr) 55px; }
+  .chart-gesture { display: inline-block; margin-top: 12px; }
+  .simulation-actions { align-items: flex-start; flex-direction: column; margin-top: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strategy-chart .strategy-total,
+  .strategy-chart .strategy-leg { transition: none; }
+  .simulation-actions span.busy::before { animation: none; }
 }
 
 @media (max-width: 440px) {

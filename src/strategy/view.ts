@@ -11,6 +11,8 @@ import type {
 } from "./types";
 
 const legColors = ["leg-0", "leg-1", "leg-2", "leg-3"];
+const hiddenLegs = new Set<number>();
+let lastRecipeId = "";
 
 function byId<T extends Element = HTMLElement>(id: string): T {
   const element = document.getElementById(id);
@@ -115,6 +117,13 @@ function renderLegs(state: StrategyState, onChange: ViewHandlers["onLegChange"])
 }
 
 function renderSummary(state: StrategyState, metrics: StrategyMetrics): string {
+  if (state.presetId !== lastRecipeId) {
+    hiddenLegs.clear();
+    lastRecipeId = state.presetId;
+  }
+  state.legs.forEach((item, index) => {
+    if (!item.enabled) hiddenLegs.delete(index);
+  });
   const preset =
     state.presetId in presets ? presets[state.presetId as keyof typeof presets] : undefined;
   const active = state.legs.filter((item) => item.enabled);
@@ -148,7 +157,31 @@ function renderSummary(state: StrategyState, metrics: StrategyMetrics): string {
     )
     .join("");
   byId("strategy-legend").innerHTML =
-    `<span><i class="total"></i>Combined strategy</span>${state.legs.map((item, index) => (item.enabled ? `<span><i class="${legColors[index]}"></i>Leg ${index + 1}: ${item.side} ${item.quantity} ${item.type}</span>` : "")).join("")}`;
+    `<span><i class="total"></i>Combined strategy</span>${state.legs.map((item, index) => (item.enabled ? `<button type="button" data-leg-line="${index}" aria-pressed="${!hiddenLegs.has(index)}" title="Show or hide Leg ${index + 1}"><i class="${legColors[index]}"></i>Leg ${index + 1}: ${item.side} ${item.quantity} ${item.type}</button>` : "")).join("")}`;
+  byId("strategy-legend")
+    .querySelectorAll<HTMLButtonElement>("[data-leg-line]")
+    .forEach((button) => {
+      const index = Number(button.dataset.legLine);
+      button.addEventListener("click", () => {
+        if (hiddenLegs.has(index)) hiddenLegs.delete(index);
+        else hiddenLegs.add(index);
+        const visible = !hiddenLegs.has(index);
+        button.setAttribute("aria-pressed", String(visible));
+        byId<SVGElement>("strategy-chart")
+          .querySelector(`.strategy-leg-${index}`)
+          ?.classList.toggle("hidden", !visible);
+      });
+      button.addEventListener("pointerenter", () =>
+        byId<SVGElement>("strategy-chart")
+          .querySelector(`.strategy-leg-${index}`)
+          ?.classList.add("emphasized"),
+      );
+      button.addEventListener("pointerleave", () =>
+        byId<SVGElement>("strategy-chart")
+          .querySelector(`.strategy-leg-${index}`)
+          ?.classList.remove("emphasized"),
+      );
+    });
   const barrierEvents = metrics.selected.legs
     .map((result, index) =>
       state.legs[index].enabled && state.legs[index].barrierType !== "none"
@@ -283,7 +316,7 @@ export function render(
   syncMarketControls(state);
   renderLegs(state, handlers.onLegChange);
   const title = renderSummary(state, metrics);
-  drawChart(state, metrics, title);
+  drawChart(state, metrics, title, hiddenLegs);
   renderRisk(risk, scenarios);
   renderAnatomy(state, metrics);
   renderBarrierStates(state, metrics);

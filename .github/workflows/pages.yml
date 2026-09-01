@@ -30,8 +30,10 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Install browser testing dependencies
+        run: npx playwright install --with-deps chromium
       - name: Build and test the course
-        run: npm run check && npm run build
+        run: npm run check:all
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Package the built site

@@ -1,0 +1,147 @@
+import { expect, test, type Page } from "@playwright/test";
+
+function monitorRuntimeErrors(page: Page): string[] {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  return errors;
+}
+
+async function expectCurrentSimulation(page: Page, selector: string): Promise<void> {
+  await expect(page.locator(selector)).toContainText(/current/i, { timeout: 15_000 });
+}
+
+test("a new down barrier receives a valid default and never renders NaN", async ({ page }) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/options-a-la-carte.html");
+  const firstLeg = page.locator('[data-leg="0"]');
+  await firstLeg.locator('select[data-field="barrierType"]').selectOption("down-in");
+
+  await expect(firstLeg.locator('input[data-field="barrier"]')).toHaveValue("75");
+  await expect(page.locator("body")).not.toContainText("NaN");
+  await expectCurrentSimulation(page, "#strategy-simulation-status");
+  expect(errors).toEqual([]);
+});
+
+test("strategy payoff and Monte Carlo charts support keyboard inspection and resampling", async ({
+  page,
+}) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/options-a-la-carte.html");
+
+  const payoffChart = page.locator("#strategy-chart");
+  await payoffChart.press("End");
+  await expect(page.locator("#strategy-chart-tooltip")).toBeVisible();
+  await expect(page.locator("#selected-outcome")).toContainText("At expiry");
+
+  await expectCurrentSimulation(page, "#strategy-simulation-status");
+  const simulationChart = page.locator("#strategy-simulation-chart");
+  await simulationChart.press("End");
+  await expect(simulationChart.locator(".simulation-bin.selected")).toHaveCount(1);
+  await expect(simulationChart.locator("xpath=..").locator(".svg-chart-tooltip")).toContainText(
+    "Share",
+  );
+
+  await page.getByRole("button", { name: "Resample paths" }).click();
+  await expect(page.locator("#strategy-simulation-status")).toContainText(/Sample 2 · current/i, {
+    timeout: 15_000,
+  });
+  await expect(simulationChart.locator(".simulation-bin.selected")).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
+test("the specification trace keeps chart selection synchronized with its ledger", async ({
+  page,
+}) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/specification-capstone.html");
+
+  const chart = page.locator("#spec-path-chart");
+  await chart.press("End");
+  const selectedRow = page.locator("#trace-ledger tr.selected-observation");
+  await expect(selectedRow).toHaveCount(1);
+  await expect(selectedRow).toContainText("Final");
+  await expect(chart.locator("xpath=..").locator(".svg-chart-tooltip")).toContainText(
+    "Not evaluated",
+  );
+  expect(errors).toEqual([]);
+});
+
+test("structured-product paths and distributions expose their selected observations", async ({
+  page,
+}) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/reverse-convertible-lab.html");
+  await expectCurrentSimulation(page, "#simulation-status");
+
+  await page.locator("#path-chart").press("End");
+  await expect(page.locator("#ledger-body tr.selected-observation")).toHaveCount(1);
+
+  const histogram = page.locator("#histogram");
+  await histogram.press("End");
+  const tooltip = histogram.locator("xpath=..").locator(".svg-chart-tooltip");
+  await expect(tooltip).toContainText("Paths");
+  await expect(tooltip).toContainText("Share");
+  expect(errors).toEqual([]);
+});
+
+test("Option Lab terminal-bin selection survives Monte Carlo resampling", async ({ page }) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/option-lab.html");
+  await expectCurrentSimulation(page, "#mc-status");
+
+  const paths = page.locator("#paths");
+  await paths.press("End");
+  await expect(page.locator("#terminal-readout")).toBeVisible();
+  await expect(page.locator("#terminal-readout")).toContainText("Option payoff");
+  await expect(paths).toHaveAttribute("aria-valuetext", /Terminal spot/);
+
+  await page.getByRole("button", { name: "Resample paths" }).click();
+  await expect(page.locator("#mc-status")).toContainText(/Sample 2 · current/i, {
+    timeout: 15_000,
+  });
+  await expect(page.locator("#terminal-readout")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("Payoff Explorer simulation histograms support direct bin inspection", async ({ page }) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/payoff-explorer.html#rc");
+
+  const histogram = page.locator("#rc-hist");
+  await expect(histogram.locator(".interactive-histogram-bar")).toHaveCount(38);
+  await histogram.press("End");
+  const tooltip = histogram.locator("xpath=..").locator(".svg-chart-tooltip");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText("Share");
+  expect(errors).toEqual([]);
+});
+
+test("simulation inspectors remain inside a narrow viewport", async ({ page }) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.goto("/option-lab.html");
+  await expectCurrentSimulation(page, "#mc-status");
+  await page.locator("#paths").press("End");
+  const optionReadout = page.locator("#terminal-readout");
+  await expect(optionReadout).toBeVisible();
+  const optionBox = await optionReadout.boundingBox();
+  expect(optionBox).not.toBeNull();
+  expect(optionBox!.x).toBeGreaterThanOrEqual(0);
+  expect(optionBox!.x + optionBox!.width).toBeLessThanOrEqual(390);
+
+  await page.goto("/options-a-la-carte.html");
+  await expectCurrentSimulation(page, "#strategy-simulation-status");
+  const simulationChart = page.locator("#strategy-simulation-chart");
+  await simulationChart.press("End");
+  const strategyTooltip = simulationChart.locator("xpath=..").locator(".svg-chart-tooltip");
+  await expect(strategyTooltip).toBeVisible();
+  const strategyBox = await strategyTooltip.boundingBox();
+  expect(strategyBox).not.toBeNull();
+  expect(strategyBox!.x).toBeGreaterThanOrEqual(0);
+  expect(strategyBox!.x + strategyBox!.width).toBeLessThanOrEqual(390);
+  expect(errors).toEqual([]);
+});

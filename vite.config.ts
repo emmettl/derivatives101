@@ -1,7 +1,8 @@
 import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig, type Plugin } from "vite";
+import type { Plugin } from "vite";
+import { defineConfig } from "vitest/config";
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 const bundledEntries = [
@@ -29,9 +30,13 @@ const bundledEntries = [
 const buildOnly = new Set([
   "dist",
   "coverage",
+  "e2e",
   "logs",
   "node_modules",
+  "playwright-report",
+  "playwright.config.ts",
   "src",
+  "test-results",
   "README.md",
   "package.json",
   "package-lock.json",
@@ -64,6 +69,9 @@ function copyLegacySiteAssets(): Plugin {
 export default defineConfig({
   base: "./",
   publicDir: false,
+  test: {
+    exclude: ["e2e/**", "**/node_modules/**", "**/dist/**"],
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,

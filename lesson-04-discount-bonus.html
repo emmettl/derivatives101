@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Compare discount certificates, bonus certificates and outperformance using interactive payoff charts."
+    />
+    <meta name="theme-color" content="#0b1e2d" />
+    <title>Discount &amp; bonus certificates — Derivatives 101</title>
+    <link rel="stylesheet" href="lesson.css" />
+  </head>
+  <body data-lesson="discount-bonus">
+    <nav class="lesson-topbar" aria-label="Course navigation">
+      <a class="brand" href="./">Derivatives 101</a
+      ><a href="glossary.html">Glossary</a>
+    </nav>
+    <header class="lesson-hero">
+      <div class="lesson-hero-grid">
+        <div>
+          <p class="eyebrow">Lesson 04 · Conditional protection</p>
+          <h1>Discount &amp; bonus</h1>
+          <p class="lede">
+            Use one option budget either to reduce the purchase price, create a
+            conditional bonus floor, or increase upside participation.
+          </p>
+        </div>
+        <aside class="lesson-meta">
+          <span>Estimated reading time</span><strong>10 minutes</strong
+          ><span>Companion download</span><strong>16-page lesson deck</strong
+          ><a href="lessons/4_Discount_and_Bonus.pdf" download
+            >Download PDF ↓</a
+          >
+        </aside>
+      </div>
+    </header>
+    <nav class="lesson-progress" aria-label="Lesson sequence">
+      <ol>
+        <li><a href="lesson-00-foundations.html">00 · Foundations</a></li>
+        <li><a href="lesson-01-koda-kodd.html">01 · KODA / KODD</a></li>
+        <li>
+          <a href="lesson-02-reverse-convertibles.html"
+            >02 · Reverse convertibles</a
+          >
+        </li>
+        <li><a href="lesson-03-fcn-eln.html">03 · FCN / ELN</a></li>
+        <li>
+          <a href="lesson-04-discount-bonus.html" aria-current="page"
+            >04 · Discount &amp; bonus</a
+          >
+        </li>
+        <li>
+          <a href="lesson-05-protection-leverage.html"
+            >05 · Protection &amp; leverage</a
+          >
+        </li>
+      </ol>
+    </nav>
+    <main class="lesson-layout">
+      <article class="lesson-copy">
+        <section id="discount">
+          <p class="section-label">Discount certificates</p>
+          <h2>Buy below spot, give up everything above the cap</h2>
+          <p>
+            A discount certificate is economically a covered call: exposure to
+            the underlying plus a short call. It is also a reverse convertible
+            paid up front: the option premium appears as a lower issue price
+            instead of a coupon. The discount is a certain cushion, but upside
+            ends at the cap.
+          </p>
+          <div class="callout">
+            Same option, different packaging: a discount certificate and a
+            reverse convertible can carry the same maturity risk.
+          </div>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Certain discount</strong>
+              <p>
+                The initial purchase price is below the current underlying
+                level.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Certain cap</strong>
+              <p>
+                Every outcome above the cap redeems at the same maximum amount.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section id="bonus">
+          <p class="section-label">Bonus certificates</p>
+          <h2>A floor only while the barrier survives</h2>
+          <p>
+            A bonus certificate keeps open-ended upside and offers a minimum
+            redemption at the bonus level, provided the barrier is never
+            breached under the stated observation rule. After breach, the floor
+            disappears permanently and the certificate tracks the
+            underlying—usually without passing through dividends.
+          </p>
+          <div class="interactive" aria-labelledby="interactive-title">
+            <div class="interactive-head">
+              <div>
+                <h3 id="interactive-title">Participation payoff explorer</h3>
+                <p>
+                  Compare the intact and breached outcomes. Both curves use the
+                  participation-product engine.
+                </p>
+              </div>
+              <span class="engine-badge">Live participation engine</span>
+            </div>
+            <div class="interactive-controls">
+              <div class="control">
+                <label for="participation-product">Structure</label
+                ><select id="participation-product">
+                  <option value="bonus">Bonus</option>
+                  <option value="outperformance">Outperformance</option>
+                  <option value="bonus_outperformance">
+                    Bonus + outperformance
+                  </option>
+                </select>
+              </div>
+              <div class="control">
+                <label for="participation-rate"
+                  >Upside participation ·
+                  <span id="participation-rate-value">125%</span></label
+                ><input
+                  id="participation-rate"
+                  type="range"
+                  min="100"
+                  max="200"
+                  value="125"
+                />
+              </div>
+              <div class="control">
+                <label for="participation-bonus"
+                  >Bonus level ·
+                  <span id="participation-bonus-value">120</span></label
+                ><input
+                  id="participation-bonus"
+                  type="range"
+                  min="100"
+                  max="150"
+                  value="120"
+                />
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                id="lesson-chart"
+                class="lesson-chart"
+                viewBox="0 0 760 340"
+                role="img"
+                aria-label="Participation product payoff with barrier intact and breached curves"
+              ></svg>
+            </div>
+            <dl class="interactive-readout">
+              <div>
+                <dt>At 85, barrier intact</dt>
+                <dd id="stat-1">–</dd>
+              </div>
+              <div>
+                <dt>At 85, barrier breached</dt>
+                <dd id="stat-2">–</dd>
+              </div>
+              <div>
+                <dt>Conditional floor</dt>
+                <dd id="stat-3">–</dd>
+              </div>
+              <div>
+                <dt>Upside rate</dt>
+                <dd id="stat-4">–</dd>
+              </div>
+            </dl>
+          </div>
+          <p>
+            The green curve is the barrier-intact redemption; the red curve is
+            the post-breach redemption. Their gap is the conditional protection
+            bought with the investor’s foregone dividends.
+          </p>
+        </section>
+        <section id="budget">
+          <p class="section-label">Where the feature comes from</p>
+          <h2>The client pays for the bonus with their own dividends</h2>
+          <p>
+            A tracker can be represented by a zero-strike call. Because a
+            certificate holder normally does not receive the underlying’s
+            dividends, the present value of those dividends becomes the feature
+            budget. Higher-dividend names can fund a higher bonus, a deeper
+            barrier or greater upside participation.
+          </p>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Barrier discount</strong>
+              <p>
+                A larger conditional cushion than a plain discount, but it can
+                vanish after a touch.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Outperformance</strong>
+              <p>
+                The same dividend budget is directed upward to buy extra call
+                participation.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section id="check">
+          <p class="section-label">Check your understanding</p>
+          <h2>Identify what is conditional</h2>
+          <div class="quiz">
+            <h3>
+              A bonus certificate breaches its continuously monitored barrier,
+              then recovers above the bonus level. What survives?
+            </h3>
+            <p>Assume no cap.</p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="A continuously observed breach is permanent; recovery does not restore the floor."
+              >
+                The bonus floor revives at maturity</button
+              ><button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. The bonus floor is gone, but the remaining tracker can still benefit from the recovery."
+              >
+                The tracker-like redemption and open upside</button
+              ><button
+                type="button"
+                data-feedback="A standard bonus certificate does not become capital protected after breach."
+              >
+                A guaranteed repayment at par
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
+        </section>
+        <section id="takeaways">
+          <p class="section-label">Takeaways</p>
+          <h2>What to remember</h2>
+          <div class="takeaway-grid">
+            <div>
+              <strong>Discount means short call</strong>
+              <p>The certain cushion is exchanged for a certain upside cap.</p>
+            </div>
+            <div>
+              <strong>Bonus is conditional</strong>
+              <p>One barrier touch can permanently remove the floor.</p>
+            </div>
+            <div>
+              <strong>Dividends are the budget</strong>
+              <p>Foregone income pays for the product feature.</p>
+            </div>
+            <div>
+              <strong>Observation style matters</strong>
+              <p>
+                A maturity-only barrier is safer than continuous monitoring on
+                otherwise identical terms.
+              </p>
+            </div>
+          </div>
+        </section>
+      </article>
+      <aside class="lesson-aside">
+        <nav aria-label="On this page">
+          <h2>On this page</h2>
+          <ul>
+            <li><a href="#discount">Discount certificates</a></li>
+            <li><a href="#bonus">Payoff explorer</a></li>
+            <li><a href="#budget">Dividend budget</a></li>
+            <li><a href="#check">Knowledge check</a></li>
+            <li><a href="#takeaways">Takeaways</a></li>
+          </ul>
+        </nav>
+        <div class="aside-card">
+          <h2>Go deeper</h2>
+          <p>Compare path outcomes and budget usage.</p>
+          <a href="participation-lab.html">Open participation lab →</a>
+        </div>
+      </aside>
+    </main>
+    <footer class="lesson-next">
+      <div>
+        <span>Previous lesson</span
+        ><a href="lesson-03-fcn-eln.html">← FCN &amp; ELN</a>
+      </div>
+      <div>
+        <span>Next lesson</span
+        ><a href="lesson-05-protection-leverage.html"
+          >Protection &amp; leverage →</a
+        >
+      </div>
+    </footer>
+    <script type="module" src="/src/lessons/main.ts"></script>
+  </body>
+</html>

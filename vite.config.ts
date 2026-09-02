@@ -25,6 +25,13 @@ const bundledEntries = [
   "stepdown-autocall.html",
   "value-before-maturity.html",
   "volatility-skew.html",
+  "lesson-00-foundations.html",
+  "lesson-01-koda-kodd.html",
+  "lesson-02-reverse-convertibles.html",
+  "lesson-03-fcn-eln.html",
+  "lesson-04-discount-bonus.html",
+  "lesson-05-protection-leverage.html",
+  "glossary.html",
 ];
 
 const buildOnly = new Set([

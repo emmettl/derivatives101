@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Learn how KODA and KODD accumulators turn daily fixings, gearing and knock-outs into path-dependent obligations."
+    />
+    <meta name="theme-color" content="#0b1e2d" />
+    <title>KODA &amp; KODD — Derivatives 101</title>
+    <link rel="stylesheet" href="lesson.css" />
+  </head>
+  <body data-lesson="koda">
+    <nav class="lesson-topbar" aria-label="Course navigation">
+      <a class="brand" href="./">Derivatives 101</a
+      ><a href="glossary.html">Glossary</a>
+    </nav>
+    <header class="lesson-hero">
+      <div class="lesson-hero-grid">
+        <div>
+          <p class="eyebrow">Lesson 01 · Path dependency</p>
+          <h1>KODA &amp; KODD</h1>
+          <p class="lede">
+            A discounted daily trade that can grow into a large obligation
+            precisely when the market moves against the client.
+          </p>
+        </div>
+        <aside class="lesson-meta">
+          <span>Estimated reading time</span><strong>10 minutes</strong
+          ><span>Companion download</span><strong>15-page lesson deck</strong
+          ><a href="lessons/1_KODA_KODD.pdf" download>Download PDF ↓</a>
+        </aside>
+      </div>
+    </header>
+    <nav class="lesson-progress" aria-label="Lesson sequence">
+      <ol>
+        <li><a href="lesson-00-foundations.html">00 · Foundations</a></li>
+        <li>
+          <a href="lesson-01-koda-kodd.html" aria-current="page"
+            >01 · KODA / KODD</a
+          >
+        </li>
+        <li>
+          <a href="lesson-02-reverse-convertibles.html"
+            >02 · Reverse convertibles</a
+          >
+        </li>
+        <li><a href="lesson-03-fcn-eln.html">03 · FCN / ELN</a></li>
+        <li>
+          <a href="lesson-04-discount-bonus.html">04 · Discount &amp; bonus</a>
+        </li>
+        <li>
+          <a href="lesson-05-protection-leverage.html"
+            >05 · Protection &amp; leverage</a
+          >
+        </li>
+      </ol>
+    </nav>
+    <main class="lesson-layout">
+      <article class="lesson-copy">
+        <section id="sentence">
+          <p class="section-label">In one sentence</p>
+          <h2>A contract to keep buying, a little every day, at a discount</h2>
+          <p>
+            In a knock-out discount accumulator, the client must buy a fixed
+            quantity on every scheduled observation at a strike below the
+            initial spot. Below that strike, the quantity commonly doubles. A
+            rally through the knock-out ends the trade; a fall keeps it alive
+            and increases the size bought.
+          </p>
+          <div class="callout">
+            The favourable outcome is short and capped. The adverse outcome is
+            long, geared and cumulative.
+          </div>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Obligation</strong>
+              <p>
+                The client must transact; this is not a right they can abandon.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Discount</strong>
+              <p>
+                The below-spot strike is funded by option premium, not given
+                away.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Gearing</strong>
+              <p>
+                The daily amount increases on the adverse side of the strike.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Knock-out</strong>
+              <p>A favourable move terminates future participation.</p>
+            </div>
+          </div>
+        </section>
+        <section id="path">
+          <p class="section-label">Why the path matters</p>
+          <h2>The knock-out is a trapdoor, not a target</h2>
+          <p>
+            The whole contract is a one-day obligation repeated many times. The
+            sequence matters because each fixing creates another purchase. An
+            early rally can stop accumulation with a small gain. A prolonged
+            fall keeps creating purchases, often at the geared quantity, so
+            exposure is largest when the client is most wrong.
+          </p>
+          <div class="interactive" aria-labelledby="interactive-title">
+            <div class="interactive-head">
+              <div>
+                <h3 id="interactive-title">Accumulator path explorer</h3>
+                <p>
+                  Choose a market path, then change strike and gearing. Every
+                  fixing is evaluated by the KODA lifecycle engine.
+                </p>
+              </div>
+              <span class="engine-badge">Live KODA engine</span>
+            </div>
+            <div class="interactive-controls">
+              <div class="control">
+                <label for="koda-scenario">Market path</label
+                ><select id="koda-scenario">
+                  <option value="knockout">Early rally</option>
+                  <option value="recover">Fall, then recover</option>
+                  <option value="geared" selected>Persistent fall</option>
+                  <option value="random">Random path</option>
+                </select>
+              </div>
+              <div class="control">
+                <label for="koda-strike"
+                  >Strike · <span id="koda-strike-value">88</span></label
+                ><input
+                  id="koda-strike"
+                  type="range"
+                  min="75"
+                  max="98"
+                  value="88"
+                />
+              </div>
+              <div class="control">
+                <label for="koda-gearing"
+                  >Gearing · <span id="koda-gearing-value">2.0×</span></label
+                ><input
+                  id="koda-gearing"
+                  type="range"
+                  min="1"
+                  max="4"
+                  step="0.5"
+                  value="2"
+                />
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                id="lesson-chart"
+                class="lesson-chart"
+                viewBox="0 0 760 340"
+                role="img"
+                aria-label="Accumulator underlying path with strike and knock-out levels"
+              ></svg>
+            </div>
+            <dl class="interactive-readout">
+              <div>
+                <dt>Knocked out</dt>
+                <dd id="stat-1">–</dd>
+              </div>
+              <div>
+                <dt>Executed fixings</dt>
+                <dd id="stat-2">–</dd>
+              </div>
+              <div>
+                <dt>Total units</dt>
+                <dd id="stat-3">–</dd>
+              </div>
+              <div>
+                <dt>Path P&amp;L</dt>
+                <dd id="stat-4">–</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+        <section id="anatomy">
+          <p class="section-label">Term-sheet anatomy</p>
+          <h2>Three numbers expose the real size</h2>
+          <p>
+            First calculate maximum units: scheduled observations multiplied by
+            base quantity and gearing. Then multiply by the strike to get
+            maximum exposure. This is not the same as the margin posted.
+            Finally, compare the strike-to-knock-out window with the downside
+            that remains below the strike.
+          </p>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Guaranteed observations</strong>
+              <p>
+                Fixings that continue even if the knock-out has already been
+                reached.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Settlement frequency</strong>
+              <p>
+                Daily fixings may accumulate into monthly physical deliveries.
+              </p>
+            </div>
+          </div>
+          <p>
+            Margin is the practical risk that often ends the position first. The
+            mark-to-market reflects remaining optionality and future geared
+            purchases, not only the loss already visible in delivered shares.
+          </p>
+        </section>
+        <section id="check">
+          <p class="section-label">Check your understanding</p>
+          <h2>Follow the obligation</h2>
+          <div class="quiz">
+            <h3>Why can a falling market create a larger position?</h3>
+            <p>Choose the mechanism that matters.</p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="The strike stays fixed; it does not reset lower with the market."
+              >
+                The strike automatically falls each day</button
+              ><button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. The contract keeps fixing and applies the gearing multiple below the strike."
+              >
+                More observations execute at the geared quantity</button
+              ><button
+                type="button"
+                data-feedback="The knock-out normally sits on the favourable side and is less likely to trigger during a fall."
+              >
+                The knock-out increases the daily quantity
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
+        </section>
+        <section id="takeaways">
+          <p class="section-label">Takeaways</p>
+          <h2>What to remember</h2>
+          <div class="takeaway-grid">
+            <div>
+              <strong>It is an obligation</strong>
+              <p>“Buy at a discount” omits the repeated mandatory purchase.</p>
+            </div>
+            <div>
+              <strong>Path dominates endpoint</strong>
+              <p>
+                Two paths ending at the same price can create different
+                quantities.
+              </p>
+            </div>
+            <div>
+              <strong>Gearing changes loss, not gain</strong>
+              <p>
+                It increases the adverse purchase rate without lifting the
+                knock-out profit.
+              </p>
+            </div>
+            <div>
+              <strong>Size the maximum exposure</strong>
+              <p>Margin posted is not the economic notional.</p>
+            </div>
+          </div>
+        </section>
+      </article>
+      <aside class="lesson-aside">
+        <nav aria-label="On this page">
+          <h2>On this page</h2>
+          <ul>
+            <li><a href="#sentence">The contract</a></li>
+            <li><a href="#path">Path explorer</a></li>
+            <li><a href="#anatomy">Terms and exposure</a></li>
+            <li><a href="#check">Knowledge check</a></li>
+            <li><a href="#takeaways">Takeaways</a></li>
+          </ul>
+        </nav>
+        <div class="aside-card">
+          <h2>Go deeper</h2>
+          <p>Inspect every observation and run lifecycle simulations.</p>
+          <a href="koda-kodd-lab.html">Open KODA / KODD lab →</a>
+        </div>
+      </aside>
+    </main>
+    <footer class="lesson-next">
+      <div>
+        <span>Previous lesson</span
+        ><a href="lesson-00-foundations.html">← Foundations</a>
+      </div>
+      <div>
+        <span>Next lesson</span
+        ><a href="lesson-02-reverse-convertibles.html"
+          >Reverse convertibles →</a
+        >
+      </div>
+    </footer>
+    <script type="module" src="/src/lessons/main.ts"></script>
+  </body>
+</html>

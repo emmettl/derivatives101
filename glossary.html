@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A searchable plain-language glossary of options and structured-product terms used in Derivatives 101."
+    />
+    <meta name="theme-color" content="#0b1e2d" />
+    <title>Glossary — Derivatives 101</title>
+    <link rel="stylesheet" href="lesson.css" />
+  </head>
+  <body>
+    <nav class="lesson-topbar" aria-label="Course navigation">
+      <a class="brand" href="./">Derivatives 101</a
+      ><a href="lesson-00-foundations.html">Start the course</a>
+    </nav>
+    <header class="lesson-hero">
+      <div class="lesson-hero-grid">
+        <div>
+          <p class="eyebrow">Course reference</p>
+          <h1>Glossary</h1>
+          <p class="lede">
+            Plain-language definitions for the terms reused across lessons,
+            payoff diagrams and lifecycle labs.
+          </p>
+        </div>
+        <aside class="lesson-meta">
+          <span>How to use it</span><strong>Search by term or idea</strong
+          ><span>Coverage</span
+          ><strong>Options, barriers, baskets and risk</strong>
+        </aside>
+      </div>
+    </header>
+    <main class="glossary-main">
+      <div class="glossary-tools">
+        <label
+          ><span class="section-label">Find a definition</span
+          ><input
+            id="glossary-search"
+            type="search"
+            placeholder="Try “barrier”, “coupon” or “volatility”"
+            autocomplete="off" /></label
+        ><span
+          id="glossary-count"
+          class="glossary-count"
+          aria-live="polite"
+        ></span>
+      </div>
+      <div class="glossary-list">
+        <article class="glossary-entry" id="autocall">
+          <h2>Autocall</h2>
+          <p>
+            Automatic early redemption when a published underlying test is met
+            on an observation date. Unlike an issuer call, it is triggered by
+            the contract rather than discretion.
+          </p>
+        </article>
+        <article class="glossary-entry" id="barrier">
+          <h2>Barrier</h2>
+          <p>
+            A level whose observation changes a payoff. The contract must also
+            say when and how it is observed: continuously, at daily closes, on
+            scheduled dates or only at maturity.
+          </p>
+        </article>
+        <article class="glossary-entry" id="barrier-option">
+          <h2>Barrier option</h2>
+          <p>
+            An option that starts or stops existing when its underlying reaches
+            a barrier. Knock-in and knock-out options are the two broad forms.
+          </p>
+        </article>
+        <article class="glossary-entry" id="bond-floor">
+          <h2>Bond floor</h2>
+          <p>
+            The present value of a promised maturity repayment. In a
+            capital-protected note, the issue proceeds left after buying the
+            floor can fund options.
+          </p>
+        </article>
+        <article class="glossary-entry" id="bonus-certificate">
+          <h2>Bonus certificate</h2>
+          <p>
+            A participation product with a conditional minimum redemption. If
+            its barrier is breached, the bonus floor disappears and the product
+            normally becomes tracker-like.
+          </p>
+        </article>
+        <article class="glossary-entry" id="call-option">
+          <h2>Call option</h2>
+          <p>
+            A contract giving the buyer the right, but not the obligation, to
+            buy an underlying at the strike. The seller has the corresponding
+            obligation.
+          </p>
+        </article>
+        <article class="glossary-entry" id="callable">
+          <h2>Callable</h2>
+          <p>
+            Redeemable early at the issuer’s discretion under stated terms.
+            “Callable” and “autocallable” therefore identify different owners of
+            the decision.
+          </p>
+        </article>
+        <article class="glossary-entry" id="capital-protection">
+          <h2>Capital protection</h2>
+          <p>
+            A contractual floor on redemption, usually applying only at maturity
+            and only while the issuer can pay. It does not mean the note cannot
+            trade below par earlier.
+          </p>
+        </article>
+        <article class="glossary-entry" id="carry">
+          <h2>Carry</h2>
+          <p>
+            The effect of funding, interest, dividends and related holding costs
+            over time. Carry helps determine a forward price and is not itself a
+            forecast.
+          </p>
+        </article>
+        <article class="glossary-entry" id="conditional-coupon">
+          <h2>Conditional coupon</h2>
+          <p>
+            A coupon paid only if an underlying test passes on the observation
+            date. The coupon barrier can differ from the principal protection
+            barrier.
+          </p>
+        </article>
+        <article class="glossary-entry" id="correlation">
+          <h2>Correlation</h2>
+          <p>
+            A measure of how closely assets move together. Lower correlation
+            tends to create more dispersion, which can worsen the weakest member
+            of a worst-of basket.
+          </p>
+        </article>
+        <article class="glossary-entry" id="delta">
+          <h2>Delta</h2>
+          <p>
+            The approximate change in an option or product value for a one-unit
+            change in the underlying, holding other assumptions constant.
+          </p>
+        </article>
+        <article class="glossary-entry" id="discount-certificate">
+          <h2>Discount certificate</h2>
+          <p>
+            Underlying exposure bought below spot in exchange for giving up
+            gains above a cap. Economically it resembles a covered call or a
+            reverse convertible paid up front.
+          </p>
+        </article>
+        <article class="glossary-entry" id="dispersion">
+          <h2>Dispersion</h2>
+          <p>
+            The degree to which basket constituents spread apart. A worst-of
+            investor effectively sells exposure to a weak outlier, so more
+            dispersion can reduce redemption.
+          </p>
+        </article>
+        <article class="glossary-entry" id="forward">
+          <h2>Forward</h2>
+          <p>
+            A price agreed today for delivery at a future date. Forwards are
+            linked to spot by no-arbitrage carry, not by a directional market
+            prediction.
+          </p>
+        </article>
+        <article class="glossary-entry" id="gamma">
+          <h2>Gamma</h2>
+          <p>
+            The rate at which delta changes as the underlying moves. High gamma
+            means a hedge needs to be adjusted more quickly.
+          </p>
+        </article>
+        <article class="glossary-entry" id="gearing">
+          <h2>Gearing</h2>
+          <p>
+            A multiplier applied to exposure. In an accumulator, the daily
+            quantity commonly increases below the strike; in leveraged products
+            it magnifies returns and losses.
+          </p>
+        </article>
+        <article class="glossary-entry" id="implied-volatility">
+          <h2>Implied volatility</h2>
+          <p>
+            The volatility consistent with an option’s market price under a
+            model. It is the market price of uncertainty, not a prediction of
+            direction.
+          </p>
+        </article>
+        <article class="glossary-entry" id="issuer-risk">
+          <h2>Issuer credit risk</h2>
+          <p>
+            The risk that the product issuer cannot meet its obligations. Most
+            structured notes are unsecured claims, including those described as
+            capital protected.
+          </p>
+        </article>
+        <article class="glossary-entry" id="knock-in">
+          <h2>Knock-in</h2>
+          <p>
+            A barrier event that activates an option or downside mechanism. In
+            many notes, principal loss still also requires a weak final
+            underlying level.
+          </p>
+        </article>
+        <article class="glossary-entry" id="knock-out">
+          <h2>Knock-out</h2>
+          <p>
+            A barrier event that terminates an option or product feature. In
+            accumulators it usually caps a favourable path by stopping future
+            daily trades.
+          </p>
+        </article>
+        <article class="glossary-entry" id="memory-coupon">
+          <h2>Memory coupon</h2>
+          <p>
+            A conditional coupon whose missed amounts are banked and can be paid
+            later if a future observation passes. Memory affects coupon timing,
+            not principal protection.
+          </p>
+        </article>
+        <article class="glossary-entry" id="mini-future">
+          <h2>Mini future</h2>
+          <p>
+            A leveraged certificate whose value is approximately the gap between
+            spot and a financing level. A stop-loss ends it before that gap
+            becomes adverse.
+          </p>
+        </article>
+        <article class="glossary-entry" id="notional">
+          <h2>Notional</h2>
+          <p>
+            The reference amount used to calculate a payoff. It can be much
+            larger than cash initially paid or margin posted.
+          </p>
+        </article>
+        <article class="glossary-entry" id="observation-date">
+          <h2>Observation date</h2>
+          <p>
+            A scheduled date on which a price or condition is tested. Different
+            product features may use different observation calendars.
+          </p>
+        </article>
+        <article class="glossary-entry" id="participation">
+          <h2>Participation rate</h2>
+          <p>
+            The multiplier applied to an underlying gain. In a protected note it
+            is the available option budget divided by the cost of one unit of
+            the option.
+          </p>
+        </article>
+        <article class="glossary-entry" id="physical-settlement">
+          <h2>Physical settlement</h2>
+          <p>
+            Settlement by delivering the underlying rather than paying an
+            equivalent cash amount. Share counts, board lots, holidays and
+            corporate actions then matter.
+          </p>
+        </article>
+        <article class="glossary-entry" id="premium">
+          <h2>Premium</h2>
+          <p>
+            The price paid by an option buyer to an option seller. For a product
+            investor selling optionality, premium can appear as coupon, discount
+            or another enhanced term.
+          </p>
+        </article>
+        <article class="glossary-entry" id="put-option">
+          <h2>Put option</h2>
+          <p>
+            A contract giving the buyer the right, but not the obligation, to
+            sell an underlying at the strike. A short put can create equity-like
+            downside.
+          </p>
+        </article>
+        <article class="glossary-entry" id="reverse-convertible">
+          <h2>Reverse convertible</h2>
+          <p>
+            An issuer note plus a short put. The investor receives an enhanced
+            coupon and accepts conditional downside in principal.
+          </p>
+        </article>
+        <article class="glossary-entry" id="spot">
+          <h2>Spot</h2>
+          <p>
+            The price for immediate ownership or settlement of an asset, used as
+            the starting reference for many strikes and barriers.
+          </p>
+        </article>
+        <article class="glossary-entry" id="stop-loss">
+          <h2>Stop-loss</h2>
+          <p>
+            A level that terminates a mini future. The residual value depends on
+            execution and market gaps; it is not always zero.
+          </p>
+        </article>
+        <article class="glossary-entry" id="strike">
+          <h2>Strike</h2>
+          <p>
+            The contractual price at which an option can be exercised or at
+            which shares may be delivered. It is fixed by the terms, not reset
+            by later market moves unless explicitly stated.
+          </p>
+        </article>
+        <article class="glossary-entry" id="theta">
+          <h2>Theta</h2>
+          <p>
+            The change in option value caused by time passing, with other
+            assumptions held constant.
+          </p>
+        </article>
+        <article class="glossary-entry" id="vega">
+          <h2>Vega</h2>
+          <p>
+            The change in option value for a change in implied volatility. An
+            investor who has sold options is commonly short vega.
+          </p>
+        </article>
+        <article class="glossary-entry" id="volatility">
+          <h2>Volatility</h2>
+          <p>
+            A measure of how much an asset moves, not which way. Higher expected
+            volatility generally increases option premium.
+          </p>
+        </article>
+        <article class="glossary-entry" id="worst-of">
+          <h2>Worst-of</h2>
+          <p>
+            A basket rule that uses the weakest-performing constituent. Adding
+            another name can never improve the worst observation and generally
+            raises product risk.
+          </p>
+        </article>
+      </div>
+    </main>
+    <footer class="lesson-next">
+      <div><span>Return to the course</span><a href="./">← Course home</a></div>
+      <div>
+        <span>Start reading</span
+        ><a href="lesson-00-foundations.html">Foundations →</a>
+      </div>
+    </footer>
+    <script type="module" src="/src/lessons/glossary.ts"></script>
+  </body>
+</html>

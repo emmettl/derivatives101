@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Learn how funding creates capital-protected notes and how financing levels create mini-future leverage."
+    />
+    <meta name="theme-color" content="#0b1e2d" />
+    <title>Protection &amp; leverage — Derivatives 101</title>
+    <link rel="stylesheet" href="lesson.css" />
+  </head>
+  <body data-lesson="protection-leverage">
+    <nav class="lesson-topbar" aria-label="Course navigation">
+      <a class="brand" href="./">Derivatives 101</a
+      ><a href="glossary.html">Glossary</a>
+    </nav>
+    <header class="lesson-hero">
+      <div class="lesson-hero-grid">
+        <div>
+          <p class="eyebrow">Lesson 05 · Opposite ends of risk</p>
+          <h1>Protection &amp; leverage</h1>
+          <p class="lede">
+            Capital-protected notes and mini futures look like opposites, yet
+            both depend on an issuer’s funding and remain unsecured claims.
+          </p>
+        </div>
+        <aside class="lesson-meta">
+          <span>Estimated reading time</span><strong>12 minutes</strong
+          ><span>Companion download</span><strong>17-page lesson deck</strong
+          ><a href="lessons/5_Protection_and_Leverage.pdf" download
+            >Download PDF ↓</a
+          >
+        </aside>
+      </div>
+    </header>
+    <nav class="lesson-progress" aria-label="Lesson sequence">
+      <ol>
+        <li><a href="lesson-00-foundations.html">00 · Foundations</a></li>
+        <li><a href="lesson-01-koda-kodd.html">01 · KODA / KODD</a></li>
+        <li>
+          <a href="lesson-02-reverse-convertibles.html"
+            >02 · Reverse convertibles</a
+          >
+        </li>
+        <li><a href="lesson-03-fcn-eln.html">03 · FCN / ELN</a></li>
+        <li>
+          <a href="lesson-04-discount-bonus.html">04 · Discount &amp; bonus</a>
+        </li>
+        <li>
+          <a href="lesson-05-protection-leverage.html" aria-current="page"
+            >05 · Protection &amp; leverage</a
+          >
+        </li>
+      </ol>
+    </nav>
+    <main class="lesson-layout">
+      <article class="lesson-copy">
+        <section id="floor">
+          <p class="section-label">Capital-protected notes</p>
+          <h2>Buy the floor first, then spend what is left</h2>
+          <p>
+            To promise 100 at maturity, the issuer sets aside the present value
+            of that amount on its own funding curve. The residual issue
+            proceeds, after fees, buy call options. Participation is not an
+            independent feature: it is the option budget divided by the price of
+            one unit of upside.
+          </p>
+          <div class="callout">Participation is a residual, not a feature.</div>
+          <div class="interactive" aria-labelledby="interactive-title">
+            <div class="interactive-head">
+              <div>
+                <h3 id="interactive-title">Protection budget explorer</h3>
+                <p>
+                  Change funding, protection and fees. The option cost comes
+                  from the same vanilla-pricing engine as the strategy labs.
+                </p>
+              </div>
+              <span class="engine-badge">Live option engine</span>
+            </div>
+            <div class="interactive-controls">
+              <div class="control">
+                <label for="protection-rate"
+                  >Issuer funding ·
+                  <span id="protection-rate-value">4.0%</span></label
+                ><input
+                  id="protection-rate"
+                  type="range"
+                  min="0"
+                  max="8"
+                  step="0.1"
+                  value="4"
+                />
+              </div>
+              <div class="control">
+                <label for="protection-level"
+                  >Protection ·
+                  <span id="protection-level-value">100%</span></label
+                ><input
+                  id="protection-level"
+                  type="range"
+                  min="80"
+                  max="100"
+                  value="100"
+                />
+              </div>
+              <div class="control">
+                <label for="protection-fee"
+                  >Fees · <span id="protection-fee-value">1.0</span></label
+                ><input
+                  id="protection-fee"
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value="1"
+                />
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                id="lesson-chart"
+                class="lesson-chart"
+                viewBox="0 0 760 340"
+                role="img"
+                aria-label="Equity participation across issuer funding rates"
+              ></svg>
+            </div>
+            <dl class="interactive-readout">
+              <div>
+                <dt>Bond floor cost</dt>
+                <dd id="stat-1">–</dd>
+              </div>
+              <div>
+                <dt>Option budget</dt>
+                <dd id="stat-2">–</dd>
+              </div>
+              <div>
+                <dt>Call cost</dt>
+                <dd id="stat-3">–</dd>
+              </div>
+              <div>
+                <dt>Participation</dt>
+                <dd id="stat-4">–</dd>
+              </div>
+            </dl>
+          </div>
+          <p>
+            Higher rates make the future repayment cheaper today, leaving more
+            option budget. Lower protection, longer tenor or an upside cap can
+            also improve participation, but each changes the risk or opportunity
+            set.
+          </p>
+        </section>
+        <section id="caveats">
+          <p class="section-label">Four caveats</p>
+          <h2>What “capital protected” does not mean</h2>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Maturity only</strong>
+              <p>
+                The note can trade below par before maturity as rates and option
+                value change.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Issuer credit</strong>
+              <p>
+                The promise is an unsecured claim, not collateral or deposit
+                insurance.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Bond benchmark</strong>
+              <p>
+                A flat underlying can mean zero note return while the issuer’s
+                plain bond earns yield.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Fee drag</strong>
+              <p>
+                Fees reduce the option budget and participation, not the stated
+                floor.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section id="mini">
+          <p class="section-label">Mini futures</p>
+          <h2>A small certificate controls a large exposure</h2>
+          <p>
+            A long mini future is worth roughly the underlying minus its
+            financing level. If spot is 100 and financing is 90, the certificate
+            costs about 10 and provides roughly ten-times leverage. A stop-loss
+            above the financing level terminates the product before the gap
+            becomes negative.
+          </p>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Financing level</strong>
+              <p>
+                The issuer-funded portion. It accretes by the reference rate
+                plus spread.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Stop-loss</strong>
+              <p>
+                The trigger that ends the product; market gaps can reduce or
+                erase residual value.
+              </p>
+            </div>
+          </div>
+          <p>
+            The carry charge is embedded by moving the financing level, so the
+            certificate can lose value even if the underlying is unchanged. A
+            mini future may retain a residual after its stop-loss; a knock-out
+            warrant commonly expires worthless at its barrier.
+          </p>
+        </section>
+        <section id="check">
+          <p class="section-label">Check your understanding</p>
+          <h2>Look beneath the label</h2>
+          <div class="quiz">
+            <h3>
+              Why might a weaker issuer advertise better participation on an
+              otherwise identical protected note?
+            </h3>
+            <p>Choose the economic explanation.</p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="Option exchanges do not reward lower issuer credit quality with cheaper index calls."
+              >
+                Its equity call is cheaper</button
+              ><button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. A higher issuer funding rate discounts the repayment more heavily, freeing more issue proceeds for options—while the client takes more issuer risk."
+              >
+                Its bond floor is cheaper because its funding rate is higher</button
+              ><button
+                type="button"
+                data-feedback="Lower fees could help, but that is not the general link between issuer quality and participation."
+              >
+                Its fees must be lower
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
+        </section>
+        <section id="takeaways">
+          <p class="section-label">Takeaways</p>
+          <h2>What to remember</h2>
+          <div class="takeaway-grid">
+            <div>
+              <strong>Floor first</strong>
+              <p>Funding determines what remains available for upside.</p>
+            </div>
+            <div>
+              <strong>Protection is a promise</strong>
+              <p>Issuer default can defeat the maturity floor.</p>
+            </div>
+            <div>
+              <strong>Leverage is a ratio</strong>
+              <p>
+                Small price divided into full exposure produces a large
+                multiplier.
+              </p>
+            </div>
+            <div>
+              <strong>Carry moves the strike</strong>
+              <p>
+                Mini-future financing accrues even when the market stands still.
+              </p>
+            </div>
+          </div>
+        </section>
+      </article>
+      <aside class="lesson-aside">
+        <nav aria-label="On this page">
+          <h2>On this page</h2>
+          <ul>
+            <li><a href="#floor">Protection budget</a></li>
+            <li><a href="#caveats">Protection caveats</a></li>
+            <li><a href="#mini">Mini futures</a></li>
+            <li><a href="#check">Knowledge check</a></li>
+            <li><a href="#takeaways">Takeaways</a></li>
+          </ul>
+        </nav>
+        <div class="aside-card">
+          <h2>Go deeper</h2>
+          <p>Explore full protected-note and mini-future payoffs.</p>
+          <a href="payoff-explorer.html#cpn">Open payoff explorer →</a>
+        </div>
+      </aside>
+    </main>
+    <footer class="lesson-next">
+      <div>
+        <span>Previous lesson</span
+        ><a href="lesson-04-discount-bonus.html">← Discount &amp; bonus</a>
+      </div>
+      <div>
+        <span>Continue learning</span
+        ><a href="structured-products.html">Structured labs →</a>
+      </div>
+    </footer>
+    <script type="module" src="/src/lessons/main.ts"></script>
+  </body>
+</html>

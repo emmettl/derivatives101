@@ -4,7 +4,8 @@ An independent, generally useful short course in options and structured products
 
 ## Course contents
 
-- Six concise lesson decks, from option foundations to protection and leverage
+- Six web-native lessons, from option foundations to protection and leverage, each with an engine-driven chart and comprehension check
+- Downloadable PDF lesson decks and a searchable course glossary
 - An interactive payoff explorer covering eight product families
 - An Option Lab for value surfaces, Greeks and Monte Carlo paths
 - Seventeen path-by-path, strategy, design, valuation and specification labs for multi-leg vanilla and barrier options, participation products, accumulators, decumulators, reverse convertibles, step-down autocalls, baskets, conditional coupons, memory, lock-in features, early-exit value, structured-product Greeks, dynamic hedging, volatility skew, forward pricing and carry, cross-currency and quanto payoffs, issuer credit, liquidity, term-sheet analysis and a full requirements capstone
@@ -16,7 +17,7 @@ An independent, generally useful short course in options and structured products
 
 The course is published at [emmettl.github.io/derivatives101](https://emmettl.github.io/derivatives101/).
 
-Every push to `main` builds and publishes the multi-page site through GitHub Pages. `index.html` is the course home, `payoff-explorer.html` is the quick payoff explorer, and `structured-products.html` is the entry point for the lifecycle labs. The richer interactive pages use Vite module entry points under `src/`; simpler lesson pages remain dependency-free browser JavaScript.
+Every push to `main` builds and publishes the multi-page site through GitHub Pages. `index.html` is the course home, the six `lesson-*.html` pages are the primary readings, `glossary.html` is the searchable reference, `payoff-explorer.html` is the quick payoff explorer, and `structured-products.html` is the entry point for the lifecycle labs. The richer interactive pages use Vite module entry points under `src/`.
 
 Run `npm install` once, followed by `npx playwright install chromium` to install the browser used by the interaction tests. Use `npm run dev` for local development and `npm run build` for a type-checked production bundle plus the complete site. `npm run check` verifies Oxfmt formatting, runs Oxlint, checks TypeScript and executes the financial-engine tests. `npm run test:e2e` exercises chart inspection, Monte Carlo resampling, barrier defaults and narrow-screen behaviour in Chromium; `npm run check:all` runs every check and the production build. Use `npm run format` and `npm run lint:fix` for automatic source cleanup.
 

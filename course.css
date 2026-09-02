@@ -76,6 +76,11 @@ a {
   color: var(--amber);
 }
 
+.toplinks {
+  display: flex;
+  gap: 22px;
+}
+
 .hero-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 310px;
@@ -333,7 +338,8 @@ h1 span {
   bottom: 22px;
   left: 26px;
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   gap: 12px;
   padding-top: 16px;
   border-top: 1px solid var(--line);

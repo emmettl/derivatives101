@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Learn the options, barriers, coupons and baskets that structured products are built from."
+    />
+    <meta name="theme-color" content="#0b1e2d" />
+    <title>Foundations — Derivatives 101</title>
+    <link rel="stylesheet" href="lesson.css" />
+  </head>
+  <body data-lesson="foundations">
+    <nav class="lesson-topbar" aria-label="Course navigation">
+      <a class="brand" href="./">Derivatives 101</a>
+      <a href="glossary.html">Glossary</a>
+    </nav>
+    <header class="lesson-hero">
+      <div class="lesson-hero-grid">
+        <div>
+          <p class="eyebrow">Lesson 00 · Foundations</p>
+          <h1>Payoffs before product names</h1>
+          <p class="lede">
+            Learn the handful of building blocks reused by every product in the
+            course: spot, forwards, options, barriers, coupons, autocalls and
+            baskets.
+          </p>
+        </div>
+        <aside class="lesson-meta">
+          <span>Estimated reading time</span><strong>12 minutes</strong>
+          <span>Companion download</span><strong>18-page lesson deck</strong>
+          <a href="lessons/0_Foundations.pdf" download>Download PDF ↓</a>
+        </aside>
+      </div>
+    </header>
+    <nav class="lesson-progress" aria-label="Lesson sequence">
+      <ol>
+        <li>
+          <a href="lesson-00-foundations.html" aria-current="page"
+            >00 · Foundations</a
+          >
+        </li>
+        <li><a href="lesson-01-koda-kodd.html">01 · KODA / KODD</a></li>
+        <li>
+          <a href="lesson-02-reverse-convertibles.html"
+            >02 · Reverse convertibles</a
+          >
+        </li>
+        <li><a href="lesson-03-fcn-eln.html">03 · FCN / ELN</a></li>
+        <li>
+          <a href="lesson-04-discount-bonus.html">04 · Discount &amp; bonus</a>
+        </li>
+        <li>
+          <a href="lesson-05-protection-leverage.html"
+            >05 · Protection &amp; leverage</a
+          >
+        </li>
+      </ol>
+    </nav>
+    <main class="lesson-layout">
+      <article class="lesson-copy">
+        <section id="recipe">
+          <p class="section-label">The one idea</p>
+          <h2>Structured products are recipes, not ingredients</h2>
+          <p>
+            Unwrap a structured product and you usually find a bond or deposit
+            plus one or more options. In a yield-enhancement product, the
+            investor is commonly the net seller of an option. The premium
+            received funds the headline coupon or discount; issuer margin and
+            hedging costs come out before the client sees the result.
+          </p>
+          <div class="callout">
+            If you can name the option the client sold, you can explain most of
+            the product’s risk.
+          </div>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Bond floor</strong>
+              <p>
+                The present value set aside to fund a promised repayment at
+                maturity.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Option premium</strong>
+              <p>
+                The price of transferring an uncertain future payoff between
+                buyer and seller.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section id="building-blocks">
+          <p class="section-label">Building blocks</p>
+          <h2>A right for one side is an obligation for the other</h2>
+          <p>
+            A <a class="term" href="glossary.html#call-option">call</a> gives
+            its buyer the right to buy at the strike. A
+            <a class="term" href="glossary.html#put-option">put</a> gives its
+            buyer the right to sell. The seller receives premium, but must
+            perform if the buyer exercises. That asymmetry is the economic
+            engine underneath the course.
+          </p>
+          <div class="interactive" aria-labelledby="interactive-title">
+            <div class="interactive-head">
+              <div>
+                <h3 id="interactive-title">Option position explorer</h3>
+                <p>
+                  Change the option, strike or volatility. Premium and expiry
+                  P&amp;L come from the strategy engine.
+                </p>
+              </div>
+              <span class="engine-badge">Live strategy engine</span>
+            </div>
+            <div class="interactive-controls">
+              <div class="control">
+                <label for="foundation-position">Position</label>
+                <select id="foundation-position">
+                  <option value="long-call">Long call</option>
+                  <option value="short-put">Short put</option>
+                </select>
+              </div>
+              <div class="control">
+                <label for="foundation-strike"
+                  >Strike · <span id="foundation-strike-value">100</span></label
+                >
+                <input
+                  id="foundation-strike"
+                  type="range"
+                  min="70"
+                  max="130"
+                  value="100"
+                />
+              </div>
+              <div class="control">
+                <label for="foundation-volatility"
+                  >Volatility ·
+                  <span id="foundation-volatility-value">25%</span></label
+                >
+                <input
+                  id="foundation-volatility"
+                  type="range"
+                  min="10"
+                  max="60"
+                  value="25"
+                />
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                id="lesson-chart"
+                class="lesson-chart"
+                viewBox="0 0 760 340"
+                role="img"
+                aria-label="Option profit and loss at expiry"
+              ></svg>
+            </div>
+            <dl class="interactive-readout">
+              <div>
+                <dt>Model premium</dt>
+                <dd id="stat-1">–</dd>
+              </div>
+              <div>
+                <dt>Legal shape</dt>
+                <dd id="stat-2">–</dd>
+              </div>
+              <div>
+                <dt>Maximum gain</dt>
+                <dd id="stat-3">–</dd>
+              </div>
+              <div>
+                <dt>Maximum loss</dt>
+                <dd id="stat-4">–</dd>
+              </div>
+            </dl>
+          </div>
+          <p>
+            Volatility measures movement, not direction. More expected movement
+            makes both calls and puts more valuable. A product offering a richer
+            coupon in a frightened market is not necessarily better value: the
+            investor is being paid more because the obligation sold is worth
+            more.
+          </p>
+        </section>
+        <section id="path">
+          <p class="section-label">Payoff versus path</p>
+          <h2>Where it ends is not always enough</h2>
+          <p>
+            A payoff diagram maps the final underlying level to redemption. A
+            path chart shows whether something happened before maturity. A
+            continuously monitored
+            <a class="term" href="glossary.html#knock-in">knock-in</a> can
+            switch on downside after a single touch, even if the underlying
+            later recovers. A
+            <a class="term" href="glossary.html#knock-out">knock-out</a> or
+            autocall can end the trade before its stated maturity.
+          </p>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Coupon barrier</strong>
+              <p>Decides whether one scheduled coupon is paid.</p>
+            </div>
+            <div class="concept">
+              <strong>Protection barrier</strong>
+              <p>Decides whether principal can follow the underlying down.</p>
+            </div>
+            <div class="concept">
+              <strong>Autocall level</strong>
+              <p>Decides whether the whole note redeems early.</p>
+            </div>
+            <div class="concept">
+              <strong>Worst-of basket</strong>
+              <p>
+                Uses the weakest constituent, making the strongest names
+                irrelevant.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section id="check">
+          <p class="section-label">Check your understanding</p>
+          <h2>Can you identify the transfer?</h2>
+          <div class="quiz">
+            <h3>
+              A note offers a high coupon because the investor sells a put. What
+              has the investor accepted?
+            </h3>
+            <p>Choose the best answer.</p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="A higher coupon does not create a right to buy; it pays for an obligation."
+              >
+                The right to buy the underlying at the strike
+              </button>
+              <button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. The investor may have to take equity downside at the strike, while the gain is limited to premium or coupon."
+              >
+                An obligation to absorb downside below the strike
+              </button>
+              <button
+                type="button"
+                data-feedback="Volatility can increase the premium, but it does not guarantee the return."
+              >
+                A guaranteed return when volatility rises
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
+        </section>
+        <section id="takeaways">
+          <p class="section-label">Takeaways</p>
+          <h2>Five rules to carry forward</h2>
+          <div class="takeaway-grid">
+            <div>
+              <strong>Unwrap the bundle</strong>
+              <p>
+                Start with the bond and option legs, not the marketing label.
+              </p>
+            </div>
+            <div>
+              <strong>Separate carry from value</strong>
+              <p>A forward discount can be arithmetic rather than a bargain.</p>
+            </div>
+            <div>
+              <strong>Read the observation rule</strong>
+              <p>
+                European, daily and continuous barriers are different contracts.
+              </p>
+            </div>
+            <div>
+              <strong>Trace every condition</strong>
+              <p>
+                Coupon, protection and autocall levels answer different
+                questions.
+              </p>
+            </div>
+          </div>
+        </section>
+      </article>
+      <aside class="lesson-aside">
+        <nav aria-label="On this page">
+          <h2>On this page</h2>
+          <ul>
+            <li><a href="#recipe">The core recipe</a></li>
+            <li><a href="#building-blocks">Option building blocks</a></li>
+            <li><a href="#path">Path dependency</a></li>
+            <li><a href="#check">Knowledge check</a></li>
+            <li><a href="#takeaways">Takeaways</a></li>
+          </ul>
+        </nav>
+        <div class="aside-card">
+          <h2>Go deeper</h2>
+          <p>Build multi-leg combinations and inspect Greeks.</p>
+          <a href="options-a-la-carte.html">Open strategy lab →</a>
+        </div>
+      </aside>
+    </main>
+    <footer class="lesson-next">
+      <div><span>Course home</span><a href="./">← All lessons</a></div>
+      <div>
+        <span>Next lesson</span
+        ><a href="lesson-01-koda-kodd.html">KODA &amp; KODD →</a>
+      </div>
+    </footer>
+    <script type="module" src="/src/lessons/main.ts"></script>
+  </body>
+</html>

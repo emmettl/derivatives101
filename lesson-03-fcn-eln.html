@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Learn how Asian fixed coupon notes and equity linked notes combine worst-of baskets, barriers and physical settlement."
+    />
+    <meta name="theme-color" content="#0b1e2d" />
+    <title>FCN &amp; ELN — Derivatives 101</title>
+    <link rel="stylesheet" href="lesson.css" />
+  </head>
+  <body data-lesson="fcn">
+    <nav class="lesson-topbar" aria-label="Course navigation">
+      <a class="brand" href="./">Derivatives 101</a
+      ><a href="glossary.html">Glossary</a>
+    </nav>
+    <header class="lesson-hero">
+      <div class="lesson-hero-grid">
+        <div>
+          <p class="eyebrow">Lesson 03 · Asian payoffs</p>
+          <h1>FCN &amp; ELN</h1>
+          <p class="lede">
+            Short-dated yield enhancement where a fixed coupon can coexist with
+            deeply uncertain principal and physical share delivery.
+          </p>
+        </div>
+        <aside class="lesson-meta">
+          <span>Estimated reading time</span><strong>10 minutes</strong
+          ><span>Companion download</span
+          ><strong>Included in full series</strong
+          ><a href="lessons/Derivatives-101-full-series.pdf#page=52"
+            >Open PDF lesson ↗</a
+          >
+        </aside>
+      </div>
+    </header>
+    <nav class="lesson-progress" aria-label="Lesson sequence">
+      <ol>
+        <li><a href="lesson-00-foundations.html">00 · Foundations</a></li>
+        <li><a href="lesson-01-koda-kodd.html">01 · KODA / KODD</a></li>
+        <li>
+          <a href="lesson-02-reverse-convertibles.html"
+            >02 · Reverse convertibles</a
+          >
+        </li>
+        <li>
+          <a href="lesson-03-fcn-eln.html" aria-current="page"
+            >03 · FCN / ELN</a
+          >
+        </li>
+        <li>
+          <a href="lesson-04-discount-bonus.html">04 · Discount &amp; bonus</a>
+        </li>
+        <li>
+          <a href="lesson-05-protection-leverage.html"
+            >05 · Protection &amp; leverage</a
+          >
+        </li>
+      </ol>
+    </nav>
+    <main class="lesson-layout">
+      <article class="lesson-copy">
+        <section id="names">
+          <p class="section-label">Start here</p>
+          <h2>The same economics, several market names</h2>
+          <p>
+            An FCN is typically a fixed-coupon, worst-of note with a knock-in
+            barrier, autocall and physical settlement. A classic ELN is simpler:
+            buy at a discount and receive shares if the stock closes below the
+            strike. ELI and ELS can describe regulatory wrappers or regional
+            forms rather than fundamentally new payoffs.
+          </p>
+          <div class="callout">
+            Nobody polices the marketing names. Read the term sheet, not the
+            label.
+          </div>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>FCN</strong>
+              <p>
+                Fixed coupon note: usually a short-dated worst-of basket with
+                unconditional coupons.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>ELN</strong>
+              <p>
+                Equity linked note: usually a single-name, one-observation
+                discount structure.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>ELI</strong>
+              <p>
+                Equity linked investment: a regulated retail wrapper that may
+                add airbag and autocall terms.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>ELS</strong>
+              <p>
+                Equity-linked securities: in Korea, often longer-dated index
+                autocalls sold to retail clients.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section id="basket">
+          <p class="section-label">The coupon is not the principal</p>
+          <h2>One weak name can decide the whole note</h2>
+          <p>
+            The word “fixed” truthfully describes the coupon and says nothing
+            about principal. The basket’s weakest performer usually controls the
+            coupon test, autocall test and maturity loss. Stronger constituents
+            become irrelevant once the worst name is identified.
+          </p>
+          <div class="interactive" aria-labelledby="interactive-title">
+            <div class="interactive-head">
+              <div>
+                <h3 id="interactive-title">Worst-of basket explorer</h3>
+                <p>
+                  Change the path, correlation and barrier. The same three-asset
+                  engine used by the basket lab evaluates the result.
+                </p>
+              </div>
+              <span class="engine-badge">Live basket engine</span>
+            </div>
+            <div class="interactive-controls">
+              <div class="control">
+                <label for="basket-scenario">Basket path</label
+                ><select id="basket-scenario">
+                  <option value="rally">Broad rally</option>
+                  <option value="diverge" selected>Diverging names</option>
+                  <option value="break">One name breaks</option>
+                  <option value="selloff">Broad sell-off</option>
+                  <option value="random">Random path</option>
+                </select>
+              </div>
+              <div class="control">
+                <label for="basket-correlation"
+                  >Correlation ·
+                  <span id="basket-correlation-value">50%</span></label
+                ><input
+                  id="basket-correlation"
+                  type="range"
+                  min="0"
+                  max="95"
+                  value="50"
+                />
+              </div>
+              <div class="control">
+                <label for="basket-barrier"
+                  >Barrier · <span id="basket-barrier-value">70%</span></label
+                ><input
+                  id="basket-barrier"
+                  type="range"
+                  min="40"
+                  max="90"
+                  value="70"
+                />
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                id="lesson-chart"
+                class="lesson-chart"
+                viewBox="0 0 760 340"
+                role="img"
+                aria-label="Three basket constituents and the principal barrier"
+              ></svg>
+            </div>
+            <dl class="interactive-readout">
+              <div>
+                <dt>Worst name</dt>
+                <dd id="stat-1">–</dd>
+              </div>
+              <div>
+                <dt>Worst final level</dt>
+                <dd id="stat-2">–</dd>
+              </div>
+              <div>
+                <dt>Coupons</dt>
+                <dd id="stat-3">–</dd>
+              </div>
+              <div>
+                <dt>Total return</dt>
+                <dd id="stat-4">–</dd>
+              </div>
+            </dl>
+          </div>
+          <p>
+            For deterministic teaching paths, correlation does not change the
+            selected drawing. Select “Random path” and resample in the full
+            basket lab to see lower correlation create wider dispersion and a
+            weaker expected worst performer.
+          </p>
+        </section>
+        <section id="settlement">
+          <p class="section-label">
+            What makes the wrapper operationally different
+          </p>
+          <h2>Physical settlement is not a footnote</h2>
+          <p>
+            If the note loses, the client may receive the worst-performing
+            shares at the original strike. Share count is typically notional
+            divided by strike price, rounded to the market’s board lot, with
+            residual cash handled separately. Holidays, settlement cycles and
+            corporate actions can all affect delivery.
+          </p>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Share count</strong>
+              <p>
+                Notional ÷ (strike percentage × initial price), then rounded
+                under the contract.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Delivered value</strong>
+              <p>The fixed share count valued at the weaker maturity price.</p>
+            </div>
+          </div>
+          <p>
+            A note can pay every coupon and still generate a large overall loss.
+            Coupons and principal are separate ledgers; add them only at the
+            end.
+          </p>
+        </section>
+        <section id="check">
+          <p class="section-label">Check your understanding</p>
+          <h2>Separate the headline from the outcome</h2>
+          <div class="quiz">
+            <h3>
+              A 12% p.a. six-month FCN pays every monthly coupon, then delivers
+              stock worth 61% of principal. What does “fixed coupon” guarantee?
+            </h3>
+            <p>Choose the precise statement.</p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="The word fixed does not apply to principal."
+              >
+                Par repayment at maturity</button
+              ><button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. The scheduled coupon amount is fixed; principal can still fall with the worst name."
+              >
+                Only the amount of each scheduled coupon</button
+              ><button
+                type="button"
+                data-feedback="Physical settlement can deliver shares rather than a fixed cash value."
+              >
+                The cash value of delivered shares
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
+        </section>
+        <section id="takeaways">
+          <p class="section-label">Takeaways</p>
+          <h2>What to remember</h2>
+          <div class="takeaway-grid">
+            <div>
+              <strong>Fixed describes coupon</strong>
+              <p>It does not mean fixed principal or fixed total return.</p>
+            </div>
+            <div>
+              <strong>Worst-of discards good news</strong>
+              <p>One weak name can outweigh every strong constituent.</p>
+            </div>
+            <div>
+              <strong>Settlement creates real work</strong>
+              <p>
+                Share rounding and market conventions belong in the payoff
+                specification.
+              </p>
+            </div>
+            <div>
+              <strong>Names are regional</strong>
+              <p>
+                Classify the economic terms before relying on the wrapper label.
+              </p>
+            </div>
+          </div>
+        </section>
+      </article>
+      <aside class="lesson-aside">
+        <nav aria-label="On this page">
+          <h2>On this page</h2>
+          <ul>
+            <li><a href="#names">Regional names</a></li>
+            <li><a href="#basket">Basket explorer</a></li>
+            <li><a href="#settlement">Physical settlement</a></li>
+            <li><a href="#check">Knowledge check</a></li>
+            <li><a href="#takeaways">Takeaways</a></li>
+          </ul>
+        </nav>
+        <div class="aside-card">
+          <h2>Go deeper</h2>
+          <p>Resample correlated paths and inspect the worst-name ledger.</p>
+          <a href="basket-lab.html">Open basket lab →</a>
+        </div>
+      </aside>
+    </main>
+    <footer class="lesson-next">
+      <div>
+        <span>Previous lesson</span
+        ><a href="lesson-02-reverse-convertibles.html"
+          >← Reverse convertibles</a
+        >
+      </div>
+      <div>
+        <span>Next lesson</span
+        ><a href="lesson-04-discount-bonus.html">Discount &amp; bonus →</a>
+      </div>
+    </footer>
+    <script type="module" src="/src/lessons/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Learn how coupons, barriers and autocalls shape reverse convertible risk."
+    />
+    <meta name="theme-color" content="#0b1e2d" />
+    <title>Reverse convertibles — Derivatives 101</title>
+    <link rel="stylesheet" href="lesson.css" />
+  </head>
+  <body data-lesson="reverse-convertibles">
+    <nav class="lesson-topbar" aria-label="Course navigation">
+      <a class="brand" href="./">Derivatives 101</a
+      ><a href="glossary.html">Glossary</a>
+    </nav>
+    <header class="lesson-hero">
+      <div class="lesson-hero-grid">
+        <div>
+          <p class="eyebrow">Lesson 02 · Yield enhancement</p>
+          <h1>Reverse convertibles</h1>
+          <p class="lede">
+            A high coupon paid for with conditional principal: bond plus short
+            put, with barriers and early redemption layered on top.
+          </p>
+        </div>
+        <aside class="lesson-meta">
+          <span>Estimated reading time</span><strong>12 minutes</strong
+          ><span>Companion download</span><strong>18-page lesson deck</strong
+          ><a href="lessons/2_Reverse_Convertibles.pdf" download
+            >Download PDF ↓</a
+          >
+        </aside>
+      </div>
+    </header>
+    <nav class="lesson-progress" aria-label="Lesson sequence">
+      <ol>
+        <li><a href="lesson-00-foundations.html">00 · Foundations</a></li>
+        <li><a href="lesson-01-koda-kodd.html">01 · KODA / KODD</a></li>
+        <li>
+          <a href="lesson-02-reverse-convertibles.html" aria-current="page"
+            >02 · Reverse convertibles</a
+          >
+        </li>
+        <li><a href="lesson-03-fcn-eln.html">03 · FCN / ELN</a></li>
+        <li>
+          <a href="lesson-04-discount-bonus.html">04 · Discount &amp; bonus</a>
+        </li>
+        <li>
+          <a href="lesson-05-protection-leverage.html"
+            >05 · Protection &amp; leverage</a
+          >
+        </li>
+      </ol>
+    </nav>
+    <main class="lesson-layout">
+      <article class="lesson-copy">
+        <section id="shape">
+          <p class="section-label">In one sentence</p>
+          <h2>A high coupon, paid for with your principal</h2>
+          <p>
+            A reverse convertible pays an above-market coupon and repays par
+            only while its protection condition survives. Economically, the
+            investor owns an issuer bond and sells a put on the underlying. If
+            the short put finishes in the money, principal follows the asset
+            down.
+          </p>
+          <div class="callout">
+            The coupon is fixed in advance. The principal is the uncertain part.
+          </div>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Vanilla form</strong>
+              <p>
+                Principal falls one-for-one whenever the underlying ends below
+                the strike.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Barrier form</strong>
+              <p>
+                The put activates only if the knock-in condition is met, usually
+                plus a weak final level.
+              </p>
+            </div>
+          </div>
+        </section>
+        <section id="barriers">
+          <p class="section-label">Two separate tests</p>
+          <h2>Coupon and principal barriers price different risks</h2>
+          <p>
+            A coupon barrier asks whether one coupon is paid on one date. A
+            protection barrier asks whether principal can be lost. Memory may
+            defer a missed coupon; it does not repair principal protection. Read
+            the two schedules separately.
+          </p>
+          <div class="interactive" aria-labelledby="interactive-title">
+            <div class="interactive-head">
+              <div>
+                <h3 id="interactive-title">Barrier path explorer</h3>
+                <p>
+                  Run the same note through contrasting paths. The chart and
+                  redemption use the structured-note lifecycle engine.
+                </p>
+              </div>
+              <span class="engine-badge">Live structured engine</span>
+            </div>
+            <div class="interactive-controls">
+              <div class="control">
+                <label for="rc-scenario">Market path</label
+                ><select id="rc-scenario">
+                  <option value="rally">Rally</option>
+                  <option value="crash" selected>Crash, then recover</option>
+                  <option value="decline">Persistent decline</option>
+                  <option value="random">Random path</option>
+                </select>
+              </div>
+              <div class="control">
+                <label for="rc-barrier"
+                  >Knock-in · <span id="rc-barrier-value">60%</span></label
+                ><input
+                  id="rc-barrier"
+                  type="range"
+                  min="40"
+                  max="90"
+                  value="60"
+                />
+              </div>
+              <div class="control">
+                <label for="rc-coupon"
+                  >Annual coupon · <span id="rc-coupon-value">8%</span></label
+                ><input
+                  id="rc-coupon"
+                  type="range"
+                  min="2"
+                  max="18"
+                  value="8"
+                />
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                id="lesson-chart"
+                class="lesson-chart"
+                viewBox="0 0 760 340"
+                role="img"
+                aria-label="Reverse convertible path and knock-in barrier"
+              ></svg>
+            </div>
+            <dl class="interactive-readout">
+              <div>
+                <dt>Barrier state</dt>
+                <dd id="stat-1">–</dd>
+              </div>
+              <div>
+                <dt>Principal</dt>
+                <dd id="stat-2">–</dd>
+              </div>
+              <div>
+                <dt>Coupons</dt>
+                <dd id="stat-3">–</dd>
+              </div>
+              <div>
+                <dt>Total return</dt>
+                <dd id="stat-4">–</dd>
+              </div>
+            </dl>
+          </div>
+          <p>
+            A barrier breach can be necessary but not sufficient for loss. In
+            many notes, the underlying must both breach during the life and
+            finish below the strike. A recovery can therefore save principal
+            without undoing the historical breach.
+          </p>
+        </section>
+        <section id="calls">
+          <p class="section-label">Who decides when it ends?</p>
+          <h2>Callable and autocallable are not synonyms</h2>
+          <div class="concept-grid">
+            <div class="concept">
+              <strong>Callable</strong>
+              <p>
+                The issuer holds the right to redeem. It will exercise when
+                doing so benefits the issuer.
+              </p>
+            </div>
+            <div class="concept">
+              <strong>Autocallable</strong>
+              <p>
+                A published underlying test automatically redeems the note when
+                met.
+              </p>
+            </div>
+          </div>
+          <p>
+            A step-down autocall schedule becomes easier to trigger over time.
+            That improves the probability of early repayment but caps
+            participation in a recovery. The client cannot choose to keep the
+            attractive coupon alive.
+          </p>
+          <h3>Worst-of adds another dimension</h3>
+          <p>
+            With several underlyings, the weakest name drives the relevant
+            tests. Adding a name raises coupon because it lowers the expected
+            payout. The extra yield and the extra risk are the same fact seen
+            from opposite sides.
+          </p>
+        </section>
+        <section id="check">
+          <p class="section-label">Check your understanding</p>
+          <h2>Keep the tests separate</h2>
+          <div class="quiz">
+            <h3>
+              A daily knock-in barrier was breached, but the underlying
+              recovered above the strike by maturity. What usually happens?
+            </h3>
+            <p>
+              Assume a standard barrier reverse convertible with unconditional
+              coupons.
+            </p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="A historical breach alone does not usually create a loss if the final level is above the strike."
+              >
+                Principal must be reduced because the barrier was touched</button
+              ><button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. The barrier switched on the put, but the recovered final level leaves that put out of the money."
+              >
+                Principal repays at par and the coupons remain paid</button
+              ><button
+                type="button"
+                data-feedback="The product does not generally reset its strike after a breach."
+              >
+                The strike resets to the barrier level
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
+        </section>
+        <section id="takeaways">
+          <p class="section-label">Takeaways</p>
+          <h2>What to remember</h2>
+          <div class="takeaway-grid">
+            <div>
+              <strong>Bond plus short put</strong>
+              <p>The coupon spreads the option premium over time.</p>
+            </div>
+            <div>
+              <strong>Conditions are independent</strong>
+              <p>
+                Coupon, call and protection tests can all use different levels.
+              </p>
+            </div>
+            <div>
+              <strong>Callability has an owner</strong>
+              <p>
+                Issuer choice and automatic level tests have different
+                economics.
+              </p>
+            </div>
+            <div>
+              <strong>Worst-of sells dispersion</strong>
+              <p>
+                More names increase both coupon and the chance of a weak
+                outlier.
+              </p>
+            </div>
+          </div>
+        </section>
+      </article>
+      <aside class="lesson-aside">
+        <nav aria-label="On this page">
+          <h2>On this page</h2>
+          <ul>
+            <li><a href="#shape">The core payoff</a></li>
+            <li><a href="#barriers">Barrier explorer</a></li>
+            <li><a href="#calls">Calls and baskets</a></li>
+            <li><a href="#check">Knowledge check</a></li>
+            <li><a href="#takeaways">Takeaways</a></li>
+          </ul>
+        </nav>
+        <div class="aside-card">
+          <h2>Go deeper</h2>
+          <p>Follow every observation, barrier and settlement event.</p>
+          <a href="reverse-convertible-lab.html">Open lifecycle lab →</a>
+        </div>
+      </aside>
+    </main>
+    <footer class="lesson-next">
+      <div>
+        <span>Previous lesson</span
+        ><a href="lesson-01-koda-kodd.html">← KODA &amp; KODD</a>
+      </div>
+      <div>
+        <span>Next lesson</span
+        ><a href="lesson-03-fcn-eln.html">FCN &amp; ELN →</a>
+      </div>
+    </footer>
+    <script type="module" src="/src/lessons/main.ts"></script>
+  </body>
+</html>

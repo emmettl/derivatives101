@@ -221,8 +221,8 @@ function renderSummary(): void {
 function renderDecision(): void {
   const step = currentStep();
   const [initialLower, initialUpper] = candidateBounds(state);
-  $("#lower-value").textContent = formatCandidate(step?.lower ?? initialLower);
-  $("#upper-value").textContent = formatCandidate(step?.upper ?? initialUpper);
+  $("#lower-value").textContent = formatCandidate(step?.nextLower ?? initialLower);
+  $("#upper-value").textContent = formatCandidate(step?.nextUpper ?? initialUpper);
   $("#mid-value").textContent = formatCandidate(
     step?.midpoint ?? (initialLower + initialUpper) / 2,
   );
@@ -376,8 +376,8 @@ function renderChart(): void {
   }
 
   const step = currentStep();
-  const lower = step?.lower ?? minCandidate;
-  const upper = step?.upper ?? maxCandidate;
+  const lower = step?.nextLower ?? minCandidate;
+  const upper = step?.nextUpper ?? maxCandidate;
   const currentVisual: ChartVisual = {
     lower: { x: x(lower), y: y(priceAtCandidate(state, lower)) },
     upper: { x: x(upper), y: y(priceAtCandidate(state, upper)) },
@@ -475,8 +475,8 @@ function renderChart(): void {
     );
     if (candidateDot && currentVisual.midpoint) {
       const origin = previousChartVisual.midpoint ?? {
-        x: (previousChartVisual.lower.x + previousChartVisual.upper.x) / 2,
-        y: currentVisual.midpoint.y,
+        x: currentVisual.midpoint.x,
+        y: margin.top + plotH,
       };
       travel(candidateDot, origin, currentVisual.midpoint, 70);
       candidateDot.animate(

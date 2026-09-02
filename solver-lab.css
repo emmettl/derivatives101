@@ -254,6 +254,32 @@ main {
   background: var(--tint-2);
 }
 
+.mode-control {
+  margin-top: 22px;
+}
+
+.group-label {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mode-control .segmented {
+  margin: 7px 0 12px;
+}
+
+.variable-picker {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.variable-picker button {
+  padding-inline: 6px;
+  font-size: 13px;
+}
+
 .segmented button {
   min-height: 38px;
   border: 0;
@@ -274,6 +300,10 @@ main {
   display: block;
   padding: 11px 0;
   border-bottom: 1px solid var(--line);
+}
+
+.slider-row.is-hidden {
+  display: none;
 }
 
 .slider-row > span {

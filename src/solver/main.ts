@@ -1,5 +1,10 @@
-import { priceAtStrike, solveStrike } from "./engine";
-import type { StrikeSolution, StrikeSolveInputs, StrikeSolveStep } from "./engine";
+import {
+  candidateBounds,
+  priceAtCandidate,
+  priceIncreasesWithCandidate,
+  solveVariable,
+} from "./engine";
+import type { SolveVariable, SolverInputs, SolverSolution, SolverStep } from "./engine";
 import type { OptionType } from "../option-lab/types";
 
 const $ = <T extends HTMLElement>(selector: string): T => {
@@ -10,8 +15,10 @@ const $ = <T extends HTMLElement>(selector: string): T => {
 
 const defaults = {
   type: "call" as OptionType,
+  solveFor: "strike" as SolveVariable,
   target: 8.5,
   S: 100,
+  K: 100,
   v: 0.25,
   T: 1,
   r: 0.03,
@@ -19,7 +26,7 @@ const defaults = {
 };
 
 let state = { ...defaults };
-let solution: StrikeSolution = solveStrike(state);
+let solution: SolverSolution = solveVariable(state);
 let visibleSteps = 0;
 let timer: number | undefined;
 let animateNextRender = false;
@@ -39,6 +46,7 @@ interface ChartVisual {
 const controls = {
   target: $("#target") as HTMLInputElement,
   spot: $("#spot") as HTMLInputElement,
+  strike: $("#strike") as HTMLInputElement,
   vol: $("#vol") as HTMLInputElement,
   expiry: $("#expiry") as HTMLInputElement,
   rate: $("#rate") as HTMLInputElement,
@@ -47,11 +55,13 @@ const controls = {
 
 const format2 = (value: number) => value.toFixed(2);
 
-function readInputs(): StrikeSolveInputs {
+function readInputs(): SolverInputs {
   return {
     type: state.type,
+    solveFor: state.solveFor,
     target: Number(controls.target.value),
     S: Number(controls.spot.value),
+    K: Number(controls.strike.value),
     v: Number(controls.vol.value) / 100,
     T: Number(controls.expiry.value),
     r: Number(controls.rate.value) / 100,
@@ -68,20 +78,60 @@ function stopTimer(): void {
 function resetTrail(): void {
   stopTimer();
   state = readInputs();
-  solution = solveStrike(state);
+  solution = solveVariable(state);
   visibleSteps = 0;
   animateNextRender = false;
   previousChartVisual = undefined;
   render();
 }
 
-function currentStep(): StrikeSolveStep | undefined {
+function currentStep(): SolverStep | undefined {
   return solution.steps[Math.max(0, visibleSteps - 1)];
 }
 
+const variableMeta = {
+  strike: {
+    label: "strike",
+    solvedLabel: "Solved strike",
+    symbol: "K",
+    axis: "Strike K",
+    inputs: "S, <mark>K</mark>, T, r, q, σ",
+    explanation:
+      "There is no simple rearrangement for K. Call value falls as strike rises; put value rises. That monotonic relationship gives the solver a direction.",
+  },
+  volatility: {
+    label: "volatility",
+    solvedLabel: "Implied volatility",
+    symbol: "σ",
+    axis: "Volatility σ",
+    inputs: "S, K, T, r, q, <mark>σ</mark>",
+    explanation:
+      "This is how implied volatility is recovered from a market price. Call and put values both rise with volatility, so every comparison points the search up or down.",
+  },
+  spot: {
+    label: "spot",
+    solvedLabel: "Implied spot",
+    symbol: "S",
+    axis: "Spot S",
+    inputs: "<mark>S</mark>, K, T, r, q, σ",
+    explanation:
+      "Call value rises with spot, while put value falls. The same bracket works, but its search direction flips when the option type changes.",
+  },
+} as const;
+
+function formatCandidate(value: number): string {
+  return state.solveFor === "volatility" ? `${(value * 100).toFixed(1)}%` : value.toFixed(2);
+}
+
+function formatAxisCandidate(value: number): string {
+  return state.solveFor === "volatility" ? `${(value * 100).toFixed(0)}%` : value.toFixed(0);
+}
+
 function renderOutputs(): void {
+  const meta = variableMeta[state.solveFor];
   $("#target-out").textContent = format2(state.target);
   $("#spot-out").textContent = state.S.toFixed(0);
+  $("#strike-out").textContent = state.K.toFixed(0);
   $("#vol-out").textContent = `${(state.v * 100).toFixed(0)}%`;
   $("#expiry-out").textContent = `${state.T.toFixed(2)}y`;
   $("#rate-out").textContent = `${(state.r * 100).toFixed(1)}%`;
@@ -89,15 +139,25 @@ function renderOutputs(): void {
   $("#target-summary").textContent = format2(state.target);
   $("#equation-target").textContent = format2(state.target);
   $("#equation-type").textContent = state.type === "call" ? "Call price" : "Put price";
+  $("#solve-heading").textContent = `Solve for ${meta.label}`;
+  $("#solved-label").textContent = meta.solvedLabel;
+  $("#equation-inputs").innerHTML = meta.inputs;
+  $("#equation-explanation").textContent = meta.explanation;
+  $("#lower-label").textContent = `Lower ${meta.label}`;
+  $("#upper-label").textContent = `Upper ${meta.label}`;
+  $("#test-variable-heading").textContent = `Test ${meta.symbol}`;
+  document.querySelectorAll<HTMLElement>("[data-input]").forEach((row) => {
+    row.classList.toggle("is-hidden", row.dataset.input === state.solveFor);
+  });
 }
 
 function renderSummary(): void {
   const step = currentStep();
   const complete = visibleSteps >= solution.steps.length && solution.converged;
-  $("#solved-strike").textContent = complete
-    ? format2(solution.strike)
+  $("#solved-value").textContent = complete
+    ? formatCandidate(solution.value)
     : step
-      ? format2(step.midpoint)
+      ? formatCandidate(step.midpoint)
       : "—";
   $("#candidate-price").textContent = step ? format2(step.price) : "—";
   $("#error-summary").textContent = step ? Math.abs(step.error).toFixed(4) : "—";
@@ -106,6 +166,7 @@ function renderSummary(): void {
     "disabled",
     visibleSteps >= solution.steps.length || !solution.steps.length,
   );
+  $("#solve").toggleAttribute("disabled", !solution.steps.length);
 
   const pill = $("#status-pill");
   pill.classList.toggle("solved", complete);
@@ -121,11 +182,14 @@ function renderSummary(): void {
   } else if (complete) {
     $("#action-note").textContent =
       `The model price is within 0.005 of the ${format2(state.target)} target.`;
+  } else if (!step) {
+    $("#action-note").textContent =
+      "Take one step to inspect each decision, or run the full solve.";
   }
 
   if (animateNextRender) {
     [
-      "#solved-strike",
+      "#solved-value",
       "#candidate-price",
       "#error-summary",
       "#iteration-summary",
@@ -136,13 +200,12 @@ function renderSummary(): void {
 
 function renderDecision(): void {
   const step = currentStep();
-  const initialLower = state.S * 0.2;
-  const initialUpper = state.S * 2.5;
-  $("#lower-strike").textContent = format2(step?.lower ?? initialLower);
-  $("#upper-strike").textContent = format2(step?.upper ?? initialUpper);
-  $("#mid-strike").textContent = step
-    ? format2(step.midpoint)
-    : format2((initialLower + initialUpper) / 2);
+  const [initialLower, initialUpper] = candidateBounds(state);
+  $("#lower-value").textContent = formatCandidate(step?.lower ?? initialLower);
+  $("#upper-value").textContent = formatCandidate(step?.upper ?? initialUpper);
+  $("#mid-value").textContent = formatCandidate(
+    step?.midpoint ?? (initialLower + initialUpper) / 2,
+  );
 
   if (!step) {
     $("#decision-copy").textContent = "The first step will test the middle of the starting range.";
@@ -154,21 +217,15 @@ function renderDecision(): void {
     return;
   }
   const comparison = step.price > state.target ? "above" : "below";
-  const implication =
-    state.type === "call"
-      ? step.price > state.target
-        ? "The strike is too low, so discard the lower half."
-        : "The strike is too high, so discard the upper half."
-      : step.price > state.target
-        ? "The strike is too high, so discard the upper half."
-        : "The strike is too low, so discard the lower half.";
+  const increasing = priceIncreasesWithCandidate(state);
+  const candidateTooLow = increasing ? step.price < state.target : step.price > state.target;
+  const variable = variableMeta[state.solveFor].label;
+  const implication = `The ${variable} is too ${candidateTooLow ? "low" : "high"}, so discard the ${candidateTooLow ? "lower" : "upper"} half.`;
   $("#decision-copy").textContent =
     `${format2(step.price)} is ${comparison} ${format2(state.target)}. ${implication}`;
 
   if (animateNextRender) {
-    ["#lower-strike", "#mid-strike", "#upper-strike"].forEach((selector) =>
-      pulseValue($(selector)),
-    );
+    ["#lower-value", "#mid-value", "#upper-value"].forEach((selector) => pulseValue($(selector)));
     $("#decision-copy").animate(
       [
         { opacity: 0, transform: "translateY(7px)" },
@@ -194,8 +251,8 @@ function renderTable(): void {
         index,
       ) => `<tr${animateNextRender && index === shown.length - 1 ? ' class="new-step"' : ""}>
         <td>${step.iteration}</td>
-        <td>${format2(step.lower)} — ${format2(step.upper)}</td>
-        <td><strong>${format2(step.midpoint)}</strong></td>
+        <td>${formatCandidate(step.lower)} — ${formatCandidate(step.upper)}</td>
+        <td><strong>${formatCandidate(step.midpoint)}</strong></td>
         <td>${format2(step.price)}</td>
         <td>${step.error >= 0 ? "+" : ""}${step.error.toFixed(4)}</td>
         <td class="decision-keep">${step.decision}</td>
@@ -247,16 +304,22 @@ function renderChart(): void {
   const margin = { top: 22, right: 24, bottom: 46, left: 58 };
   const plotW = width - margin.left - margin.right;
   const plotH = height - margin.top - margin.bottom;
-  const minK = state.S * 0.2;
-  const maxK = state.S * 2.5;
+  const [minCandidate, maxCandidate] = candidateBounds(state);
   const samples = Array.from({ length: 101 }, (_, index) => {
-    const K = minK + ((maxK - minK) * index) / 100;
-    return { K, price: priceAtStrike(state, K) };
+    const candidate = minCandidate + ((maxCandidate - minCandidate) * index) / 100;
+    return { candidate, price: priceAtCandidate(state, candidate) };
   });
   const maxPrice = Math.max(state.target * 1.2, ...samples.map((point) => point.price)) * 1.04;
-  const x = (K: number) => margin.left + ((K - minK) / (maxK - minK)) * plotW;
+  const x = (candidate: number) =>
+    margin.left + ((candidate - minCandidate) / (maxCandidate - minCandidate)) * plotW;
   const y = (price: number) => margin.top + plotH - (price / maxPrice) * plotH;
   svg.replaceChildren();
+
+  const svgTitle = svgElement("title", { id: "chart-title" });
+  svgTitle.textContent = `Option price by ${variableMeta[state.solveFor].label}`;
+  const svgDescription = svgElement("desc", { id: "chart-description" });
+  svgDescription.textContent = `A curve showing option value across candidate ${variableMeta[state.solveFor].label} values, the target price, and the solver's current bracket.`;
+  svg.append(svgTitle, svgDescription);
 
   for (let i = 0; i <= 4; i += 1) {
     const price = (maxPrice * i) / 4;
@@ -281,23 +344,23 @@ function renderChart(): void {
   }
 
   for (let i = 0; i <= 4; i += 1) {
-    const strike = minK + ((maxK - minK) * i) / 4;
+    const candidate = minCandidate + ((maxCandidate - minCandidate) * i) / 4;
     const label = svgElement("text", {
-      x: String(x(strike)),
+      x: String(x(candidate)),
       y: String(height - 18),
       "text-anchor": "middle",
       class: "axis-label",
     });
-    label.textContent = strike.toFixed(0);
+    label.textContent = formatAxisCandidate(candidate);
     svg.append(label);
   }
 
   const step = currentStep();
-  const lower = step?.lower ?? minK;
-  const upper = step?.upper ?? maxK;
+  const lower = step?.lower ?? minCandidate;
+  const upper = step?.upper ?? maxCandidate;
   const currentVisual: ChartVisual = {
-    lower: { x: x(lower), y: y(priceAtStrike(state, lower)) },
-    upper: { x: x(upper), y: y(priceAtStrike(state, upper)) },
+    lower: { x: x(lower), y: y(priceAtCandidate(state, lower)) },
+    upper: { x: x(upper), y: y(priceAtCandidate(state, upper)) },
     midpoint: step ? { x: x(step.midpoint), y: y(step.price) } : undefined,
   };
   const bracketZone = svgElement("rect", {
@@ -312,7 +375,7 @@ function renderChart(): void {
   const pathData = samples
     .map(
       (point, index) =>
-        `${index ? "L" : "M"} ${x(point.K).toFixed(2)} ${y(point.price).toFixed(2)}`,
+        `${index ? "L" : "M"} ${x(point.candidate).toFixed(2)} ${y(point.price).toFixed(2)}`,
     )
     .join(" ");
   svg.append(svgElement("path", { d: pathData, class: "price-curve" }));
@@ -413,7 +476,7 @@ function renderChart(): void {
     "text-anchor": "middle",
     class: "axis-title",
   });
-  xTitle.textContent = "Strike K";
+  xTitle.textContent = variableMeta[state.solveFor].axis;
   svg.append(xTitle);
   const yTitle = svgElement("text", {
     x: "13",
@@ -437,6 +500,18 @@ function render(): void {
 }
 
 Object.values(controls).forEach((control) => control.addEventListener("input", resetTrail));
+
+$("#solve-variable").addEventListener("click", (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-value]");
+  if (!button) return;
+  state.solveFor = button.dataset.value as SolveVariable;
+  document.querySelectorAll<HTMLButtonElement>("#solve-variable button").forEach((item) => {
+    const on = item === button;
+    item.classList.toggle("on", on);
+    item.setAttribute("aria-pressed", String(on));
+  });
+  resetTrail();
+});
 
 $("#option-type").addEventListener("click", (event) => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-value]");
@@ -490,10 +565,16 @@ $("#reset").addEventListener("click", () => {
   state = { ...defaults };
   controls.target.value = String(defaults.target);
   controls.spot.value = String(defaults.S);
+  controls.strike.value = String(defaults.K);
   controls.vol.value = String(defaults.v * 100);
   controls.expiry.value = String(defaults.T);
   controls.rate.value = String(defaults.r * 100);
   controls.dividend.value = String(defaults.q * 100);
+  document.querySelectorAll<HTMLButtonElement>("#solve-variable button").forEach((button) => {
+    const on = button.dataset.value === defaults.solveFor;
+    button.classList.toggle("on", on);
+    button.setAttribute("aria-pressed", String(on));
+  });
   document.querySelectorAll<HTMLButtonElement>("#option-type button").forEach((button) => {
     const on = button.dataset.value === defaults.type;
     button.classList.toggle("on", on);

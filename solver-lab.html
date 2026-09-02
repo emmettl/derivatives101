@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="See how a numerical solver works backwards from a target option premium to find the strike."
+      content="See how a numerical solver works backwards from a target option premium to find strike, implied volatility or spot."
     />
     <meta name="theme-color" content="#0b1e2d" />
     <meta property="og:type" content="website" />
@@ -13,7 +13,7 @@
     <meta property="og:title" content="Derivatives 101 — Solver Lab" />
     <meta
       property="og:description"
-      content="Bracket, test and converge: an interactive look inside solving for an option strike."
+      content="Bracket, test and converge: solve for strike, implied volatility or spot."
     />
     <meta
       property="og:url"
@@ -27,7 +27,7 @@
     <meta name="twitter:title" content="Derivatives 101 — Solver Lab" />
     <meta
       name="twitter:description"
-      content="An interactive look inside solving for an option strike."
+      content="An interactive look inside solving for strike, implied volatility or spot."
     />
     <meta
       name="twitter:image"
@@ -55,9 +55,9 @@
           </h1>
         </div>
         <p class="lede">
-          Start with the premium you want. The solver repeatedly prices a
-          candidate strike, rejects half the remaining range, and closes in on
-          the answer.
+          Start with the premium you want. Choose the missing input, then watch
+          the solver price candidates, reject half the remaining range, and
+          close in on the answer.
         </p>
       </div>
     </header>
@@ -65,8 +65,8 @@
     <main>
       <section class="answer-strip" aria-label="Current solution">
         <div class="answer-main">
-          <span>Solved strike</span>
-          <strong id="solved-strike">—</strong>
+          <span id="solved-label">Solved strike</span>
+          <strong id="solved-value">—</strong>
         </div>
         <div>
           <span>Price at candidate</span>
@@ -91,9 +91,38 @@
           <div class="control-head">
             <div>
               <p class="eyebrow dark">The inverse question</p>
-              <h2>Solve for strike</h2>
+              <h2 id="solve-heading">Solve for strike</h2>
             </div>
             <button type="button" class="quiet-button" id="reset">Reset</button>
+          </div>
+
+          <div class="mode-control">
+            <span class="group-label">Solve for</span>
+            <div
+              class="segmented variable-picker"
+              id="solve-variable"
+              role="group"
+              aria-label="Variable to solve for"
+            >
+              <button
+                type="button"
+                class="on"
+                data-value="strike"
+                aria-pressed="true"
+              >
+                Strike
+              </button>
+              <button
+                type="button"
+                data-value="volatility"
+                aria-pressed="false"
+              >
+                Implied vol
+              </button>
+              <button type="button" data-value="spot" aria-pressed="false">
+                Spot
+              </button>
+            </div>
           </div>
 
           <div
@@ -126,7 +155,7 @@
               step="0.25"
             />
           </label>
-          <label class="slider-row" for="spot">
+          <label class="slider-row" for="spot" data-input="spot">
             <span>Spot <output id="spot-out">100</output></span>
             <input
               id="spot"
@@ -137,7 +166,18 @@
               step="1"
             />
           </label>
-          <label class="slider-row" for="vol">
+          <label class="slider-row is-hidden" for="strike" data-input="strike">
+            <span>Strike <output id="strike-out">100</output></span>
+            <input
+              id="strike"
+              type="range"
+              min="40"
+              max="180"
+              value="100"
+              step="1"
+            />
+          </label>
+          <label class="slider-row" for="vol" data-input="volatility">
             <span>Volatility <output id="vol-out">25%</output></span>
             <input id="vol" type="range" min="5" max="80" value="25" step="1" />
           </label>
@@ -196,13 +236,14 @@
             </div>
             <div
               class="equation"
-              aria-label="Option price as a function of strike equals target premium"
+              aria-label="Option price as a function of the selected unknown equals target premium"
             >
               <span id="equation-type">Call price</span>
-              <b>(</b><span>S,</span><mark>K</mark><span>, T, r, q, σ</span
+              <b>(</b
+              ><span id="equation-inputs">S, <mark>K</mark>, T, r, q, σ</span
               ><b>)</b> <i>=</i><strong id="equation-target">8.50</strong>
             </div>
-            <p>
+            <p id="equation-explanation">
               There is no simple rearrangement for <em>K</em>. But for a call,
               value falls as strike rises; for a put it rises. That monotonic
               relationship gives the solver a direction.
@@ -235,13 +276,15 @@
 
             <div class="decision-grid" aria-live="polite">
               <div>
-                <span>Lower strike</span><strong id="lower-strike">—</strong>
+                <span id="lower-label">Lower strike</span
+                ><strong id="lower-value">—</strong>
               </div>
               <div class="candidate">
-                <span>Test midpoint</span><strong id="mid-strike">—</strong>
+                <span>Test midpoint</span><strong id="mid-value">—</strong>
               </div>
               <div>
-                <span>Upper strike</span><strong id="upper-strike">—</strong>
+                <span id="upper-label">Upper strike</span
+                ><strong id="upper-value">—</strong>
               </div>
               <p id="decision-copy">
                 The first step will test the middle of the starting range.
@@ -265,7 +308,7 @@
                   <tr>
                     <th scope="col">Step</th>
                     <th scope="col">Bracket</th>
-                    <th scope="col">Test K</th>
+                    <th scope="col" id="test-variable-heading">Test K</th>
                     <th scope="col">Model price</th>
                     <th scope="col">Error</th>
                     <th scope="col">Decision</th>

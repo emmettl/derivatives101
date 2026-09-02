@@ -11,5 +11,10 @@ interface StructuredSimulationRequest {
 
 self.onmessage = (event: MessageEvent<StructuredSimulationRequest>) => {
   const { id, mode, params, seed, count } = event.data;
-  self.postMessage({ id, ...simulate(mode, params, seed, count) });
+  const result = simulate(mode, params, seed, count);
+  const comparisonStats =
+    params.volModel === "downside-skew"
+      ? simulate(mode, { ...params, volModel: "flat" }, seed, count).stats
+      : null;
+  self.postMessage({ id, ...result, comparisonStats });
 };

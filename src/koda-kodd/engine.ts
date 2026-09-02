@@ -1,9 +1,12 @@
 import {
   TRADING_DAYS as DAYS,
   average,
+  nextZeroDriftLevel,
   normalRandom as normal,
   observationDays,
+  pathVolatility,
   seededRandom as seeded,
+  type PathVolatilityModel,
 } from "../shared/simulation";
 
 export type KodaKind = "koda" | "kodd";
@@ -19,6 +22,7 @@ export interface KodaParams {
   frequency: number;
   guaranteed: number;
   vol: number;
+  volModel?: PathVolatilityModel;
 }
 
 export interface KodaPathOptions extends KodaParams {
@@ -97,17 +101,15 @@ function generatePath({ seed = 1, scenario = "random", ...p }: KodaPathOptions):
     const anchors = scenarioAnchors(p, scenario);
     let noise = 0;
     for (let day = 1; day <= end; day++) {
-      noise = 0.92 * noise + normal(random) * (p.vol / 100) * 0.18;
-      path[day] = Math.max(0.1, interpolate(anchors, day / end) * Math.exp(noise / 100));
+      const anchor = interpolate(anchors, day / end);
+      noise = 0.92 * noise + normal(random) * pathVolatility(anchor, 100, p.vol, p.volModel) * 0.18;
+      path[day] = Math.max(0.1, anchor * Math.exp(noise / 100));
     }
     return path;
   }
-  const sigma = p.vol / 100,
-    dt = 1 / DAYS,
-    drift = -0.5 * sigma * sigma * dt,
-    shock = sigma * Math.sqrt(dt);
+  const dt = 1 / DAYS;
   for (let day = 1; day <= end; day++)
-    path[day] = Math.max(0.1, path[day - 1] * Math.exp(drift + shock * normal(random)));
+    path[day] = nextZeroDriftLevel(path[day - 1], 100, p.vol, dt, normal(random), p.volModel);
   return path;
 }
 

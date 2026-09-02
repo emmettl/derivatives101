@@ -29,6 +29,7 @@ const config = {
     frequency: 12,
     guaranteed: 0,
     vol: 28,
+    volModel: "flat",
   },
   scenarios: [
     ["random", "Random"],
@@ -124,6 +125,16 @@ const config = {
       max: 70,
       step: 1,
       format: (v) => v.toFixed(0) + "% p.a.",
+    },
+    {
+      key: "volModel",
+      type: "radio",
+      label: "Path volatility model",
+      options: [
+        ["flat", "Flat volatility"],
+        ["downside-skew", "Downside skew"],
+      ],
+      help: "Downside skew raises local volatility after a fall and lowers it after a rally. Both choices retain zero drift; the comparison reuses the same random draws.",
     },
   ],
 };
@@ -845,8 +856,19 @@ function renderSimulation(message) {
     host.append(item);
   });
   drawHistogram(Array.from(message.returns));
+  const modelLabel =
+    state.params.volModel === "downside-skew" ? "downside local vol" : "flat volatility";
   $("koda-simulation-status").textContent =
-    `Current · ${message.count.toLocaleString()} paths · average life ${message.stats.averageLife.toFixed(2)} years · zero drift · no valuation adjustment`;
+    `Current · ${message.count.toLocaleString()} paths · average life ${message.stats.averageLife.toFixed(2)} years · zero drift · ${modelLabel}${kodaComparisonSummary(message)} · no valuation adjustment`;
+}
+function kodaComparisonSummary(message) {
+  const flat = message.comparisonStats;
+  if (!flat) return "";
+  const pp = (value, baseline) => {
+    const difference = (value - baseline) * 100;
+    return `${difference >= 0 ? "+" : "−"}${Math.abs(difference).toFixed(1)} pp`;
+  };
+  return ` · versus flat: knock-out ${pp(message.stats.knockOutRate, flat.knockOutRate)}, gearing ${pp(message.stats.gearedRate, flat.gearedRate)}`;
 }
 function postPayload(payload) {
   if (typeof Worker === "undefined") {
@@ -855,6 +877,14 @@ function postPayload(payload) {
         renderSimulation({
           id: payload.id,
           ...KodaKoddEngine.simulate(payload.params, payload.seed, payload.count),
+          comparisonStats:
+            payload.params.volModel === "downside-skew"
+              ? KodaKoddEngine.simulate(
+                  { ...payload.params, volModel: "flat" },
+                  payload.seed,
+                  payload.count,
+                ).stats
+              : null,
         }),
       0,
     );

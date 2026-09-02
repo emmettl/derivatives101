@@ -23,6 +23,7 @@ const defaults = {
   finalLevel: 95,
   tenor: 2,
   vol: 25,
+  volModel: "flat",
   dividend: 4,
   fee: 0.5,
 };
@@ -108,6 +109,16 @@ const controls = [
     max: 60,
     step: 1,
     format: (v) => v.toFixed(0) + "% p.a.",
+  },
+  {
+    key: "volModel",
+    type: "radio",
+    label: "Path volatility model",
+    options: [
+      ["flat", "Flat volatility"],
+      ["downside-skew", "Downside skew"],
+    ],
+    help: "The toggle changes the simulated distribution, not the separate illustrative option-budget calculation. Both path models retain zero drift; the comparison reuses the same random draws.",
   },
   {
     key: "dividend",
@@ -891,8 +902,21 @@ function renderSimulation(message) {
     host.append(item);
   });
   drawHistogram(returns);
+  const modelLabel =
+    state.params.volModel === "downside-skew" ? "downside local vol" : "flat volatility";
   $("participation-simulation-status").textContent =
-    `Current · ${message.count.toLocaleString()} paths · ${state.params.tenor.toFixed(1)} years · ${state.params.vol.toFixed(0)}% volatility · zero drift`;
+    `Current · ${message.count.toLocaleString()} paths · ${state.params.tenor.toFixed(1)} years · ${state.params.vol.toFixed(0)}% ATM volatility · zero drift · ${modelLabel}${participationComparisonSummary(message)}`;
+}
+function participationComparisonSummary(message) {
+  const flat = message.comparisonStats;
+  if (!flat) return "";
+  if (state.params.product === "outperformance") {
+    const difference = message.stats.averageReturn - flat.averageReturn;
+    return ` · versus flat: average return ${difference >= 0 ? "+" : "−"}${Math.abs(difference).toFixed(1)} points`;
+  }
+  const difference = (message.stats.breached - flat.breached) * 100;
+  const sign = difference >= 0 ? "+" : "−";
+  return ` · versus flat: barrier breaches ${sign}${Math.abs(difference).toFixed(1)} pp`;
 }
 function postSimulation(payload) {
   if (typeof Worker === "undefined") {
@@ -901,6 +925,14 @@ function postSimulation(payload) {
         renderSimulation({
           id: payload.id,
           ...ParticipationEngine.simulate(payload.params, payload.seed, payload.count),
+          comparisonStats:
+            payload.params.volModel === "downside-skew"
+              ? ParticipationEngine.simulate(
+                  { ...payload.params, volModel: "flat" },
+                  payload.seed,
+                  payload.count,
+                ).stats
+              : null,
         }),
       0,
     );

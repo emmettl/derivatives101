@@ -10,5 +10,10 @@ interface BasketSimulationRequest {
 
 self.onmessage = (event: MessageEvent<BasketSimulationRequest>) => {
   const { id, params, seed, count } = event.data;
-  self.postMessage({ id, ...simulate(params, seed, count) });
+  const result = simulate(params, seed, count);
+  const comparisonStats =
+    params.volModel === "downside-skew"
+      ? simulate({ ...params, volModel: "flat" }, seed, count).stats
+      : null;
+  self.postMessage({ id, ...result, comparisonStats });
 };

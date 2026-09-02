@@ -1,9 +1,12 @@
 import {
   TRADING_DAYS as DAYS,
   average,
+  nextZeroDriftLevel,
   normalRandom as normal,
   observationDays as observations,
+  pathVolatility,
   seededRandom as seeded,
+  type PathVolatilityModel,
 } from "../shared/simulation";
 
 type Anchor = readonly [number, number];
@@ -21,6 +24,7 @@ export interface BasketParams {
   tenor: number;
   frequency: number;
   vol: number;
+  volModel?: PathVolatilityModel;
   correlation: number;
 }
 
@@ -28,6 +32,7 @@ export interface BasketPathOptions {
   seed?: number;
   tenor?: number;
   vol?: number;
+  volModel?: PathVolatilityModel;
   correlation?: number;
   scenario?: BasketScenario;
 }
@@ -118,6 +123,7 @@ function generatePaths({
   seed = 1,
   tenor = 3,
   vol = 30,
+  volModel = "flat",
   correlation = 50,
   scenario = "random",
 }: BasketPathOptions): Float64Array[] {
@@ -130,23 +136,23 @@ function generatePaths({
       noises = [0, 0, 0];
     for (let day = 1; day <= end; day++)
       for (let i = 0; i < 3; i++) {
-        noises[i] = 0.94 * noises[i] + normal(random) * (vol / 100) * 0.25;
-        paths[i][day] = Math.max(1, anchor(sets[i], day / end) * Math.exp(noises[i] / 100));
+        const anchorLevel = anchor(sets[i], day / end);
+        noises[i] =
+          0.94 * noises[i] +
+          normal(random) * pathVolatility(anchorLevel, 100, vol, volModel) * 0.25;
+        paths[i][day] = Math.max(1, anchorLevel * Math.exp(noises[i] / 100));
       }
     return paths;
   }
   const rho = Math.max(0, Math.min(0.95, correlation / 100)),
     commonWeight = Math.sqrt(rho),
     ownWeight = Math.sqrt(1 - rho),
-    sigma = vol / 100,
-    dt = 1 / DAYS,
-    drift = -0.5 * sigma * sigma * dt,
-    shock = sigma * Math.sqrt(dt);
+    dt = 1 / DAYS;
   for (let day = 1; day <= end; day++) {
     const common = normal(random);
     for (let i = 0; i < 3; i++) {
       const z = commonWeight * common + ownWeight * normal(random);
-      paths[i][day] = paths[i][day - 1] * Math.exp(drift + shock * z);
+      paths[i][day] = nextZeroDriftLevel(paths[i][day - 1], 100, vol, dt, z, volModel);
     }
   }
   return paths;
@@ -248,6 +254,7 @@ function simulate(p: BasketParams, seed = 1, count = 2000) {
         seed: (seed + i * 2654435761) >>> 0,
         tenor: p.tenor,
         vol: p.vol,
+        volModel: p.volModel,
         correlation: p.correlation,
         scenario: "random",
       }),

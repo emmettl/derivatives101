@@ -10,6 +10,16 @@ export const colors = {
   line: "#d3dbe2",
   tint: "#f2f5f7",
 };
+const volatilityModelControl = {
+  key: "volModel",
+  type: "radio",
+  label: "Path volatility model",
+  options: [
+    ["flat", "Flat volatility"],
+    ["downside-skew", "Downside skew"],
+  ],
+  help: "The skew model uses the equity-skew curve from the Volatility Skew lab as illustrative local volatility: volatility rises below the initial level and falls above it. Both choices keep zero drift; skew results are compared with flat volatility using the same random draws.",
+};
 export const configs = {
   rc: {
     defaults: {
@@ -23,6 +33,7 @@ export const configs = {
       tenor: 3,
       frequency: 4,
       vol: 30,
+      volModel: "flat",
     },
     variants: {
       plain: [
@@ -149,6 +160,7 @@ export const configs = {
         step: 1,
         format: (v) => v.toFixed(0) + "%",
       },
+      volatilityModelControl,
     ],
   },
   coupon: {
@@ -163,6 +175,7 @@ export const configs = {
       tenor: 3,
       frequency: 4,
       vol: 32,
+      volModel: "flat",
     },
     variants: {
       fixed: [
@@ -281,6 +294,7 @@ export const configs = {
         step: 1,
         format: (v) => v.toFixed(0) + "%",
       },
+      volatilityModelControl,
     ],
   },
   lock: {
@@ -295,6 +309,7 @@ export const configs = {
       tenor: 4,
       frequency: 4,
       vol: 30,
+      volModel: "flat",
     },
     variants: {
       par: [
@@ -412,6 +427,7 @@ export const configs = {
         step: 1,
         format: (v) => v.toFixed(0) + "%",
       },
+      volatilityModelControl,
     ],
   },
 };

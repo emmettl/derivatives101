@@ -337,6 +337,7 @@ function pathData() {
     seed: state.seed,
     tenor: state.params.tenor,
     vol: state.params.vol,
+    volModel: state.params.volModel,
     scenario: state.scenario,
   });
   return StructuredEngine.evaluate(mode, path, state.params);
@@ -739,6 +740,28 @@ function statDefinitions(stats) {
     { label: "Average return", value: money(stats.averageReturn) },
   ];
 }
+function percentagePointDifference(value, baseline) {
+  const difference = (value - baseline) * 100;
+  return `${difference >= 0 ? "+" : "−"}${Math.abs(difference).toFixed(1)} pp`;
+}
+function comparisonSummary(message) {
+  const flat = message.comparisonStats;
+  if (!flat) return "";
+  if (mode === "rc") {
+    const barrier =
+      state.params.variant === "plain"
+        ? ""
+        : `barrier ${percentagePointDifference(message.stats.barrier, flat.barrier)}, `;
+    const call =
+      state.params.variant === "autocall" || state.params.variant === "issuer"
+        ? `${state.params.variant === "autocall" ? "autocall" : "issuer call"} ${percentagePointDifference(message.stats.called, flat.called)}, `
+        : "";
+    return ` · versus flat: ${barrier}${call}loss ${percentagePointDifference(message.stats.loss, flat.loss)}`;
+  }
+  if (mode === "coupon")
+    return ` · versus flat: autocall ${percentagePointDifference(message.stats.called, flat.called)}, loss ${percentagePointDifference(message.stats.loss, flat.loss)}`;
+  return ` · versus flat: lock-in ${percentagePointDifference(message.stats.locked, flat.locked)}, loss ${percentagePointDifference(message.stats.loss, flat.loss)}`;
+}
 function drawHistogram(returns) {
   const svg = $("histogram");
   svg.innerHTML = "";
@@ -834,8 +857,12 @@ function finishSimulation(message) {
     statsHost.append(card);
   });
   drawHistogram(Array.from(message.returns));
+  const modelLabel =
+    state.params.volModel === "downside-skew"
+      ? "zero-drift downside local-vol illustration"
+      : "zero-drift flat-vol lognormal illustration";
   $("simulation-status").textContent =
-    `Current · ${message.count.toLocaleString()} paths · zero-drift lognormal illustration`;
+    `Current · ${message.count.toLocaleString()} paths · ${modelLabel}${comparisonSummary(message)}`;
 }
 function scheduleSimulation() {
   const id = ++simulationVersion;
@@ -850,6 +877,15 @@ function scheduleSimulation() {
           finishSimulation({
             id,
             ...StructuredEngine.simulate(mode, payload.params, payload.seed, payload.count),
+            comparisonStats:
+              payload.params.volModel === "downside-skew"
+                ? StructuredEngine.simulate(
+                    mode,
+                    { ...payload.params, volModel: "flat" },
+                    payload.seed,
+                    payload.count,
+                  ).stats
+                : null,
           }),
         0,
       );

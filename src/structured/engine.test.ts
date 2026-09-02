@@ -60,4 +60,24 @@ describe("structured product lifecycle engine", () => {
       simulate("lock", params, 42, 20).returns,
     );
   });
+
+  it("lets downside skew change barrier and autocall outcomes without changing drift", () => {
+    const params = {
+      variant: "autocall",
+      coupon: 8,
+      barrier: 65,
+      barrierObservation: "daily",
+      settlement: "cash",
+      callLevel: 100,
+      tenor: 3,
+      frequency: 4,
+      vol: 30,
+    } as const;
+    const flat = simulate("rc", { ...params, volModel: "flat" }, 904271, 4000);
+    const skewed = simulate("rc", { ...params, volModel: "downside-skew" }, 904271, 4000);
+
+    expect(Math.abs(skewed.stats.barrier - flat.stats.barrier)).toBeGreaterThan(0.005);
+    expect(Math.abs(skewed.stats.called - flat.stats.called)).toBeGreaterThan(0.005);
+    expect(skewed.returns).not.toEqual(flat.returns);
+  });
 });

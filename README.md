@@ -9,6 +9,7 @@ An independent, generally useful short course in options and structured products
 - An interactive payoff explorer covering eight product families
 - An Option Lab for value surfaces, Greeks and Monte Carlo paths
 - Seventeen path-by-path, strategy, design, valuation and specification labs for multi-leg vanilla and barrier options, participation products, accumulators, decumulators, reverse convertibles, step-down autocalls, baskets, conditional coupons, memory, lock-in features, early-exit value, structured-product Greeks, dynamic hedging, volatility skew, forward pricing and carry, cross-currency and quanto payoffs, issuer credit, liquidity, term-sheet analysis and a full requirements capstone
+- Flat-volatility and downside-skew path toggles across the six lifecycle labs, with same-seed comparison statistics for barrier, autocall and loss outcomes
 - Guided teaching scenarios and shareable setups
 - Three fictional specimen term sheets for discussion and practice
 - A single PDF containing the full lesson series
@@ -30,7 +31,7 @@ Run `npm install` once, followed by `npx playwright install chromium` to install
 - `src/basket/`, `src/participation/` and `src/koda-kodd/` keep each product engine independent from its page controller and worker.
 - `src/specification/` and `src/decoder/` separate contract rules and case data from presentation.
 - `src/legacy/` contains the older standalone labs, now split into strict TypeScript calculation engines and JavaScript presentation modules without browser globals.
-- `src/shared/` contains deterministic simulation primitives used across product engines.
+- `src/shared/` contains deterministic simulation primitives and the shared flat-volatility/downside-skew local-volatility model used across product engines.
 
 Add an interactive page to `bundledEntries` in `vite.config.ts`. Keep financial rules in a strict TypeScript engine module where they can be tested without a browser, and keep DOM rendering in the page entry module. Presentation-only JavaScript remains appropriate where TypeScript would add assertions without improving the underlying design.
 

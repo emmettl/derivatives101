@@ -1,9 +1,12 @@
 import {
   TRADING_DAYS as DAYS,
   average,
+  nextZeroDriftLevel,
   normalRandom as normal,
   observationDays as observations,
+  pathVolatility,
   seededRandom as seeded,
+  type PathVolatilityModel,
 } from "../shared/simulation";
 
 type Anchor = readonly [number, number];
@@ -15,6 +18,7 @@ interface CommonParams {
   tenor: number;
   frequency: number;
   vol?: number;
+  volModel?: PathVolatilityModel;
 }
 
 export interface ReverseConvertibleParams extends CommonParams {
@@ -159,11 +163,13 @@ function generatePath({
   seed = 1,
   tenor = 3,
   vol = 30,
+  volModel = "flat",
   scenario = "random",
 }: {
   seed?: number;
   tenor?: number;
   vol?: number;
+  volModel?: PathVolatilityModel;
   scenario?: StructuredScenario;
 } = {}): Float64Array {
   const random = seeded(seed),
@@ -171,18 +177,16 @@ function generatePath({
     path = new Float64Array(end + 1);
   path[0] = 100;
   if (scenario === "random") {
-    const sigma = vol / 100,
-      dt = 1 / DAYS,
-      drift = -0.5 * sigma * sigma * dt,
-      shock = sigma * Math.sqrt(dt);
+    const dt = 1 / DAYS;
     for (let day = 1; day <= end; day++)
-      path[day] = path[day - 1] * Math.exp(drift + shock * normal(random));
+      path[day] = nextZeroDriftLevel(path[day - 1], 100, vol, dt, normal(random), volModel);
     return path;
   }
   const anchors = scenarioAnchors[scenario];
   let noise = 0;
   for (let day = 1; day <= end; day++) {
-    noise = 0.93 * noise + normal(random) * (vol / 100) * 0.35;
+    const anchor = anchorLevel(anchors, day / end);
+    noise = 0.93 * noise + normal(random) * pathVolatility(anchor, 100, vol, volModel) * 0.35;
     path[day] = Math.max(1, anchorLevel(anchors, day / end) * Math.exp(noise / 100));
   }
   return path;
@@ -476,6 +480,7 @@ function simulate(
         seed: (seed + i * 2654435761) >>> 0,
         tenor: p.tenor,
         vol: p.vol,
+        volModel: p.volModel,
         scenario: "random",
       }),
       result = evaluate(mode, path, p);

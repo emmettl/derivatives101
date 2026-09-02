@@ -60,8 +60,8 @@ test("glossary filters definitions and remains usable on mobile", async ({ page 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/glossary.html");
   await page.locator("#glossary-search").fill("volatility");
-  await expect(page.locator(".glossary-entry:visible")).toHaveCount(3);
-  await expect(page.locator("#glossary-count")).toHaveText("3 terms");
+  await expect(page.locator(".glossary-entry:visible")).toHaveCount(4);
+  await expect(page.locator("#glossary-count")).toHaveText("4 terms");
   await expect(page.locator("body")).not.toHaveCSS("overflow-x", "scroll");
   expect(errors).toEqual([]);
 });

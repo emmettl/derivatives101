@@ -26,6 +26,7 @@ const config = {
     tenor: 3,
     frequency: 4,
     vol: 30,
+    volModel: "flat",
     correlation: 45,
   },
   scenarios: [
@@ -130,6 +131,16 @@ const config = {
       max: 70,
       step: 1,
       format: (v) => v.toFixed(0) + "% p.a.",
+    },
+    {
+      key: "volModel",
+      type: "radio",
+      label: "Path volatility model",
+      options: [
+        ["flat", "Flat volatility"],
+        ["downside-skew", "Downside skew"],
+      ],
+      help: "Downside skew raises each name's local volatility below its initial level and lowers it above. Both models retain zero drift and the selected correlation; the comparison reuses the same random draws.",
     },
     {
       key: "correlation",
@@ -425,6 +436,7 @@ function pathData() {
     seed: state.seed,
     tenor: state.params.tenor,
     vol: state.params.vol,
+    volModel: state.params.volModel,
     correlation: state.params.correlation,
     scenario: state.scenario,
   });
@@ -857,8 +869,19 @@ function finishSimulation(message) {
     host.append(card);
   });
   drawHistogram(Array.from(message.returns));
+  const modelLabel =
+    state.params.volModel === "downside-skew" ? "downside local vol" : "flat volatility";
   $("basket-simulation-status").textContent =
-    `Current · ${message.count.toLocaleString()} baskets · ${state.params.correlation.toFixed(0)}% pairwise correlation · zero-drift illustration`;
+    `Current · ${message.count.toLocaleString()} baskets · ${state.params.correlation.toFixed(0)}% pairwise correlation · zero drift · ${modelLabel}${basketComparisonSummary(message)}`;
+}
+function basketComparisonSummary(message) {
+  const flat = message.comparisonStats;
+  if (!flat) return "";
+  const pp = (value, baseline) => {
+    const difference = (value - baseline) * 100;
+    return `${difference >= 0 ? "+" : "−"}${Math.abs(difference).toFixed(1)} pp`;
+  };
+  return ` · versus flat: autocall ${pp(message.stats.called, flat.called)}, loss ${pp(message.stats.loss, flat.loss)}`;
 }
 function scheduleSimulation() {
   const id = ++simulationVersion;
@@ -877,6 +900,14 @@ function scheduleSimulation() {
           finishSimulation({
             id,
             ...BasketEngine.simulate(payload.params, payload.seed, payload.count),
+            comparisonStats:
+              payload.params.volModel === "downside-skew"
+                ? BasketEngine.simulate(
+                    { ...payload.params, volModel: "flat" },
+                    payload.seed,
+                    payload.count,
+                  ).stats
+                : null,
           }),
         0,
       );

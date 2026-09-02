@@ -1,7 +1,9 @@
 import {
   TRADING_DAYS as DAYS,
+  nextZeroDriftLevel,
   normalRandom as normal,
   seededRandom as seeded,
+  type PathVolatilityModel,
 } from "../shared/simulation";
 
 const SPOT = 100,
@@ -22,6 +24,7 @@ export interface ParticipationParams extends ParticipationPayoffParams {
   finalLevel: number;
   tenor: number;
   vol: number;
+  volModel?: PathVolatilityModel;
   dividend: number;
   fee: number;
 }
@@ -205,9 +208,6 @@ function simulate(p: ParticipationParams, seed = 1, count = 2000) {
   const random = seeded(seed),
     steps = Math.max(2, Math.round(p.tenor * DAYS)),
     dt = 1 / DAYS,
-    sigma = p.vol / 100,
-    drift = -0.5 * sigma * sigma * dt,
-    shock = sigma * Math.sqrt(dt),
     returns = [];
   let breachedCount = 0,
     floorCount = 0,
@@ -217,7 +217,7 @@ function simulate(p: ParticipationParams, seed = 1, count = 2000) {
     let level = SPOT,
       breached = false;
     for (let day = 1; day <= steps; day++) {
-      level = Math.max(0.01, level * Math.exp(drift + shock * normal(random)));
+      level = nextZeroDriftLevel(level, SPOT, p.vol, dt, normal(random), p.volModel);
       if (hasBonus(p) && p.monitoring === "daily" && level <= p.barrier) breached = true;
     }
     if (hasBonus(p) && p.monitoring === "maturity" && level <= p.barrier) breached = true;

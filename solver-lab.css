@@ -453,6 +453,8 @@ button:disabled {
 
 .bracket-zone {
   fill: rgb(228 163 64 / 13%);
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .price-curve {
@@ -486,12 +488,25 @@ button:disabled {
   fill: var(--paper);
   stroke: var(--amber-dark);
   stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .candidate-dot {
   fill: var(--amber);
   stroke: var(--ink);
   stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.candidate-ring {
+  fill: none;
+  stroke: var(--jade);
+  stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: solution-ring 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .decision-grid {
@@ -557,6 +572,10 @@ tbody tr:last-child:not(.empty-row) {
   background: #fff7e9;
 }
 
+tbody tr.new-step {
+  animation: reveal-step 460ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
 .empty-row td {
   padding: 24px;
   color: var(--muted);
@@ -566,6 +585,30 @@ tbody tr:last-child:not(.empty-row) {
 .decision-keep {
   color: var(--jade);
   font-weight: 800;
+}
+
+@keyframes reveal-step {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes solution-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.75);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2.7);
+  }
 }
 
 footer {
@@ -734,5 +777,14 @@ footer a {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -22,6 +22,19 @@ let state = { ...defaults };
 let solution: StrikeSolution = solveStrike(state);
 let visibleSteps = 0;
 let timer: number | undefined;
+let animateNextRender = false;
+let previousChartVisual: ChartVisual | undefined;
+
+interface ChartPoint {
+  x: number;
+  y: number;
+}
+
+interface ChartVisual {
+  lower: ChartPoint;
+  upper: ChartPoint;
+  midpoint?: ChartPoint;
+}
 
 const controls = {
   target: $("#target") as HTMLInputElement,
@@ -57,6 +70,8 @@ function resetTrail(): void {
   state = readInputs();
   solution = solveStrike(state);
   visibleSteps = 0;
+  animateNextRender = false;
+  previousChartVisual = undefined;
   render();
 }
 
@@ -107,6 +122,16 @@ function renderSummary(): void {
     $("#action-note").textContent =
       `The model price is within 0.005 of the ${format2(state.target)} target.`;
   }
+
+  if (animateNextRender) {
+    [
+      "#solved-strike",
+      "#candidate-price",
+      "#error-summary",
+      "#iteration-summary",
+      "#status-pill",
+    ].forEach((selector) => pulseValue($(selector)));
+  }
 }
 
 function renderDecision(): void {
@@ -139,6 +164,19 @@ function renderDecision(): void {
         : "The strike is too low, so discard the lower half.";
   $("#decision-copy").textContent =
     `${format2(step.price)} is ${comparison} ${format2(state.target)}. ${implication}`;
+
+  if (animateNextRender) {
+    ["#lower-strike", "#mid-strike", "#upper-strike"].forEach((selector) =>
+      pulseValue($(selector)),
+    );
+    $("#decision-copy").animate(
+      [
+        { opacity: 0, transform: "translateY(7px)" },
+        { opacity: 1, transform: "translateY(0)" },
+      ],
+      { duration: 380, easing: "cubic-bezier(.2,.8,.2,1)" },
+    );
+  }
 }
 
 function renderTable(): void {
@@ -151,7 +189,10 @@ function renderTable(): void {
   }
   body.innerHTML = shown
     .map(
-      (step) => `<tr>
+      (
+        step,
+        index,
+      ) => `<tr${animateNextRender && index === shown.length - 1 ? ' class="new-step"' : ""}>
         <td>${step.iteration}</td>
         <td>${format2(step.lower)} — ${format2(step.upper)}</td>
         <td><strong>${format2(step.midpoint)}</strong></td>
@@ -161,6 +202,33 @@ function renderTable(): void {
       </tr>`,
     )
     .join("");
+}
+
+function pulseValue(element: HTMLElement): void {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  element.animate(
+    [
+      { opacity: 0.35, transform: "translateY(5px)" },
+      { opacity: 1, transform: "translateY(0)" },
+    ],
+    { duration: 420, easing: "cubic-bezier(.2,.8,.2,1)" },
+  );
+}
+
+function travel(element: SVGElement, from: ChartPoint, to: ChartPoint, delay = 0): void {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  element.animate(
+    [
+      { transform: `translate(${from.x - to.x}px, ${from.y - to.y}px)` },
+      { transform: "translate(0, 0)" },
+    ],
+    {
+      duration: 520,
+      delay,
+      easing: "cubic-bezier(.22,.85,.24,1)",
+      fill: "backwards",
+    },
+  );
 }
 
 function svgElement<K extends keyof SVGElementTagNameMap>(
@@ -227,15 +295,19 @@ function renderChart(): void {
   const step = currentStep();
   const lower = step?.lower ?? minK;
   const upper = step?.upper ?? maxK;
-  svg.append(
-    svgElement("rect", {
-      x: String(x(lower)),
-      y: String(margin.top),
-      width: String(Math.max(0, x(upper) - x(lower))),
-      height: String(plotH),
-      class: "bracket-zone",
-    }),
-  );
+  const currentVisual: ChartVisual = {
+    lower: { x: x(lower), y: y(priceAtStrike(state, lower)) },
+    upper: { x: x(upper), y: y(priceAtStrike(state, upper)) },
+    midpoint: step ? { x: x(step.midpoint), y: y(step.price) } : undefined,
+  };
+  const bracketZone = svgElement("rect", {
+    x: String(currentVisual.lower.x),
+    y: String(margin.top),
+    width: String(Math.max(0, currentVisual.upper.x - currentVisual.lower.x)),
+    height: String(plotH),
+    class: "bracket-zone",
+  });
+  svg.append(bracketZone);
 
   const pathData = samples
     .map(
@@ -262,42 +334,78 @@ function renderChart(): void {
   targetLabel.textContent = `TARGET ${format2(state.target)}`;
   svg.append(targetLabel);
 
-  const yLower = y(priceAtStrike(state, lower));
-  const yUpper = y(priceAtStrike(state, upper));
-  svg.append(
-    svgElement("line", {
-      x1: String(x(lower)),
-      x2: String(x(upper)),
-      y1: String(yLower),
-      y2: String(yUpper),
-      class: "bracket-line",
-    }),
-  );
-  svg.append(
-    svgElement("circle", {
-      cx: String(x(lower)),
-      cy: String(yLower),
-      r: "6",
-      class: "bracket-dot",
-    }),
-  );
-  svg.append(
-    svgElement("circle", {
-      cx: String(x(upper)),
-      cy: String(yUpper),
-      r: "6",
-      class: "bracket-dot",
-    }),
-  );
-  if (step)
-    svg.append(
-      svgElement("circle", {
-        cx: String(x(step.midpoint)),
-        cy: String(y(step.price)),
-        r: "8",
-        class: "candidate-dot",
-      }),
+  const bracketLine = svgElement("line", {
+    x1: String(currentVisual.lower.x),
+    x2: String(currentVisual.upper.x),
+    y1: String(currentVisual.lower.y),
+    y2: String(currentVisual.upper.y),
+    class: "bracket-line",
+  });
+  const lowerDot = svgElement("circle", {
+    cx: String(currentVisual.lower.x),
+    cy: String(currentVisual.lower.y),
+    r: "6",
+    class: "bracket-dot",
+  });
+  const upperDot = svgElement("circle", {
+    cx: String(currentVisual.upper.x),
+    cy: String(currentVisual.upper.y),
+    r: "6",
+    class: "bracket-dot",
+  });
+  svg.append(bracketLine, lowerDot, upperDot);
+
+  let candidateDot: SVGCircleElement | undefined;
+  if (currentVisual.midpoint) {
+    if (step?.converged) {
+      svg.append(
+        svgElement("circle", {
+          cx: String(currentVisual.midpoint.x),
+          cy: String(currentVisual.midpoint.y),
+          r: "9",
+          class: "candidate-ring",
+        }),
+      );
+    }
+    candidateDot = svgElement("circle", {
+      cx: String(currentVisual.midpoint.x),
+      cy: String(currentVisual.midpoint.y),
+      r: "8",
+      class: "candidate-dot",
+    });
+    svg.append(candidateDot);
+  }
+
+  if (animateNextRender && previousChartVisual) {
+    travel(lowerDot, previousChartVisual.lower, currentVisual.lower);
+    travel(upperDot, previousChartVisual.upper, currentVisual.upper);
+    bracketLine.animate([{ opacity: 0.15 }, { opacity: 1 }], {
+      duration: 460,
+      easing: "ease-out",
+    });
+    bracketZone.animate(
+      [
+        { opacity: 0.03, transform: "scaleY(.86)" },
+        { opacity: 1, transform: "scaleY(1)" },
+      ],
+      { duration: 500, easing: "cubic-bezier(.2,.8,.2,1)" },
     );
+    if (candidateDot && currentVisual.midpoint) {
+      const origin = previousChartVisual.midpoint ?? {
+        x: (previousChartVisual.lower.x + previousChartVisual.upper.x) / 2,
+        y: currentVisual.midpoint.y,
+      };
+      travel(candidateDot, origin, currentVisual.midpoint, 70);
+      candidateDot.animate(
+        [
+          { opacity: 0.65, r: 6 },
+          { opacity: 1, r: 10, offset: 0.78 },
+          { opacity: 1, r: 8 },
+        ],
+        { duration: 580, delay: 70, easing: "ease-out" },
+      );
+    }
+  }
 
   const xTitle = svgElement("text", {
     x: String(margin.left + plotW / 2),
@@ -316,6 +424,7 @@ function renderChart(): void {
   });
   yTitle.textContent = "Option price";
   svg.append(yTitle);
+  previousChartVisual = currentVisual;
 }
 
 function render(): void {
@@ -324,6 +433,7 @@ function render(): void {
   renderDecision();
   renderTable();
   renderChart();
+  animateNextRender = false;
 }
 
 Object.values(controls).forEach((control) => control.addEventListener("input", resetTrail));
@@ -343,6 +453,7 @@ $("#option-type").addEventListener("click", (event) => {
 $("#step").addEventListener("click", () => {
   stopTimer();
   visibleSteps = Math.min(solution.steps.length, visibleSteps + 1);
+  animateNextRender = true;
   render();
 });
 
@@ -352,18 +463,25 @@ $("#solve").addEventListener("click", () => {
     stopTimer();
     return;
   }
-  if (visibleSteps >= solution.steps.length) visibleSteps = 0;
+  if (visibleSteps >= solution.steps.length) {
+    visibleSteps = 0;
+    previousChartVisual = undefined;
+    render();
+  }
   $("#solve").textContent = "Pause solve";
   timer = window.setInterval(() => {
     visibleSteps += 1;
+    animateNextRender = true;
     render();
     if (visibleSteps >= solution.steps.length) stopTimer();
-  }, 360);
+  }, 720);
 });
 
 $("#restart").addEventListener("click", () => {
   visibleSteps = 0;
   stopTimer();
+  animateNextRender = false;
+  previousChartVisual = undefined;
   $("#action-note").textContent = "Take one step to inspect each decision, or run the full solve.";
   render();
 });

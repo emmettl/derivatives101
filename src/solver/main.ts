@@ -4,7 +4,13 @@ import {
   priceIncreasesWithCandidate,
   solveVariable,
 } from "./engine";
-import type { SolveVariable, SolverInputs, SolverSolution, SolverStep } from "./engine";
+import type {
+  BarrierStyle,
+  SolveVariable,
+  SolverInputs,
+  SolverSolution,
+  SolverStep,
+} from "./engine";
 import type { OptionType } from "../option-lab/types";
 
 const $ = <T extends HTMLElement>(selector: string): T => {
@@ -16,6 +22,7 @@ const $ = <T extends HTMLElement>(selector: string): T => {
 const defaults = {
   type: "call" as OptionType,
   solveFor: "strike" as SolveVariable,
+  barrierStyle: "knock-in" as BarrierStyle,
   target: 8.5,
   S: 100,
   K: 100,
@@ -59,6 +66,7 @@ function readInputs(): SolverInputs {
   return {
     type: state.type,
     solveFor: state.solveFor,
+    barrierStyle: state.barrierStyle,
     target: Number(controls.target.value),
     S: Number(controls.spot.value),
     K: Number(controls.strike.value),
@@ -117,6 +125,15 @@ const variableMeta = {
     explanation:
       "Call value rises with spot, while put value falls. The same bracket works, but its search direction flips when the option type changes.",
   },
+  barrier: {
+    label: "barrier",
+    solvedLabel: "Solved down barrier",
+    symbol: "H",
+    axis: "Down barrier H",
+    inputs: "S, K, T, r, q, σ, <mark>H</mark>",
+    explanation:
+      "A higher down barrier makes a touch more likely. That raises knock-in value and lowers knock-out value, so switching activation style reverses the search direction.",
+  },
 } as const;
 
 function formatCandidate(value: number): string {
@@ -148,6 +165,9 @@ function renderOutputs(): void {
   $("#test-variable-heading").textContent = `Test ${meta.symbol}`;
   document.querySelectorAll<HTMLElement>("[data-input]").forEach((row) => {
     row.classList.toggle("is-hidden", row.dataset.input === state.solveFor);
+  });
+  document.querySelectorAll<HTMLElement>("[data-mode='barrier']").forEach((control) => {
+    control.classList.toggle("is-hidden", state.solveFor !== "barrier");
   });
 }
 
@@ -525,6 +545,18 @@ $("#option-type").addEventListener("click", (event) => {
   resetTrail();
 });
 
+$("#barrier-style").addEventListener("click", (event) => {
+  const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-value]");
+  if (!button) return;
+  state.barrierStyle = button.dataset.value as BarrierStyle;
+  document.querySelectorAll<HTMLButtonElement>("#barrier-style button").forEach((item) => {
+    const on = item === button;
+    item.classList.toggle("on", on);
+    item.setAttribute("aria-pressed", String(on));
+  });
+  resetTrail();
+});
+
 $("#step").addEventListener("click", () => {
   stopTimer();
   visibleSteps = Math.min(solution.steps.length, visibleSteps + 1);
@@ -572,6 +604,11 @@ $("#reset").addEventListener("click", () => {
   controls.dividend.value = String(defaults.q * 100);
   document.querySelectorAll<HTMLButtonElement>("#solve-variable button").forEach((button) => {
     const on = button.dataset.value === defaults.solveFor;
+    button.classList.toggle("on", on);
+    button.setAttribute("aria-pressed", String(on));
+  });
+  document.querySelectorAll<HTMLButtonElement>("#barrier-style button").forEach((button) => {
+    const on = button.dataset.value === defaults.barrierStyle;
     button.classList.toggle("on", on);
     button.setAttribute("aria-pressed", String(on));
   });

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="See how a numerical solver works backwards from a target option premium to find strike, implied volatility or spot."
+      content="See how a numerical solver works backwards from a target option premium to find strike, implied volatility, spot or a barrier level."
     />
     <meta name="theme-color" content="#0b1e2d" />
     <meta property="og:type" content="website" />
@@ -13,7 +13,7 @@
     <meta property="og:title" content="Derivatives 101 — Solver Lab" />
     <meta
       property="og:description"
-      content="Bracket, test and converge: solve for strike, implied volatility or spot."
+      content="Bracket, test and converge: solve for strike, implied volatility, spot or a barrier level."
     />
     <meta
       property="og:url"
@@ -27,7 +27,7 @@
     <meta name="twitter:title" content="Derivatives 101 — Solver Lab" />
     <meta
       name="twitter:description"
-      content="An interactive look inside solving for strike, implied volatility or spot."
+      content="An interactive look inside solving for strike, implied volatility, spot or a barrier level."
     />
     <meta
       name="twitter:image"
@@ -122,6 +122,9 @@
               <button type="button" data-value="spot" aria-pressed="false">
                 Spot
               </button>
+              <button type="button" data-value="barrier" aria-pressed="false">
+                Barrier
+              </button>
             </div>
           </div>
 
@@ -142,6 +145,32 @@
             <button type="button" data-value="put" aria-pressed="false">
               Put
             </button>
+          </div>
+
+          <div class="barrier-control is-hidden" data-mode="barrier">
+            <span class="group-label">Down-barrier style</span>
+            <div
+              class="segmented"
+              id="barrier-style"
+              role="group"
+              aria-label="Barrier activation style"
+            >
+              <button
+                type="button"
+                class="on"
+                data-value="knock-in"
+                aria-pressed="true"
+              >
+                Knock-in
+              </button>
+              <button type="button" data-value="knock-out" aria-pressed="false">
+                Knock-out
+              </button>
+            </div>
+            <p class="mode-note">
+              Teaching approximation: vanilla value × risk-neutral touch
+              probability. Continuous monitoring · no rebate.
+            </p>
           </div>
 
           <label class="slider-row" for="target">

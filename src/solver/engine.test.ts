@@ -12,6 +12,7 @@ const base = {
   type: "call" as const,
   target: 0,
   solveFor: "strike" as SolveVariable,
+  barrierStyle: "knock-in" as const,
 };
 
 function recover(inputs: SolverInputs, expected: number): void {
@@ -36,6 +37,11 @@ describe("inverse option solver", () => {
   it("recovers spot for calls and puts", () => {
     recover({ ...base, solveFor: "spot", type: "call" }, 112);
     recover({ ...base, solveFor: "spot", type: "put" }, 88);
+  });
+
+  it("recovers knock-in and knock-out down barriers", () => {
+    recover({ ...base, solveFor: "barrier", barrierStyle: "knock-in" }, 72);
+    recover({ ...base, solveFor: "barrier", barrierStyle: "knock-out" }, 84);
   });
 
   it("reports an unreachable target", () => {

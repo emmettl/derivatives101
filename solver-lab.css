@@ -272,7 +272,7 @@ main {
 }
 
 .variable-picker {
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .variable-picker button {
@@ -304,6 +304,21 @@ main {
 
 .slider-row.is-hidden {
   display: none;
+}
+
+.barrier-control.is-hidden {
+  display: none;
+}
+
+.barrier-control .segmented {
+  margin: 7px 0 8px;
+}
+
+.mode-note {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .slider-row > span {

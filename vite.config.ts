@@ -9,6 +9,7 @@ const bundledEntries = [
   "options-a-la-carte.html",
   "payoff-explorer.html",
   "option-lab.html",
+  "solver-lab.html",
   "reverse-convertible-lab.html",
   "coupon-memory-lab.html",
   "lock-in-lab.html",

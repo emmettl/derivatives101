@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="See how a numerical solver works backwards from a target option premium to find strike, implied volatility, spot or a barrier level."
+    />
+    <meta name="theme-color" content="#0b1e2d" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta property="og:title" content="Derivatives 101 — Solver Lab" />
+    <meta
+      property="og:description"
+      content="Bracket, test and converge: solve for strike, implied volatility, spot or a barrier level."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/solver-lab.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Derivatives 101 — Solver Lab" />
+    <meta
+      name="twitter:description"
+      content="An interactive look inside solving for strike, implied volatility, spot or a barrier level."
+    />
+    <meta
+      name="twitter:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <title>Derivatives 101 — Solver Lab</title>
+    <link rel="stylesheet" href="solver-lab.css" />
+    <script type="module" src="/src/solver/main.ts"></script>
+  </head>
+  <body>
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="option-lab.html">Option Lab</a>
+          <a href="options-a-la-carte.html">Options à la carte</a>
+          <a href="payoff-explorer.html">Payoff Explorer</a>
+        </div>
+      </nav>
+      <div class="intro">
+        <div>
+          <p class="eyebrow">Interactive option mechanics · inverse problems</p>
+          <h1>
+            Don’t just get the answer.<br /><span>Watch it converge.</span>
+          </h1>
+        </div>
+        <p class="lede">
+          Start with the premium you want. Choose the missing input, then watch
+          the solver price candidates, reject half the remaining range, and
+          close in on the answer.
+        </p>
+      </div>
+    </header>
+
+    <main>
+      <section class="answer-strip" aria-label="Current solution">
+        <div class="answer-main">
+          <span id="solved-label">Solved strike</span>
+          <strong id="solved-value">—</strong>
+        </div>
+        <div>
+          <span>Price at candidate</span>
+          <strong id="candidate-price">—</strong>
+        </div>
+        <div>
+          <span>Target premium</span>
+          <strong id="target-summary">—</strong>
+        </div>
+        <div>
+          <span>Absolute error</span>
+          <strong id="error-summary">—</strong>
+        </div>
+        <div>
+          <span>Iterations shown</span>
+          <strong id="iteration-summary">0</strong>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <aside class="controls" aria-label="Solver inputs">
+          <div class="control-head">
+            <div>
+              <p class="eyebrow dark">The inverse question</p>
+              <h2 id="solve-heading">Solve for strike</h2>
+            </div>
+            <button type="button" class="quiet-button" id="reset">Reset</button>
+          </div>
+
+          <div class="mode-control">
+            <span class="group-label">Solve for</span>
+            <div
+              class="segmented variable-picker"
+              id="solve-variable"
+              role="group"
+              aria-label="Variable to solve for"
+            >
+              <button
+                type="button"
+                class="on"
+                data-value="strike"
+                aria-pressed="true"
+              >
+                Strike
+              </button>
+              <button
+                type="button"
+                data-value="volatility"
+                aria-pressed="false"
+              >
+                Implied vol
+              </button>
+              <button type="button" data-value="spot" aria-pressed="false">
+                Spot
+              </button>
+              <button type="button" data-value="barrier" aria-pressed="false">
+                Barrier
+              </button>
+            </div>
+          </div>
+
+          <div
+            class="segmented"
+            id="option-type"
+            role="group"
+            aria-label="Option type"
+          >
+            <button
+              type="button"
+              class="on"
+              data-value="call"
+              aria-pressed="true"
+            >
+              Call
+            </button>
+            <button type="button" data-value="put" aria-pressed="false">
+              Put
+            </button>
+          </div>
+
+          <div class="barrier-control is-hidden" data-mode="barrier">
+            <span class="group-label">Down-barrier style</span>
+            <div
+              class="segmented"
+              id="barrier-style"
+              role="group"
+              aria-label="Barrier activation style"
+            >
+              <button
+                type="button"
+                class="on"
+                data-value="knock-in"
+                aria-pressed="true"
+              >
+                Knock-in
+              </button>
+              <button type="button" data-value="knock-out" aria-pressed="false">
+                Knock-out
+              </button>
+            </div>
+            <p class="mode-note">
+              Teaching approximation: vanilla value × risk-neutral touch
+              probability. Continuous monitoring · no rebate.
+            </p>
+          </div>
+
+          <label class="slider-row" for="target">
+            <span>Target premium <output id="target-out">8.50</output></span>
+            <input
+              id="target"
+              type="range"
+              min="0.5"
+              max="40"
+              value="8.5"
+              step="0.25"
+            />
+          </label>
+          <label class="slider-row" for="spot" data-input="spot">
+            <span>Spot <output id="spot-out">100</output></span>
+            <input
+              id="spot"
+              type="range"
+              min="60"
+              max="160"
+              value="100"
+              step="1"
+            />
+          </label>
+          <label class="slider-row is-hidden" for="strike" data-input="strike">
+            <span>Strike <output id="strike-out">100</output></span>
+            <input
+              id="strike"
+              type="range"
+              min="40"
+              max="180"
+              value="100"
+              step="1"
+            />
+          </label>
+          <label class="slider-row" for="vol" data-input="volatility">
+            <span>Volatility <output id="vol-out">25%</output></span>
+            <input id="vol" type="range" min="5" max="80" value="25" step="1" />
+          </label>
+          <label class="slider-row" for="expiry">
+            <span>Time to expiry <output id="expiry-out">1.00y</output></span>
+            <input
+              id="expiry"
+              type="range"
+              min="0.05"
+              max="3"
+              value="1"
+              step="0.05"
+            />
+          </label>
+          <label class="slider-row" for="rate">
+            <span>Interest rate <output id="rate-out">3.0%</output></span>
+            <input
+              id="rate"
+              type="range"
+              min="-2"
+              max="12"
+              value="3"
+              step="0.25"
+            />
+          </label>
+          <label class="slider-row" for="dividend">
+            <span>Dividend yield <output id="dividend-out">1.0%</output></span>
+            <input
+              id="dividend"
+              type="range"
+              min="0"
+              max="10"
+              value="1"
+              step="0.25"
+            />
+          </label>
+
+          <div class="solver-actions">
+            <button type="button" class="primary-action" id="solve">
+              Solve automatically
+            </button>
+            <button type="button" class="secondary-action" id="step">
+              Take one step
+            </button>
+          </div>
+          <p class="action-note" id="action-note" aria-live="polite">
+            Take one step to inspect each decision, or run the full solve.
+          </p>
+        </aside>
+
+        <div class="solver-view">
+          <section class="equation-card" aria-labelledby="equation-title">
+            <div>
+              <p class="eyebrow dark">01 · Frame the problem</p>
+              <h2 id="equation-title">One unknown, one target</h2>
+            </div>
+            <div
+              class="equation"
+              aria-label="Option price as a function of the selected unknown equals target premium"
+            >
+              <span id="equation-type">Call price</span>
+              <b>(</b
+              ><span id="equation-inputs">S, <mark>K</mark>, T, r, q, σ</span
+              ><b>)</b> <i>=</i><strong id="equation-target">8.50</strong>
+            </div>
+            <p id="equation-explanation">
+              There is no simple rearrangement for <em>K</em>. But for a call,
+              value falls as strike rises; for a put it rises. That monotonic
+              relationship gives the solver a direction.
+            </p>
+          </section>
+
+          <section class="convergence-card" aria-labelledby="convergence-title">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow dark">02 · Narrow the bracket</p>
+                <h2 id="convergence-title">Price each midpoint</h2>
+              </div>
+              <div class="status-pill" id="status-pill">Ready to solve</div>
+            </div>
+
+            <div class="chart-wrap">
+              <svg
+                id="solver-chart"
+                viewBox="0 0 900 350"
+                role="img"
+                aria-labelledby="chart-title chart-description"
+              >
+                <title id="chart-title">Option price by strike</title>
+                <desc id="chart-description">
+                  A curve showing option value across strikes, the target price,
+                  and the solver's current bracket.
+                </desc>
+              </svg>
+            </div>
+
+            <div class="decision-grid" aria-live="polite">
+              <div>
+                <span id="lower-label">Lower strike</span
+                ><strong id="lower-value">—</strong>
+              </div>
+              <div class="candidate">
+                <span>Test midpoint</span><strong id="mid-value">—</strong>
+              </div>
+              <div>
+                <span id="upper-label">Upper strike</span
+                ><strong id="upper-value">—</strong>
+              </div>
+              <p id="decision-copy">
+                The first step will test the middle of the starting range.
+              </p>
+            </div>
+          </section>
+
+          <section class="iteration-card" aria-labelledby="iterations-title">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow dark">03 · Read the trail</p>
+                <h2 id="iterations-title">Every guess earns information</h2>
+              </div>
+              <button type="button" class="text-button" id="restart">
+                Restart trail
+              </button>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Step</th>
+                    <th scope="col">Bracket</th>
+                    <th scope="col" id="test-variable-heading">Test K</th>
+                    <th scope="col">Model price</th>
+                    <th scope="col">Error</th>
+                    <th scope="col">Decision</th>
+                  </tr>
+                </thead>
+                <tbody id="iteration-body">
+                  <tr class="empty-row">
+                    <td colspan="6">
+                      No guesses yet. Take the first step above.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>
+        Educational model only. European exercise, continuous rates and
+        dividends, constant volatility.
+      </p>
+      <a href="option-lab.html">Continue to Option Lab →</a>
+    </footer>
+  </body>
+</html>

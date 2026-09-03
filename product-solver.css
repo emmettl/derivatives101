@@ -2,6 +2,66 @@
   display: none !important;
 }
 
+#valuation-strip {
+  position: relative;
+}
+
+#valuation-strip.is-calculating > div:not(.calculation-overlay) {
+  opacity: 0.34;
+}
+
+#valuation-strip > .calculation-overlay {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  background: rgb(255 255 255 / 58%);
+  color: var(--ink);
+  backdrop-filter: blur(1.5px);
+}
+
+#valuation-strip.is-calculating > .calculation-overlay {
+  display: flex;
+}
+
+#valuation-strip > .calculation-overlay strong {
+  margin: 0;
+  font:
+    800 14px/1 "Segoe UI",
+    system-ui,
+    sans-serif;
+}
+
+.calculation-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgb(11 30 45 / 20%);
+  border-top-color: var(--amber-dark);
+  border-radius: 50%;
+  animation: calculation-spin 700ms linear infinite;
+}
+
+.status-pill.calculating {
+  background: #fff1d8;
+  color: #76511d;
+}
+
+@keyframes calculation-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calculation-spinner {
+    animation: none;
+  }
+}
+
 .select {
   width: 100%;
   min-height: 40px;

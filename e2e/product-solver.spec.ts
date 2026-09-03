@@ -27,6 +27,30 @@ test("the market solver prices an autocall and recovers its barrier from the see
   expect(errors).toEqual([]);
 });
 
+test("changing underlying switches immediately and reprices behind a busy state", async ({
+  page,
+}) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/product-solver.html");
+  const chart = page.locator("#solver-chart");
+  await expect(chart).toHaveAttribute("data-calculation-source", "worker");
+  await expect(chart).toHaveAttribute("data-model-underlying", "SX5E");
+
+  await page.locator("#underlying").selectOption("SPX");
+
+  await expect(page.locator("#snapshot-heading")).toContainText("S&P 500");
+  await expect(page.locator("#valuation-strip")).toHaveAttribute("aria-busy", "true");
+  await expect(page.locator("#valuation-busy")).toBeVisible();
+  await expect(page.locator("#status-pill")).toHaveText("Calculating…");
+
+  await expect(chart).toHaveAttribute("data-model-underlying", "SPX", { timeout: 20_000 });
+  await expect(page.locator("#valuation-strip")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator("#valuation-busy")).toBeHidden();
+  await expect(page.locator("#headline-value")).toHaveText(/^\d+\.\d{2}%$/);
+  await expect(page.locator("#status-pill")).toHaveText("Ready to solve");
+  expect(errors).toEqual([]);
+});
+
 test("switching to the protected note solves for a cap and reports unreachable targets", async ({
   page,
 }) => {

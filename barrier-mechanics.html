@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A visual, interactive guide to down-and-in, down-and-out, up-and-in and up-and-out barrier options."
+    />
+    <meta name="theme-color" content="#0b1e2d" />
+    <title>Barrier mechanics — Derivatives 101</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="barrier-mechanics.css" />
+    <script type="module" src="/src/barrier-mechanics/main.ts"></script>
+  </head>
+  <body>
+    <nav class="topbar" aria-label="Course navigation">
+      <a class="brand" href="./">Derivatives 101</a>
+      <div class="toplinks">
+        <a href="payoff-explorer.html">Payoff Explorer</a>
+        <a href="solver-lab.html">Solver Lab</a>
+        <a href="glossary.html">Glossary</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Deep dive · barrier mechanics</p>
+        <h1>Up or down.<br /><span>In or out.</span></h1>
+        <p class="lede">
+          A barrier name is two instructions joined together. Decode those two
+          words first; only then ask whether the surviving payoff is a call, a
+          put, a coupon or something else.
+        </p>
+      </div>
+      <aside class="decoder-card" aria-label="The barrier-name decoder">
+        <p>The two-word decoder</p>
+        <div><strong>Up / down</strong><span>Where is the tripwire?</span></div>
+        <div>
+          <strong>In / out</strong><span>What happens when it is hit?</span>
+        </div>
+        <p class="decoder-rule">
+          Direction locates the barrier. In or out controls the switch.
+        </p>
+      </aside>
+    </header>
+
+    <main>
+      <section class="decode section-shell" aria-labelledby="decode-title">
+        <div class="section-heading">
+          <p class="eyebrow dark">Start here</p>
+          <h2 id="decode-title">Separate the name into two questions</h2>
+        </div>
+        <div class="decode-grid">
+          <article>
+            <span class="step-number">1</span>
+            <p class="step-label">Direction</p>
+            <h3>Which way must price travel?</h3>
+            <div class="direction-pair">
+              <div><b>Down</b><span>Barrier below the initial price</span></div>
+              <div><b>Up</b><span>Barrier above the initial price</span></div>
+            </div>
+          </article>
+          <article>
+            <span class="step-number">2</span>
+            <p class="step-label">Switch</p>
+            <h3>What does the touch do?</h3>
+            <div class="direction-pair">
+              <div>
+                <b>In</b><span>Starts dormant; touch activates it</span>
+              </div>
+              <div>
+                <b>Out</b><span>Starts active; touch terminates it</span>
+              </div>
+            </div>
+          </article>
+        </div>
+        <p class="memory-line">
+          <strong
+            >The word “knock” describes a state change, not a cash
+            payment.</strong
+          >
+          A knock-in does not pay when touched. It merely makes the underlying
+          payoff eligible to exist later.
+        </p>
+      </section>
+
+      <section class="lab-shell" aria-labelledby="lab-title">
+        <div class="lab-heading">
+          <div>
+            <p class="eyebrow">Path laboratory</p>
+            <h2 id="lab-title">Follow the switch, then calculate the payoff</h2>
+          </div>
+          <p>
+            All examples use initial price 100, strike 100, lower barrier 80,
+            upper barrier 120 and no rebate.
+          </p>
+        </div>
+
+        <div class="control-grid">
+          <fieldset>
+            <legend>1 · Direction</legend>
+            <div class="segmented">
+              <button
+                type="button"
+                class="on"
+                data-choice="direction"
+                data-value="down"
+                aria-pressed="true"
+              >
+                Down
+              </button>
+              <button
+                type="button"
+                data-choice="direction"
+                data-value="up"
+                aria-pressed="false"
+              >
+                Up
+              </button>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>2 · Barrier switch</legend>
+            <div class="segmented">
+              <button
+                type="button"
+                class="on"
+                data-choice="barrierSwitch"
+                data-value="in"
+                aria-pressed="true"
+              >
+                Knock-in
+              </button>
+              <button
+                type="button"
+                data-choice="barrierSwitch"
+                data-value="out"
+                aria-pressed="false"
+              >
+                Knock-out
+              </button>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>3 · Payoff if active</legend>
+            <div class="segmented">
+              <button
+                type="button"
+                data-choice="vanillaType"
+                data-value="call"
+                aria-pressed="false"
+              >
+                Call
+              </button>
+              <button
+                type="button"
+                class="on"
+                data-choice="vanillaType"
+                data-value="put"
+                aria-pressed="true"
+              >
+                Put
+              </button>
+            </div>
+          </fieldset>
+        </div>
+
+        <fieldset class="path-picker">
+          <legend>4 · Choose a price path</legend>
+          <div>
+            <button
+              type="button"
+              data-choice="pathId"
+              data-value="inside"
+              aria-pressed="false"
+            >
+              <span>No touch</span><small>Stays between 80 and 120</small>
+            </button>
+            <button
+              type="button"
+              class="on"
+              data-choice="pathId"
+              data-value="down-touch"
+              aria-pressed="true"
+            >
+              <span>Touch down</span
+              ><small>Falls through 80, then recovers</small>
+            </button>
+            <button
+              type="button"
+              data-choice="pathId"
+              data-value="up-touch"
+              aria-pressed="false"
+            >
+              <span>Touch up</span
+              ><small>Rises through 120, then falls back</small>
+            </button>
+          </div>
+        </fieldset>
+
+        <div class="experiment">
+          <div class="chart-card">
+            <div class="chart-title">
+              <div>
+                <p>Selected mechanism</p>
+                <h3 id="scenario-name">Down-and-in put</h3>
+              </div>
+              <span class="state-chip alive" id="state-chip"
+                >Option alive at maturity</span
+              >
+            </div>
+            <p id="path-description">
+              The path touches the lower barrier, recovers, and finishes at 90.
+            </p>
+            <svg
+              id="path-chart"
+              viewBox="0 0 900 350"
+              role="img"
+              aria-label="Selected underlying path and barrier"
+            ></svg>
+          </div>
+
+          <aside class="state-card" aria-label="Barrier state and payoff">
+            <div class="state-step">
+              <span>At inception</span><strong id="start-state">Dormant</strong>
+              <p>“In” starts off. “Out” starts on.</p>
+            </div>
+            <div class="state-arrow" aria-hidden="true">↓</div>
+            <div class="state-step">
+              <span>Barrier event</span
+              ><strong id="touch-state">Touched</strong>
+              <p id="touch-explanation">
+                Price fell to or below 80. That event is now remembered.
+              </p>
+            </div>
+            <div class="state-arrow" aria-hidden="true">↓</div>
+            <div class="state-step final">
+              <span>At maturity</span
+              ><strong id="maturity-state">Active</strong>
+              <p id="maturity-explanation">
+                The put survives to maturity, so the strike decides its payoff.
+              </p>
+            </div>
+            <div class="payoff-pair">
+              <div>
+                <span>Vanilla payoff</span
+                ><strong id="vanilla-payoff">10.00</strong>
+              </div>
+              <div>
+                <span>Barrier payoff</span
+                ><strong id="barrier-payoff">10.00</strong>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="parity-card">
+          <div>
+            <p class="eyebrow dark">A useful checksum</p>
+            <h3>Knock-in + knock-out = vanilla</h3>
+            <p>
+              For otherwise identical European options with no rebate, exactly
+              one matching barrier option survives each path.
+            </p>
+          </div>
+          <div class="parity-equation" aria-live="polite">
+            <span
+              ><i id="selected-parity-label">Down-and-in put payoff</i
+              ><b id="selected-parity">10.00</b></span
+            >
+            <em>+</em>
+            <span
+              ><i id="paired-parity-label">Down-and-out put payoff</i
+              ><b id="paired-parity">0.00</b></span
+            >
+            <em>=</em>
+            <span class="total"
+              ><i>Vanilla payoff</i><b id="vanilla-parity">10.00</b></span
+            >
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="mechanism-section section-shell"
+        aria-labelledby="matrix-title"
+      >
+        <div class="section-heading split">
+          <div>
+            <p class="eyebrow dark">The four mechanisms</p>
+            <h2 id="matrix-title">One matrix replaces four definitions</h2>
+          </div>
+          <p>
+            Add “call” or “put” afterwards to identify the payoff that survives.
+            That produces the familiar eight single-barrier option names.
+          </p>
+        </div>
+        <div class="mechanism-grid">
+          <article class="mechanism down in">
+            <p>Below spot · starts dormant</p>
+            <h3>Down-and-in</h3>
+            <div>
+              <span>If touched</span><strong>Vanilla option activates</strong>
+            </div>
+            <div>
+              <span>If untouched</span
+              ><strong>Expires with no option payoff</strong>
+            </div>
+          </article>
+          <article class="mechanism down out">
+            <p>Below spot · starts active</p>
+            <h3>Down-and-out</h3>
+            <div>
+              <span>If touched</span><strong>Vanilla option terminates</strong>
+            </div>
+            <div>
+              <span>If untouched</span><strong>Vanilla option survives</strong>
+            </div>
+          </article>
+          <article class="mechanism up in">
+            <p>Above spot · starts dormant</p>
+            <h3>Up-and-in</h3>
+            <div>
+              <span>If touched</span><strong>Vanilla option activates</strong>
+            </div>
+            <div>
+              <span>If untouched</span
+              ><strong>Expires with no option payoff</strong>
+            </div>
+          </article>
+          <article class="mechanism up out">
+            <p>Above spot · starts active</p>
+            <h3>Up-and-out</h3>
+            <div>
+              <span>If touched</span><strong>Vanilla option terminates</strong>
+            </div>
+            <div>
+              <span>If untouched</span><strong>Vanilla option survives</strong>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="contract-section" aria-labelledby="contract-title">
+        <div class="section-shell">
+          <div class="section-heading split">
+            <div>
+              <p class="eyebrow">Read the contract, not the diagram</p>
+              <h2 id="contract-title">
+                A line is not a barrier until the terms define it
+              </h2>
+            </div>
+            <p>
+              Two products can draw the same 80% line yet behave differently
+              because they observe it differently.
+            </p>
+          </div>
+          <ol class="contract-questions">
+            <li>
+              <span>01</span><strong>What is observed?</strong>
+              <p>
+                Spot, a closing level, an index fixing, a basket member or the
+                worst performer?
+              </p>
+            </li>
+            <li>
+              <span>02</span><strong>Where is the level?</strong>
+              <p>
+                Absolute price, percentage of initial level, or a moving level?
+              </p>
+            </li>
+            <li>
+              <span>03</span><strong>When is it observed?</strong>
+              <p>
+                Continuously, at closes, on scheduled dates, during a window or
+                only at maturity?
+              </p>
+            </li>
+            <li>
+              <span>04</span><strong>What changes after touch?</strong>
+              <p>
+                An option activates, terminates, a note redeems, or a coupon
+                condition changes?
+              </p>
+            </li>
+            <li>
+              <span>05</span><strong>Is there a rebate?</strong>
+              <p>
+                A separate cash amount may be due after a knock-out or an
+                untriggered knock-in.
+              </p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="traps section-shell" aria-labelledby="traps-title">
+        <div class="section-heading">
+          <p class="eyebrow dark">Common traps</p>
+          <h2 id="traps-title">Five distinctions worth keeping separate</h2>
+        </div>
+        <div class="trap-grid">
+          <article>
+            <span>Barrier ≠ strike</span>
+            <p>
+              The barrier changes eligibility. The strike determines the vanilla
+              payoff if the option is active.
+            </p>
+          </article>
+          <article>
+            <span>Touch ≠ maturity level</span>
+            <p>
+              A path can touch, recover and finish far away. Path monitoring
+              remembers the earlier event.
+            </p>
+          </article>
+          <article>
+            <span>Knock-in ≠ instant payout</span>
+            <p>
+              Touch normally activates a later payoff. That payoff can still
+              finish out of the money.
+            </p>
+          </article>
+          <article>
+            <span>Autocall trigger ≠ downside barrier</span>
+            <p>
+              An autocall can redeem the note early, while a separate knock-in
+              governs downside at maturity.
+            </p>
+          </article>
+          <article>
+            <span>Monitoring ≠ a small detail</span>
+            <p>
+              An intraday breach may count under continuous monitoring and not
+              count under close-only observation.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="next-section section-shell" aria-labelledby="next-title">
+        <div>
+          <p class="eyebrow dark">Keep exploring</p>
+          <h2 id="next-title">See barriers inside complete products</h2>
+        </div>
+        <div class="next-links">
+          <a href="solver-lab.html"
+            ><span>Price the mechanism</span
+            ><strong>Barrier option solver →</strong></a
+          >
+          <a href="reverse-convertible-lab.html"
+            ><span>Follow downside activation</span
+            ><strong>Reverse convertible lab →</strong></a
+          >
+          <a href="stepdown-autocall.html"
+            ><span>Separate two triggers</span
+            ><strong>Autocall lifecycle →</strong></a
+          >
+          <a href="koda-kodd-lab.html"
+            ><span>Watch termination</span
+            ><strong>Accumulator lifecycle →</strong></a
+          >
+        </div>
+        <p class="references">
+          Further reference:
+          <a
+            href="https://www.mathworks.com/help/fininst/supported-equity-derivatives.html"
+            >MathWorks barrier-option definitions</a
+          >
+          and
+          <a
+            href="https://www.hkex.com.hk/Global/Exchange/FAQ/Products/Securities/CBBC?sc_lang=en"
+            >HKEX knock-out risk guidance</a
+          >.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <strong>Derivatives 101</strong>
+      <p>
+        Educational examples only. Contract wording always controls the real
+        payoff.
+      </p>
+      <a href="glossary.html#barrier">Barrier terms in the glossary →</a>
+    </footer>
+  </body>
+</html>

@@ -5,6 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
+    "resolveJsonModule": true,
     "noUncheckedIndexedAccess": false,
     "noEmit": true,
     "lib": ["ES2023", "DOM", "DOM.Iterable"],

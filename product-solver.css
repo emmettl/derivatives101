@@ -1,0 +1,184 @@
+.is-hidden {
+  display: none !important;
+}
+
+.select {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+.mode-control label.group-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  color: var(--steel);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.check-row input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--jade);
+}
+
+.solver-view .equation-card {
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.solver-view .equation-card > p {
+  max-width: 70ch;
+}
+
+.breakdown {
+  width: 100%;
+  table-layout: fixed;
+  overflow-wrap: anywhere;
+  margin-top: 14px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.breakdown th,
+.breakdown td {
+  white-space: normal;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.breakdown th {
+  width: 45%;
+  padding-right: 12px;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.breakdown td {
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+.solve-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: end;
+  margin-top: 16px;
+}
+
+.solve-controls .solver-actions {
+  grid-column: 1 / -1;
+  margin-top: 0;
+}
+
+.solve-field {
+  display: grid;
+  gap: 6px;
+  color: var(--steel);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.solve-field em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 650;
+}
+
+.solve-field input {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.solved-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0 4px;
+}
+
+.solved-strip div {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--tint);
+}
+
+.solved-strip span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.solved-strip strong {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.equation-card .table-scroll {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.snapshot-table {
+  width: 100%;
+  margin-top: 12px;
+  border-collapse: collapse;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.snapshot-table th,
+.snapshot-table td {
+  padding: 7px 10px 7px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.snapshot-table thead th {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.snapshot-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (width <= 720px) {
+  .solve-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .solved-strip {
+    grid-template-columns: 1fr;
+  }
+}

@@ -23,6 +23,9 @@ export function activateTab(id, updateUrl = true) {
     status.textContent = "Structure " + position + " of " + panelIds.length + " · " + label;
   if (updateUrl) history.replaceState(null, "", "#" + selected.dataset.t);
   selected.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  window.dispatchEvent(
+    new CustomEvent("payoff-explorer:activate", { detail: { id: selected.dataset.t } }),
+  );
 }
 tabButtons.forEach((b) => (b.onclick = () => activateTab(b.dataset.t)));
 document.getElementById("tabs").addEventListener("keydown", (e) => {

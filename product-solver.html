@@ -68,7 +68,11 @@
     </header>
 
     <main>
-      <section class="answer-strip" aria-label="Current valuation">
+      <section
+        class="answer-strip"
+        id="valuation-strip"
+        aria-label="Current valuation"
+      >
         <div class="answer-main">
           <span id="headline-label">Offered coupon</span>
           <strong id="headline-value">—</strong>
@@ -88,6 +92,15 @@
         <div>
           <span id="stat-b-label">Loses principal</span>
           <strong id="stat-b">—</strong>
+        </div>
+        <div
+          class="calculation-overlay"
+          id="valuation-busy"
+          role="status"
+          aria-live="polite"
+        >
+          <span class="calculation-spinner" aria-hidden="true"></span>
+          <strong>Calculating…</strong>
         </div>
       </section>
 

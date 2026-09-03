@@ -1,24 +1,20 @@
 import {
-  autocallBarrierSolve,
-  bisect,
-  capSolve,
-  priceAutocall,
-  priceProtectedNote,
-  priceReverseConvertible,
-  protectionSolve,
-  reverseConvertibleBarrierSolve,
-  simulatePathSummaries,
-  type AutocallTerms,
   type BarrierObservation,
-  type MarketContext,
-  type PathSummaries,
-  type ProtectedNoteTerms,
-  type ReverseConvertibleTerms,
-  type SolveDefinition,
   type SolveResult,
   type SolveStep,
   type SolveTarget,
 } from "./engine";
+import {
+  calculateMarketSolver,
+  definitionForState,
+  type Headline,
+  type MarketSolverCalculationRequest,
+  type MarketSolverCalculationResult,
+  type MarketSolverChart,
+  type MarketSolverDefinition,
+  type MarketSolverState,
+  type Product,
+} from "./calculation";
 import {
   atmVolatility,
   curveFor,
@@ -29,15 +25,11 @@ import {
   type VolatilityModel,
 } from "./snapshot";
 
-type Product = "autocall" | "rc" | "protected";
-
 const $ = <T extends HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector);
   if (!element) throw new Error(`Missing element: ${selector}`);
   return element;
 };
-
-const PATH_COUNT = 20_000;
 
 const tenorRanges: Record<Product, { min: number; max: number; step: number; value: number }> = {
   autocall: { min: 1, max: 6, step: 1, value: 3 },
@@ -60,27 +52,7 @@ const targetOptions: Record<Product, Array<[SolveTarget, string]>> = {
   ],
 };
 
-interface State {
-  underlying: string;
-  product: Product;
-  volModel: VolatilityModel;
-  tenor: number;
-  frequency: number;
-  trigger: number;
-  barrier: number;
-  barrierObservation: BarrierObservation;
-  strike: number;
-  protection: number;
-  capEnabled: boolean;
-  cap: number;
-  fee: number;
-  spread: number;
-  margin: number;
-  solveTarget: SolveTarget;
-  target: number;
-}
-
-const defaults: State = {
+const defaults: MarketSolverState = {
   underlying: "SX5E",
   product: "autocall",
   volModel: "skew",
@@ -100,7 +72,7 @@ const defaults: State = {
   target: 0,
 };
 
-let state: State = { ...defaults };
+let state: MarketSolverState = { ...defaults };
 
 const controls = {
   underlying: $("#underlying") as HTMLSelectElement,
@@ -120,7 +92,6 @@ const controls = {
 };
 
 const percent = (value: number, digits = 1) => `${value.toFixed(digits)}%`;
-const number2 = (value: number) => value.toFixed(2);
 
 function readState(): void {
   state = {
@@ -174,206 +145,31 @@ function setSegmented(selector: string, value: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Market context and cached simulations.
-
-function contextFor(volModel: VolatilityModel): MarketContext {
-  const underlying = underlyingById(state.underlying);
-  return { underlying, curve: curveFor(underlying), fundingSpread: state.spread / 100, volModel };
-}
-
-const summaryCache = new Map<string, PathSummaries>();
-
-function summariesFor(volModel: VolatilityModel): PathSummaries {
-  const key = `${state.underlying}|${volModel}|${state.tenor}|${state.frequency}`;
-  let summaries = summaryCache.get(key);
-  if (!summaries) {
-    summaries = simulatePathSummaries(
-      contextFor(volModel),
-      state.tenor,
-      state.frequency,
-      PATH_COUNT,
-    );
-    if (summaryCache.size > 12) summaryCache.delete(summaryCache.keys().next().value as string);
-    summaryCache.set(key, summaries);
-  }
-  return summaries;
-}
-
-function autocallTerms(): AutocallTerms {
-  return {
-    tenor: state.tenor,
-    frequency: state.frequency,
-    trigger: state.trigger,
-    barrier: state.barrier,
-    barrierObservation: state.barrierObservation,
-    margin: state.margin,
-  };
-}
-
-function reverseConvertibleTerms(): ReverseConvertibleTerms {
-  return {
-    tenor: state.tenor,
-    strike: state.strike,
-    barrier: Math.min(state.barrier, state.strike - 1),
-    frequency: state.frequency,
-    margin: state.margin,
-  };
-}
-
-function protectedNoteTerms(): ProtectedNoteTerms {
-  return {
-    tenor: state.tenor,
-    protection: state.protection,
-    strike: 100,
-    cap: state.capEnabled ? state.cap : null,
-    fee: state.fee,
-  };
-}
-
-interface Headline {
-  label: string;
-  value: string;
-  secondaryLabel: string;
-  secondary: string;
-  alternative: string;
-  statALabel: string;
-  statA: string;
-  statBLabel: string;
-  statB: string;
-  rows: Array<[string, string]>;
-  copy: string;
-  result: number;
-}
-
-function valuation(): Headline {
-  const context = contextFor(state.volModel);
-  const other: VolatilityModel = state.volModel === "skew" ? "flat" : "skew";
-  const otherContext = contextFor(other);
-  const otherLabel = other === "flat" ? "Under flat volatility" : "With market skew";
-  const { underlying } = context;
-
-  if (state.product === "autocall") {
-    const terms = autocallTerms();
-    const result = priceAutocall(summariesFor(state.volModel), context, terms);
-    const alternative = priceAutocall(summariesFor(other), otherContext, terms);
-    return {
-      label: "Offered coupon (p.a.)",
-      value: percent(result.offeredCoupon, 2),
-      secondaryLabel: "Fair coupon before margin",
-      secondary: percent(result.fairCoupon, 2),
-      alternative: `${percent(alternative.offeredCoupon, 2)} · ${otherLabel.toLowerCase()}`,
-      statALabel: "Autocalled",
-      statA: percent(result.callProbability * 100, 0),
-      statBLabel: "Loses principal",
-      statB: percent(result.lossProbability * 100, 1),
-      rows: [
-        ["Paths", `${PATH_COUNT.toLocaleString()} · weekly steps · same draws for every candidate`],
-        [
-          "Drift",
-          `${percent(zeroRate(context.curve, state.tenor) * 100, 2)} rate − ${percent(underlying.dividendYield * 100, 2)} dividend yield`,
-        ],
-        [
-          "Volatility",
-          state.volModel === "flat"
-            ? `${percent(atmVolatility(underlying, state.tenor) * 100, 1)} flat`
-            : `${percent(atmVolatility(underlying, state.tenor) * 100, 1)} at the money · ${percent(impliedVolatility(underlying, state.tenor, state.barrier / 100) * 100, 1)} at the barrier`,
-        ],
-        ["PV of expected coupons per 1% p.a.", number2(result.annuity)],
-        ["PV of expected redemption", number2(result.redemptionPv)],
-        ["Issuer margin", number2(state.margin)],
-        ["Expected life", `${result.expectedLife.toFixed(2)} years`],
-        ...(state.barrierObservation === "continuous"
-          ? [
-              [
-                "Effective barrier (continuity correction)",
-                percent(result.effectiveBarrier, 1),
-              ] as [string, string],
-            ]
-          : []),
-      ],
-      copy: `Coupon = (100 − margin − redemption PV) ÷ coupon annuity. The paths are fixed, so the coupon is linear in nothing but the barrier's effect on redemption, and the solver can bisect it.`,
-      result: result.offeredCoupon,
-    };
-  }
-
-  if (state.product === "rc") {
-    const terms = reverseConvertibleTerms();
-    const result = priceReverseConvertible(context, terms);
-    const alternative = priceReverseConvertible(otherContext, terms);
-    return {
-      label: "Offered coupon (p.a.)",
-      value: percent(result.offeredCoupon, 2),
-      secondaryLabel: "Fair coupon before margin",
-      secondary: percent(result.fairCoupon, 2),
-      alternative: `${percent(alternative.offeredCoupon, 2)} · ${otherLabel.toLowerCase()}`,
-      statALabel: "Knock-in put value",
-      statA: number2(result.putValue),
-      statBLabel: "Volatility at the barrier",
-      statB: percent(result.putVolatility * 100, 1),
-      rows: [
-        ["Issuer bond PV (funding curve)", number2(result.bondPv)],
-        ["Down-and-in put, closed form", number2(result.putValue)],
-        ["Coupon annuity per 1% p.a.", number2(result.annuity)],
-        ["Issuer margin", number2(state.margin)],
-      ],
-      copy: `Coupon = (100 − margin − bond PV + put value) ÷ annuity. The put is priced with the volatility quoted at the barrier, the sticky-strike shortcut desks use for a first look.`,
-      result: result.offeredCoupon,
-    };
-  }
-
-  const terms = protectedNoteTerms();
-  const result = priceProtectedNote(context, terms);
-  const alternative = priceProtectedNote(otherContext, terms);
-  return {
-    label: "Participation",
-    value: percent(result.participation, 1),
-    secondaryLabel: "Option budget",
-    secondary: number2(result.budget),
-    alternative: `${percent(alternative.participation, 1)} · ${otherLabel.toLowerCase()}`,
-    statALabel: "Bond floor",
-    statA: number2(result.bondFloor),
-    statBLabel: terms.cap === null ? "Call cost" : "Call-spread cost",
-    statB: number2(result.optionCost),
-    rows: [
-      ["Funding rate", percent(result.fundingRate * 100, 2)],
-      ["Bond floor for the protected amount", number2(result.bondFloor)],
-      ["Upfront fee", number2(state.fee)],
-      ["Option budget", number2(result.budget)],
-      [
-        terms.cap === null ? "At-the-money call" : `Call spread ${terms.strike}–${terms.cap}`,
-        `${number2(result.optionCost)} at ${percent(result.strikeVolatility * 100, 1)}${result.capVolatility === null ? "" : ` / ${percent(result.capVolatility * 100, 1)}`}`,
-      ],
-    ],
-    copy: `Participation = budget ÷ option cost. Higher rates, lower protection, a longer tenor or a cap all leave more budget per unit of upside.`,
-    result: result.participation,
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Solver.
 
-function definition(): SolveDefinition {
-  if (state.product === "autocall")
-    return autocallBarrierSolve(
-      summariesFor(state.volModel),
-      contextFor(state.volModel),
-      autocallTerms(),
-    );
-  if (state.product === "rc")
-    return reverseConvertibleBarrierSolve(contextFor(state.volModel), reverseConvertibleTerms());
-  return state.solveTarget === "cap"
-    ? capSolve(contextFor(state.volModel), { ...protectedNoteTerms(), cap: state.cap })
-    : protectionSolve(contextFor(state.volModel), protectedNoteTerms());
-}
-
-let currentHeadline: Headline = valuation();
-let currentDefinition: SolveDefinition = definition();
-let solution: SolveResult = bisect(
-  currentDefinition.evaluate,
-  currentDefinition.range,
-  state.target,
-  currentDefinition,
-);
+let currentHeadline: Headline | undefined;
+let currentDefinition: MarketSolverDefinition = definitionForState(state);
+const emptySolution = (definition: MarketSolverDefinition): SolveResult => ({
+  steps: [],
+  candidate: Number.NaN,
+  value: Number.NaN,
+  converged: false,
+  reachable: false,
+  range: definition.range,
+  minimum: Number.NaN,
+  maximum: Number.NaN,
+});
+let solution: SolveResult = emptySolution(currentDefinition);
+let calculation: MarketSolverChart | undefined;
+let calculationPending = true;
+let calculationVersion = 0;
+let calculationTimer: ReturnType<typeof setTimeout> | undefined;
+let activeRequest: MarketSolverCalculationRequest | undefined;
+let calculationSource: "worker" | "fallback" = "worker";
+let calculationWorker =
+  typeof Worker !== "undefined"
+    ? new Worker(new URL("./calculation-worker.ts", import.meta.url), { type: "module" })
+    : null;
 let visibleSteps = 0;
 let timer: number | undefined;
 let animateNextRender = false;
@@ -384,19 +180,60 @@ function stopTimer(): void {
   $("#solve").textContent = "Solve automatically";
 }
 
-function recompute(): void {
+function finishCalculation(
+  result: MarketSolverCalculationResult,
+  source: "worker" | "fallback",
+): void {
+  if (result.id !== calculationVersion) return;
+  activeRequest = undefined;
+  state.target = result.target;
+  controls.target.value = String(result.target);
+  currentHeadline = result.headline;
+  currentDefinition = result.definition;
+  solution = result.solution;
+  calculation = result.chart;
+  calculationSource = source;
+  calculationPending = false;
+  render();
+}
+
+function calculateWithoutWorker(request: MarketSolverCalculationRequest): void {
+  setTimeout(() => finishCalculation(calculateMarketSolver(request), "fallback"), 0);
+}
+
+function startCalculation(request: MarketSolverCalculationRequest): void {
+  if (request.id !== calculationVersion) return;
+  activeRequest = request;
+  if (calculationWorker) calculationWorker.postMessage(request);
+  else calculateWithoutWorker(request);
+}
+
+function recompute(seedTarget = false, delay = 48): void {
   stopTimer();
-  currentHeadline = valuation();
-  currentDefinition = definition();
-  solution = bisect(
-    currentDefinition.evaluate,
-    currentDefinition.range,
-    state.target,
-    currentDefinition,
-  );
+  currentDefinition = definitionForState(state);
+  solution = emptySolution(currentDefinition);
+  calculation = undefined;
+  calculationPending = true;
   visibleSteps = 0;
   animateNextRender = false;
+  const request: MarketSolverCalculationRequest = {
+    id: ++calculationVersion,
+    state: { ...state },
+    seedTarget,
+  };
+  clearTimeout(calculationTimer);
+  calculationTimer = setTimeout(() => startCalculation(request), delay);
   render();
+}
+
+if (calculationWorker) {
+  calculationWorker.onmessage = (event: MessageEvent<MarketSolverCalculationResult>) =>
+    finishCalculation(event.data, "worker");
+  calculationWorker.onerror = () => {
+    calculationWorker?.terminate();
+    calculationWorker = null;
+    if (activeRequest?.id === calculationVersion) calculateWithoutWorker(activeRequest);
+  };
 }
 
 function currentStep(): SolveStep | undefined {
@@ -461,15 +298,20 @@ function renderControls(): void {
 
 function renderHeadline(): void {
   const headline = currentHeadline;
-  $("#headline-label").textContent = headline.label;
-  $("#headline-value").textContent = headline.value;
-  $("#secondary-label").textContent = headline.secondaryLabel;
-  $("#secondary-value").textContent = headline.secondary;
-  $("#alt-value").textContent = headline.alternative;
-  $("#stat-a-label").textContent = headline.statALabel;
-  $("#stat-a").textContent = headline.statA;
-  $("#stat-b-label").textContent = headline.statBLabel;
-  $("#stat-b").textContent = headline.statB;
+  const strip = $("#valuation-strip");
+  strip.classList.toggle("is-calculating", calculationPending);
+  strip.setAttribute("aria-busy", String(calculationPending));
+  if (headline) {
+    $("#headline-label").textContent = headline.label;
+    $("#headline-value").textContent = headline.value;
+    $("#secondary-label").textContent = headline.secondaryLabel;
+    $("#secondary-value").textContent = headline.secondary;
+    $("#alt-value").textContent = headline.alternative;
+    $("#stat-a-label").textContent = headline.statALabel;
+    $("#stat-a").textContent = headline.statA;
+    $("#stat-b-label").textContent = headline.statBLabel;
+    $("#stat-b").textContent = headline.statB;
+  }
   const underlying = underlyingById(state.underlying);
   $("#valuation-title").textContent =
     `${underlying.name} · ${state.tenor.toFixed(state.tenor % 1 ? 1 : 0)}-year ${
@@ -479,10 +321,12 @@ function renderHeadline(): void {
           ? "barrier reverse convertible"
           : "capital-protected note"
     }`;
-  ($("#breakdown-body") as HTMLTableSectionElement).innerHTML = headline.rows
-    .map(([label, value]) => `<tr><th scope="row">${label}</th><td>${value}</td></tr>`)
-    .join("");
-  $("#valuation-copy").textContent = headline.copy;
+  if (headline) {
+    ($("#breakdown-body") as HTMLTableSectionElement).innerHTML = headline.rows
+      .map(([label, value]) => `<tr><th scope="row">${label}</th><td>${value}</td></tr>`)
+      .join("");
+    $("#valuation-copy").textContent = headline.copy;
+  }
 }
 
 function renderSolveSummary(): void {
@@ -499,20 +343,25 @@ function renderSolveSummary(): void {
   $("#iteration-summary").textContent = String(visibleSteps);
   $("#step").toggleAttribute(
     "disabled",
-    visibleSteps >= solution.steps.length || !solution.steps.length,
+    calculationPending || visibleSteps >= solution.steps.length || !solution.steps.length,
   );
-  $("#solve").toggleAttribute("disabled", !solution.steps.length);
+  $("#solve").toggleAttribute("disabled", calculationPending || !solution.steps.length);
 
   const pill = $("#status-pill");
-  pill.classList.toggle("solved", complete);
-  pill.textContent = complete
-    ? `Solved in ${solution.steps.length} steps`
-    : visibleSteps
-      ? `Step ${visibleSteps} of ${solution.steps.length}`
-      : "Ready to solve";
+  pill.classList.toggle("solved", !calculationPending && complete);
+  pill.classList.toggle("calculating", calculationPending);
+  pill.textContent = calculationPending
+    ? "Calculating…"
+    : complete
+      ? `Solved in ${solution.steps.length} steps`
+      : visibleSteps
+        ? `Step ${visibleSteps} of ${solution.steps.length}`
+        : "Ready to solve";
 
   const note = $("#action-note");
-  if (!solution.reachable) {
+  if (calculationPending) {
+    note.textContent = "The selected market is visible. Repricing in the background…";
+  } else if (!solution.reachable) {
     note.textContent = `No ${currentDefinition.label} between ${formatCandidate(solution.range[0])} and ${formatCandidate(solution.range[1])} gives ${formatResult(state.target)}. Reachable ${currentDefinition.resultLabel}: ${formatResult(solution.minimum)} to ${formatResult(solution.maximum)}.`;
   } else if (complete) {
     note.textContent = `${formatCandidate(solution.candidate)} gives ${formatResult(solution.value)}, within tolerance of the ${formatResult(state.target)} target.`;
@@ -528,7 +377,8 @@ function renderSolveSummary(): void {
     step?.candidate ?? (solution.range[0] + solution.range[1]) / 2,
   );
   const copy = $("#decision-copy");
-  if (!solution.reachable)
+  if (calculationPending) copy.textContent = "Updating the solution and chart for these inputs…";
+  else if (!solution.reachable)
     copy.textContent = "Change the target or the terms to bring it within range.";
   else if (!step) copy.textContent = "The first step will test the middle of the range.";
   else if (step.converged)
@@ -547,8 +397,7 @@ function renderTable(): void {
   $("#result-heading").textContent =
     currentDefinition.resultLabel === "participation" ? "Participation" : "Coupon";
   if (!shown.length) {
-    body.innerHTML =
-      '<tr class="empty-row"><td colspan="6">No guesses yet. Take the first step above.</td></tr>';
+    body.innerHTML = `<tr class="empty-row"><td colspan="6">${calculationPending ? "Calculating the new model…" : "No guesses yet. Take the first step above."}</td></tr>`;
     return;
   }
   body.innerHTML = shown
@@ -579,16 +428,18 @@ function svgElement<K extends keyof SVGElementTagNameMap>(
 
 function renderChart(): void {
   const svg = $("#solver-chart") as unknown as SVGSVGElement;
+  svg.classList.toggle("is-updating", calculationPending);
+  svg.setAttribute("aria-busy", String(calculationPending));
+  if (!calculation) return;
+  svg.dataset.calculationSource = calculationSource;
+  svg.dataset.modelUnderlying = state.underlying;
   const width = 900;
   const height = 350;
   const margin = { top: 22, right: 24, bottom: 46, left: 62 };
   const plotW = width - margin.left - margin.right;
   const plotH = height - margin.top - margin.bottom;
   const [minCandidate, maxCandidate] = currentDefinition.range;
-  const samples = Array.from({ length: 61 }, (_, index) => {
-    const candidate = minCandidate + ((maxCandidate - minCandidate) * index) / 60;
-    return { candidate, value: currentDefinition.evaluate(candidate) };
-  });
+  const { samples } = calculation;
   const values = samples.map((point) => point.value).concat(state.target);
   const minValue = Math.min(0, ...values);
   const maxValue = Math.max(...values) * 1.05 || 1;
@@ -674,8 +525,12 @@ function renderChart(): void {
   svg.append(targetLabel);
 
   if (solution.reachable) {
-    const lowerPoint = { x: x(lower), y: y(currentDefinition.evaluate(lower)) };
-    const upperPoint = { x: x(upper), y: y(currentDefinition.evaluate(upper)) };
+    const boundValues = step
+      ? calculation.retainedBoundValues[visibleSteps - 1]
+      : calculation.initialBoundValues;
+    if (!boundValues) return;
+    const lowerPoint = { x: x(lower), y: y(boundValues.lower) };
+    const upperPoint = { x: x(upper), y: y(boundValues.upper) };
     svg.append(
       svgElement("line", {
         x1: lowerPoint.x,
@@ -767,30 +622,13 @@ Object.values(controls).forEach((control) => {
   control.addEventListener(control instanceof HTMLSelectElement ? "change" : "input", onInput);
 });
 
-function seedTarget(): void {
-  const result = currentDefinition.evaluate(
-    state.product === "protected"
-      ? state.solveTarget === "cap"
-        ? state.cap
-        : state.protection
-      : state.barrier,
-  );
-  state.target =
-    currentDefinition.resultLabel === "participation"
-      ? Math.round(result)
-      : Math.round(result * 4) / 4;
-  controls.target.value = String(state.target);
-}
-
 function switchProduct(product: Product): void {
   state.product = product;
   state.tenor = tenorRanges[product].value;
   state.solveTarget = defaultTargets[product];
   if (product === "protected" && state.solveTarget === "cap") state.capEnabled = true;
   writeControls();
-  currentDefinition = definition();
-  seedTarget();
-  recompute();
+  recompute(true);
 }
 
 controls.solveTarget.addEventListener("change", () => {
@@ -799,9 +637,7 @@ controls.solveTarget.addEventListener("change", () => {
     state.capEnabled = true;
     controls.capEnabled.checked = true;
   }
-  currentDefinition = definition();
-  seedTarget();
-  recompute();
+  recompute(true);
 });
 
 document.querySelectorAll<HTMLElement>(".segmented[data-state]").forEach((group) => {
@@ -856,9 +692,7 @@ $("#restart").addEventListener("click", () => {
 $("#reset").addEventListener("click", () => {
   state = { ...defaults };
   writeControls();
-  currentDefinition = definition();
-  seedTarget();
-  recompute();
+  recompute(true);
 });
 
 controls.underlying.replaceChildren(
@@ -870,7 +704,6 @@ controls.underlying.replaceChildren(
   }),
 );
 writeControls();
-currentDefinition = definition();
-seedTarget();
 renderSnapshot();
-recompute();
+render();
+recompute(true, 0);

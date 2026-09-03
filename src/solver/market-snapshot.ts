@@ -57,15 +57,6 @@ export function parseMarketSnapshot(value: unknown): MarketSnapshot {
   return candidate as MarketSnapshot;
 }
 
-export async function loadMarketSnapshot(
-  url: string,
-  request: typeof fetch = fetch,
-): Promise<MarketSnapshot> {
-  const response = await request(url, { cache: "no-store" });
-  if (!response.ok) throw new Error(`Snapshot request failed with ${response.status}`);
-  return parseMarketSnapshot(await response.json());
-}
-
 export function marketDataAgeDays(instrument: MarketInstrumentSnapshot, now = Date.now()): number {
   return Math.max(0, (now - Date.parse(`${instrument.spotAsOf}T00:00:00.000Z`)) / 86_400_000);
 }

@@ -142,6 +142,7 @@ test("solver chart shades the bracket whose midpoint is being tested", async ({ 
 
 test("solver can apply and download the dated market snapshot", async ({ page }) => {
   const errors = monitorRuntimeErrors(page);
+  await page.route("**/market-data/latest.json", (route) => route.abort());
   await page.goto("/solver-lab.html");
 
   const underlying = page.locator("#market-underlying");

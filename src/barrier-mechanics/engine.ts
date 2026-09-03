@@ -57,6 +57,12 @@ export function barrierFor(direction: BarrierDirection): number {
   return direction === "down" ? 80 : 120;
 }
 
+export function directionForPath(pathId: PathId): BarrierDirection | null {
+  if (pathId === "down-touch") return "down";
+  if (pathId === "up-touch") return "up";
+  return null;
+}
+
 function firstTouch(prices: number[], direction: BarrierDirection, barrier: number): number | null {
   const index = prices.findIndex((price) =>
     direction === "down" ? price <= barrier : price >= barrier,

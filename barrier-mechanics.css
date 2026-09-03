@@ -498,6 +498,17 @@ legend {
   fill: var(--jade);
 }
 
+.barrier-line.context {
+  stroke: #bdc8ce;
+  stroke-width: 1.25;
+  stroke-dasharray: 4 7;
+}
+
+.barrier-label.context {
+  fill: #8b9da8;
+  font-weight: 700;
+}
+
 .price-path {
   fill: none;
   stroke: var(--deep);

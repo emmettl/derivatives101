@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateBarrierScenario, type BarrierScenario } from "./engine";
+import { directionForPath, evaluateBarrierScenario, type BarrierScenario } from "./engine";
 
 const base: BarrierScenario = {
   direction: "down",
@@ -9,6 +9,12 @@ const base: BarrierScenario = {
 };
 
 describe("barrier mechanism", () => {
+  it("matches touch path presets to their barrier direction", () => {
+    expect(directionForPath("down-touch")).toBe("down");
+    expect(directionForPath("up-touch")).toBe("up");
+    expect(directionForPath("inside")).toBeNull();
+  });
+
   it("activates a knock-in after the relevant barrier is touched", () => {
     const result = evaluateBarrierScenario(base);
     expect(result.touched).toBe(true);

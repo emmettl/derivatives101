@@ -1,4 +1,6 @@
 import {
+  barrierFor,
+  directionForPath,
   evaluateBarrierScenario,
   pathPresets,
   STRIKE,
@@ -87,21 +89,28 @@ function renderChart(): void {
     svg.append(line, label);
   });
 
-  const barrierLine = svgElement("line", {
-    x1: margin.left,
-    x2: width - margin.right,
-    y1: y(result.barrier),
-    y2: y(result.barrier),
-    class: `barrier-line ${state.direction}`,
+  const barrierDirections: BarrierDirection[] =
+    state.direction === "down" ? ["up", "down"] : ["down", "up"];
+
+  barrierDirections.forEach((direction) => {
+    const barrier = barrierFor(direction);
+    const contextClass = direction === state.direction ? "" : " context";
+    const barrierLine = svgElement("line", {
+      x1: margin.left,
+      x2: width - margin.right,
+      y1: y(barrier),
+      y2: y(barrier),
+      class: `barrier-line ${direction}${contextClass}`,
+    });
+    const barrierLabel = svgElement("text", {
+      x: width - margin.right,
+      y: y(barrier) - 9,
+      class: `barrier-label ${direction}${contextClass}`,
+      "text-anchor": "end",
+    });
+    barrierLabel.textContent = `${direction === "down" ? "Lower" : "Upper"} barrier ${barrier}`;
+    svg.append(barrierLine, barrierLabel);
   });
-  const barrierLabel = svgElement("text", {
-    x: width - margin.right,
-    y: y(result.barrier) - 9,
-    class: `barrier-label ${state.direction}`,
-    "text-anchor": "end",
-  });
-  barrierLabel.textContent = `${state.direction === "down" ? "Lower" : "Upper"} barrier ${result.barrier}`;
-  svg.append(barrierLine, barrierLabel);
 
   const pathLine = svgElement("polyline", {
     points: path.prices.map((price, index) => `${x(index)},${y(price)}`).join(" "),
@@ -192,7 +201,11 @@ document.querySelectorAll<HTMLButtonElement>("[data-choice]").forEach((button) =
     if (key === "direction") state.direction = value as BarrierDirection;
     if (key === "barrierSwitch") state.barrierSwitch = value as BarrierSwitch;
     if (key === "vanillaType") state.vanillaType = value as VanillaType;
-    if (key === "pathId") state.pathId = value as PathId;
+    if (key === "pathId") {
+      state.pathId = value as PathId;
+      const matchingDirection = directionForPath(state.pathId);
+      if (matchingDirection) state.direction = matchingDirection;
+    }
     render();
   });
 });

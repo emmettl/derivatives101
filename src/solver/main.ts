@@ -267,8 +267,8 @@ function renderOutputs(): void {
   $("#solved-label").textContent = meta.solvedLabel;
   $("#equation-inputs").innerHTML = meta.inputs;
   $("#equation-explanation").textContent = meta.explanation;
-  $("#lower-label").textContent = `Lower ${meta.label}`;
-  $("#upper-label").textContent = `Upper ${meta.label}`;
+  $("#lower-label").textContent = `Tested lower ${meta.label}`;
+  $("#upper-label").textContent = `Tested upper ${meta.label}`;
   $("#test-variable-heading").textContent = `Test ${meta.symbol}`;
   const known = [state.type === "call" ? "Call" : "Put", `target ${formatPrice(state.target)}`];
   if (state.solveFor !== "spot") known.push(`S ${formatPrice(state.S)}`);
@@ -362,8 +362,9 @@ function renderDecision(): void {
   const candidateTooLow = increasing ? step.price < state.target : step.price > state.target;
   const variable = variableMeta[state.solveFor].label;
   const implication = `The ${variable} is too ${candidateTooLow ? "low" : "high"}, so discard the ${candidateTooLow ? "lower" : "upper"} half.`;
+  const retained = `Retained bracket: ${formatCandidate(step.nextLower)} — ${formatCandidate(step.nextUpper)}.`;
   $("#decision-copy").textContent =
-    `${formatPrice(step.price)} is ${comparison} ${formatPrice(state.target)}. ${implication}`;
+    `${formatPrice(step.price)} is ${comparison} ${formatPrice(state.target)}. ${implication} ${retained}`;
 
   if (animateNextRender) {
     ["#lower-value", "#mid-value", "#upper-value"].forEach((selector) => pulseValue($(selector)));
@@ -459,7 +460,7 @@ function renderChart(): void {
   const svgTitle = svgElement("title", { id: "chart-title" });
   svgTitle.textContent = `Option price by ${variableMeta[state.solveFor].label}`;
   const svgDescription = svgElement("desc", { id: "chart-description" });
-  svgDescription.textContent = `A curve showing option value across candidate ${variableMeta[state.solveFor].label} values, the target price, and the solver's current bracket.`;
+  svgDescription.textContent = `A curve showing option value across candidate ${variableMeta[state.solveFor].label} values, the target price, the range just tested, and the bracket retained for the next step.`;
   svg.append(svgTitle, svgDescription);
 
   for (let i = 0; i <= 4; i += 1) {
@@ -497,19 +498,36 @@ function renderChart(): void {
   }
 
   const step = currentStep();
-  const lower = step?.lower ?? minCandidate;
-  const upper = step?.upper ?? maxCandidate;
+  const testedLower = step?.lower ?? minCandidate;
+  const testedUpper = step?.upper ?? maxCandidate;
+  const lower = step?.nextLower ?? minCandidate;
+  const upper = step?.nextUpper ?? maxCandidate;
   const currentVisual: ChartVisual = {
     lower: { x: x(lower), y: y(priceAtCandidate(state, lower)) },
     upper: { x: x(upper), y: y(priceAtCandidate(state, upper)) },
     midpoint: step ? { x: x(step.midpoint), y: y(step.price) } : undefined,
   };
+  if (step) {
+    svg.append(
+      svgElement("rect", {
+        x: String(x(testedLower)),
+        y: String(margin.top),
+        width: String(Math.max(0, x(testedUpper) - x(testedLower))),
+        height: String(plotH),
+        class: "tested-zone",
+        "data-lower": String(testedLower),
+        "data-upper": String(testedUpper),
+      }),
+    );
+  }
   const bracketZone = svgElement("rect", {
     x: String(currentVisual.lower.x),
     y: String(margin.top),
     width: String(Math.max(0, currentVisual.upper.x - currentVisual.lower.x)),
     height: String(plotH),
     class: "bracket-zone",
+    "data-lower": String(lower),
+    "data-upper": String(upper),
   });
   svg.append(bracketZone);
 
@@ -538,12 +556,19 @@ function renderChart(): void {
   targetLabel.textContent = `TARGET ${formatPrice(state.target)}`;
   svg.append(targetLabel);
 
-  const bracketLine = svgElement("line", {
+  const lowerBoundary = svgElement("line", {
     x1: String(currentVisual.lower.x),
+    x2: String(currentVisual.lower.x),
+    y1: String(margin.top),
+    y2: String(margin.top + plotH),
+    class: "bracket-boundary",
+  });
+  const upperBoundary = svgElement("line", {
+    x1: String(currentVisual.upper.x),
     x2: String(currentVisual.upper.x),
-    y1: String(currentVisual.lower.y),
-    y2: String(currentVisual.upper.y),
-    class: "bracket-line",
+    y1: String(margin.top),
+    y2: String(margin.top + plotH),
+    class: "bracket-boundary",
   });
   const lowerDot = svgElement("circle", {
     cx: String(currentVisual.lower.x),
@@ -557,7 +582,7 @@ function renderChart(): void {
     r: "6",
     class: "bracket-dot",
   });
-  svg.append(bracketLine, lowerDot, upperDot);
+  svg.append(lowerBoundary, upperBoundary, lowerDot, upperDot);
 
   let candidateDot: SVGCircleElement | undefined;
   if (currentVisual.midpoint) {
@@ -583,10 +608,12 @@ function renderChart(): void {
   if (animateNextRender && previousChartVisual) {
     travel(lowerDot, previousChartVisual.lower, currentVisual.lower);
     travel(upperDot, previousChartVisual.upper, currentVisual.upper);
-    bracketLine.animate([{ opacity: 0.15 }, { opacity: 1 }], {
-      duration: 460,
-      easing: "ease-out",
-    });
+    [lowerBoundary, upperBoundary].forEach((boundary) =>
+      boundary.animate([{ opacity: 0.15 }, { opacity: 1 }], {
+        duration: 460,
+        easing: "ease-out",
+      }),
+    );
     bracketZone.animate(
       [
         { opacity: 0.03, transform: "scaleY(.86)" },

@@ -119,7 +119,7 @@ test("Payoff Explorer simulation histograms support direct bin inspection", asyn
   expect(errors).toEqual([]);
 });
 
-test("solver chart shades the bracket whose midpoint is being tested", async ({ page }) => {
+test("solver chart distinguishes the tested range from the retained bounds", async ({ page }) => {
   const errors = monitorRuntimeErrors(page);
   await page.goto("/solver-lab.html");
 
@@ -127,16 +127,33 @@ test("solver chart shades the bracket whose midpoint is being tested", async ({ 
   await page.getByRole("button", { name: "Take one step" }).click();
   const chart = page.locator("#solver-chart");
   const bracket = chart.locator(".bracket-zone");
+  const tested = chart.locator(".tested-zone");
   const candidate = chart.locator(".candidate-dot");
   await expect(bracket).toHaveCount(1);
+  await expect(tested).toHaveCount(1);
   await expect(candidate).toHaveCount(1);
+  await expect(chart.locator(".bracket-boundary")).toHaveCount(2);
+  await expect(chart.locator(".bracket-line")).toHaveCount(0);
 
-  const [bracketX, bracketWidth, candidateX] = await Promise.all([
+  const [bracketX, bracketWidth, testedX, testedWidth, candidateX] = await Promise.all([
     bracket.getAttribute("x"),
     bracket.getAttribute("width"),
+    tested.getAttribute("x"),
+    tested.getAttribute("width"),
     candidate.getAttribute("cx"),
   ]);
-  expect(Number(candidateX)).toBeCloseTo(Number(bracketX) + Number(bracketWidth) / 2, 6);
+  await expect(tested).toHaveAttribute("data-lower", "20");
+  await expect(tested).toHaveAttribute("data-upper", "250");
+  await expect(bracket).toHaveAttribute("data-lower", "20");
+  await expect(bracket).toHaveAttribute("data-upper", "135");
+  expect(Number(candidateX)).toBeCloseTo(Number(testedX) + Number(testedWidth) / 2, 6);
+  expect(Number(candidateX)).toBeCloseTo(Number(bracketX) + Number(bracketWidth), 6);
+
+  await page.getByRole("button", { name: "Take one step" }).click();
+  await expect(bracket).toHaveAttribute("data-lower", "77.5");
+  await expect(bracket).toHaveAttribute("data-upper", "135");
+  await expect(tested).toHaveAttribute("data-lower", "20");
+  await expect(tested).toHaveAttribute("data-upper", "135");
   expect(errors).toEqual([]);
 });
 

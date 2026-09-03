@@ -1,0 +1,147 @@
+.predict {
+  margin-top: 20px;
+  padding: 22px 24px;
+  border: 1px solid #d3dde3;
+  border-radius: 12px;
+  background: #fff;
+  color: #0b1e2d;
+}
+
+.predict-eyebrow {
+  margin: 0 0 4px;
+  color: #ad711a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.predict-heading {
+  margin: 0 0 14px;
+  font-size: 22px;
+}
+
+.predict-question {
+  margin: 0 0 8px;
+  font-size: 17px;
+  line-height: 1.4;
+}
+
+.predict-now,
+.predict-change {
+  margin: 0 0 8px;
+  color: #5f7484;
+  font-size: 14px;
+}
+
+.predict-now strong {
+  color: #0b1e2d;
+}
+
+.predict-choices {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.predict-choices button {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #d3dde3;
+  border-radius: 8px;
+  background: #fff;
+  color: #0b1e2d;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.predict-choices button:hover,
+.predict-choices button:focus-visible {
+  border-color: #2c5670;
+}
+
+.predict-choices button[aria-pressed="true"] {
+  border-color: #123b54;
+  box-shadow: inset 0 0 0 1px #123b54;
+}
+
+.predict-choices button.correct {
+  border-color: #238172;
+  background: #edf8f5;
+}
+
+.predict-choices button.incorrect {
+  border-color: #b5443a;
+  background: #fff2f0;
+}
+
+.predict-choices button:disabled {
+  cursor: default;
+}
+
+.predict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.predict-reveal,
+.predict-restore,
+.predict-step {
+  padding: 10px 16px;
+  border: 1px solid #123b54;
+  border-radius: 8px;
+  background: #123b54;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.predict-reveal:disabled {
+  border-color: #d3dde3;
+  background: #e8eef2;
+  color: #5f7484;
+  cursor: default;
+}
+
+.predict-restore,
+.predict-step {
+  background: #fff;
+  color: #123b54;
+}
+
+.predict-step:disabled {
+  border-color: #d3dde3;
+  color: #9aabb7;
+  cursor: default;
+}
+
+.predict-feedback {
+  min-height: 24px;
+  margin: 12px 0 0;
+  color: #123b54;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.predict-remembered {
+  margin: 8px 0 0;
+  color: #5f7484;
+  font-size: 13px;
+}
+
+.predict-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.predict-counter {
+  color: #5f7484;
+  font-size: 13px;
+  font-weight: 700;
+}

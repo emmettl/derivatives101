@@ -145,3 +145,38 @@ test("simulation inspectors remain inside a narrow viewport", async ({ page }) =
   expect(strategyBox!.x + strategyBox!.width).toBeLessThanOrEqual(390);
   expect(errors).toEqual([]);
 });
+
+test("narrow viewports collapse the input panels so the first chart sits near the top", async ({
+  page,
+}) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.goto("/option-lab.html");
+  const surface = await page.locator("#surface").boundingBox();
+  expect(surface).not.toBeNull();
+  expect(surface!.y).toBeLessThan(1000);
+  await expect(page.locator("#controls-summary")).toContainText("Call · spot 100");
+  await expect(page.locator("#spot")).toBeHidden();
+  await page.getByRole("button", { name: "Edit inputs" }).click();
+  await expect(page.locator("#spot")).toBeVisible();
+  await page.getByRole("button", { name: "Hide inputs" }).click();
+  await expect(page.locator("#spot")).toBeHidden();
+
+  await page.goto("/options-a-la-carte.html");
+  const payoff = page.locator("#strategy-chart");
+  const payoffBox = await payoff.boundingBox();
+  expect(payoffBox).not.toBeNull();
+  expect(payoffBox!.y).toBeLessThan(1400);
+  expect(payoffBox!.x + payoffBox!.width).toBeLessThanOrEqual(390);
+  await expect(payoff).toHaveAttribute("viewBox", /^0 0 3\d\d \d+$/);
+  await expect(page.locator("#leg-builder")).toBeHidden();
+  await page.getByRole("button", { name: "Edit legs" }).click();
+  await expect(page.locator('[data-leg="0"]')).toBeVisible();
+  await expectCurrentSimulation(page, "#strategy-simulation-status");
+  await expect(page.locator("#strategy-simulation-chart")).toHaveAttribute(
+    "viewBox",
+    /^0 0 3\d\d 5\d\d$/,
+  );
+  expect(errors).toEqual([]);
+});

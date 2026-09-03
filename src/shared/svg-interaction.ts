@@ -113,7 +113,9 @@ function tooltipFor(svg: SVGElement): HTMLElement {
   if (!parent.querySelector(":scope > .svg-chart-hint")) {
     const hint = document.createElement("span");
     hint.className = "svg-chart-hint";
-    hint.textContent = "Hover to inspect · click or drag to select";
+    hint.textContent = window.matchMedia("(hover: none)").matches
+      ? "Tap or drag to inspect"
+      : "Hover to inspect · click or drag to select";
     parent.append(hint);
   }
   let tooltip = parent.querySelector<HTMLElement>(":scope > .svg-chart-tooltip");

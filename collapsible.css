@@ -1,0 +1,65 @@
+/* Mobile-only collapsible sections. State is driven by src/shared/collapsible.ts:
+   `is-collapsible` marks a section that can be toggled in the current layout and
+   `is-collapsed` hides every child without `data-collapsible-keep`. */
+
+.section-toggle,
+.section-summary {
+  display: none;
+}
+
+.is-collapsible .section-toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #d3dbe2;
+  border-radius: 999px;
+  background: #fff;
+  color: #123b54;
+  padding: 7px 11px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.is-collapsible .section-toggle::after {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.is-collapsible .section-toggle[aria-expanded="true"]::after {
+  margin-top: 3px;
+  transform: rotate(-135deg);
+}
+
+.is-collapsible .section-toggle:hover {
+  border-color: #b87e24;
+  color: #b87e24;
+}
+
+.is-collapsible.is-collapsed > :not([data-collapsible-keep]) {
+  display: none;
+}
+
+.is-collapsible.is-collapsed .section-summary {
+  display: block;
+  margin: 6px 0 0;
+  color: #64798a;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-collapsible .section-toggle::after {
+    transition: none;
+  }
+}

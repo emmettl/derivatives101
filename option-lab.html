@@ -35,7 +35,8 @@
     />
     <title>Derivatives 101 — Option Lab</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="option-lab.css?v=2" />
+    <link rel="stylesheet" href="option-lab.css?v=3" />
+    <link rel="stylesheet" href="collapsible.css?v=1" />
   </head>
   <body>
     <header class="site-head">
@@ -85,13 +86,35 @@
       </section>
 
       <div class="lab-layout">
-        <aside class="controls" aria-label="Option inputs">
-          <div class="control-head">
+        <aside
+          class="controls"
+          aria-label="Option inputs"
+          data-collapsible="collapsed"
+        >
+          <div class="control-head" data-collapsible-keep>
             <div>
               <p class="eyebrow dark">The contract</p>
               <h2>Inputs</h2>
+              <p
+                class="section-summary"
+                id="controls-summary"
+                aria-live="polite"
+              ></p>
             </div>
-            <button type="button" class="quiet-button" id="reset">Reset</button>
+            <div class="control-actions">
+              <button type="button" class="quiet-button" id="reset">
+                Reset
+              </button>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Edit inputs"
+                data-hide-label="Hide inputs"
+              >
+                Hide inputs
+              </button>
+            </div>
           </div>
           <div
             class="segmented"

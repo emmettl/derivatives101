@@ -1,7 +1,9 @@
 import { strategyOutcome } from "./engine";
 import type { StrategyMetrics, StrategyOutcome, StrategyState } from "./types";
+import { applyChartSize, responsiveChartSize } from "../shared/chart-size";
 
-const dimensions = { width: 900, height: 440, left: 68, right: 25, top: 28, bottom: 55 };
+const baseDimensions = { width: 900, height: 440, left: 68, right: 25, top: 28, bottom: 55 };
+let dimensions = { ...baseDimensions };
 
 interface InteractionContext {
   state: StrategyState;
@@ -157,7 +159,15 @@ export function drawChart(
   title: string,
   hiddenLegs: ReadonlySet<number> = new Set(),
 ): void {
-  const svg = byId<SVGElement>("strategy-chart");
+  const svg = byId<SVGSVGElement>("strategy-chart");
+  const size = responsiveChartSize(svg, baseDimensions, 0.68);
+  applyChartSize(svg, size);
+  dimensions = {
+    ...baseDimensions,
+    width: size.width,
+    height: size.height,
+    left: size.width < 600 ? 50 : baseDimensions.left,
+  };
   const { width, height, left, right, top, bottom } = dimensions;
   const points = metrics.curve;
   const allValues = points.flatMap((point) => [

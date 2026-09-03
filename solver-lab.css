@@ -203,6 +203,13 @@ main {
   margin-top: 20px;
 }
 
+/* Let the cards shrink below the natural width of their nowrap tables and equations
+   so the iteration trail scrolls inside its card instead of widening the page. */
+.workspace > *,
+.solver-view > * {
+  min-width: 0;
+}
+
 .controls,
 .equation-card,
 .convergence-card,
@@ -224,6 +231,13 @@ main {
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
+}
+
+.control-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
 }
 
 .quiet-button,
@@ -413,6 +427,7 @@ button:disabled {
 
 .equation {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: center;
   gap: 6px;
@@ -696,11 +711,13 @@ footer a {
   }
 
   .equation-card {
-    grid-template-columns: 1fr 1.5fr;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .equation-card > p {
-    grid-column: 1 / -1;
+  .equation {
+    align-self: center;
   }
 
   .decision-grid {
@@ -774,16 +791,56 @@ footer a {
   .controls {
     position: static;
     width: 100%;
+    padding: 18px;
   }
 
-  .equation-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+  .controls.is-collapsed .solver-actions {
+    margin-top: 0;
+  }
+
+  .controls.is-collapsed .action-note {
+    min-height: 0;
+    margin-top: 12px;
+  }
+
+  /* Keep the solve buttons reachable while the chart and trail are on screen. */
+  .solver-actions {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    grid-template-columns: 1fr 1fr;
+    margin: 0;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: rgb(255 255 255 / 96%);
+    box-shadow: 0 -8px 24px rgb(11 30 45 / 8%);
+  }
+
+  .solver-actions button {
+    padding-inline: 8px;
+    font-size: 14px;
+  }
+
+  body {
+    padding-bottom: 76px;
+  }
+
+  .solver-view {
+    gap: 14px;
+  }
+
+  .control-head h2 {
+    font-size: 24px;
+  }
+
+  .section-head {
+    flex-wrap: wrap;
+    gap: 10px 20px;
   }
 
   .equation {
-    align-self: center;
     font-size: 19px;
   }
 
@@ -797,7 +854,7 @@ footer a {
   }
 
   .chart-wrap {
-    min-height: 220px;
+    min-height: 0;
   }
 
   .decision-grid {

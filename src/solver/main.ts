@@ -12,6 +12,8 @@ import type {
   SolverStep,
 } from "./engine";
 import type { OptionType } from "../option-lab/types";
+import { applyChartSize, onResize, responsiveChartSize } from "../shared/chart-size";
+import { initCollapsibleSections } from "../shared/collapsible";
 
 const $ = <T extends HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector);
@@ -163,6 +165,12 @@ function renderOutputs(): void {
   $("#lower-label").textContent = `Lower ${meta.label}`;
   $("#upper-label").textContent = `Upper ${meta.label}`;
   $("#test-variable-heading").textContent = `Test ${meta.symbol}`;
+  const known = [state.type === "call" ? "Call" : "Put", `target ${format2(state.target)}`];
+  if (state.solveFor !== "spot") known.push(`S ${state.S.toFixed(0)}`);
+  if (state.solveFor !== "strike") known.push(`K ${state.K.toFixed(0)}`);
+  if (state.solveFor !== "volatility") known.push(`σ ${(state.v * 100).toFixed(0)}%`);
+  known.push(`${state.T.toFixed(2)}y`);
+  $("#controls-summary").textContent = known.join(" · ");
   document.querySelectorAll<HTMLElement>("[data-input]").forEach((row) => {
     row.classList.toggle("is-hidden", row.dataset.input === state.solveFor);
   });
@@ -326,9 +334,9 @@ function svgElement<K extends keyof SVGElementTagNameMap>(
 
 function renderChart(): void {
   const svg = $("#solver-chart") as unknown as SVGSVGElement;
-  const width = 900;
-  const height = 350;
-  const margin = { top: 22, right: 24, bottom: 46, left: 58 };
+  const { width, height } = responsiveChartSize(svg, { width: 900, height: 350 }, 0.8);
+  applyChartSize(svg, { width, height });
+  const margin = { top: 22, right: 24, bottom: 46, left: width < 600 ? 48 : 58 };
   const plotW = width - margin.left - margin.right;
   const plotH = height - margin.top - margin.bottom;
   const [minCandidate, maxCandidate] = candidateBounds(state);
@@ -627,4 +635,6 @@ $("#reset").addEventListener("click", () => {
   resetTrail();
 });
 
+initCollapsibleSections("(max-width: 760px)");
+onResize(render);
 render();

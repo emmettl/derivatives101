@@ -47,6 +47,7 @@
           <a href="option-lab.html">Option Lab</a>
           <a href="options-a-la-carte.html">Options à la carte</a>
           <a href="payoff-explorer.html">Payoff Explorer</a>
+          <a href="glossary.html">Glossary</a>
         </div>
       </nav>
       <div class="intro">
@@ -67,23 +68,107 @@
     <main>
       <section class="answer-strip" aria-label="Current solution">
         <div class="answer-main">
-          <span id="solved-label">Solved strike</span>
+          <div class="metric-help">
+            <span id="solved-label">Solved strike</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain the solved value"
+              aria-describedby="solved-value-help"
+            >
+              ?
+            </button>
+            <span class="help-popover" id="solved-value-help" role="tooltip">
+              The missing input whose model price matches the target premium.
+              This is the solver’s answer, not a market quote.
+              <a id="solved-help-link" href="glossary.html#strike"
+                >Open this term in the glossary →</a
+              >
+            </span>
+          </div>
           <strong id="solved-value">—</strong>
         </div>
         <div>
-          <span>Price at candidate</span>
+          <div class="metric-help">
+            <span>Price at candidate</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain price at candidate"
+              aria-describedby="candidate-price-help"
+            >
+              ?
+            </button>
+            <span class="help-popover" id="candidate-price-help" role="tooltip">
+              The option value produced by the current guess. Comparing it with
+              the target tells the solver which half of the range to discard.
+              <a href="glossary.html#premium">Premium in the glossary →</a>
+            </span>
+          </div>
           <strong id="candidate-price">—</strong>
         </div>
         <div>
-          <span>Target premium</span>
+          <div class="metric-help">
+            <span>Target premium</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain target premium"
+              aria-describedby="target-premium-help"
+            >
+              ?
+            </button>
+            <span class="help-popover" id="target-premium-help" role="tooltip">
+              The option price you ask the model to reproduce. The solver
+              changes one unknown until its model price is close enough to this
+              value.
+              <a href="glossary.html#premium">Premium in the glossary →</a>
+            </span>
+          </div>
           <strong id="target-summary">—</strong>
         </div>
         <div>
-          <span>Absolute error</span>
+          <div class="metric-help">
+            <span>Absolute error</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain absolute error"
+              aria-describedby="absolute-error-help"
+            >
+              ?
+            </button>
+            <span class="help-popover" id="absolute-error-help" role="tooltip">
+              The distance between the model price and the target, ignoring
+              direction. The solve stops when this falls inside its tolerance.
+              <a href="glossary.html#solver-tolerance"
+                >Solver tolerance in the glossary →</a
+              >
+            </span>
+          </div>
           <strong id="error-summary">—</strong>
         </div>
         <div>
-          <span>Iterations shown</span>
+          <div class="metric-help">
+            <span>Iterations shown</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain solver iterations"
+              aria-describedby="solver-iterations-help"
+            >
+              ?
+            </button>
+            <span
+              class="help-popover"
+              id="solver-iterations-help"
+              role="tooltip"
+            >
+              Each iteration prices the midpoint and removes half of the
+              remaining search range. More steps mean a narrower bracket.
+              <a href="glossary.html#bisection">Bisection in the glossary →</a>
+            </span>
+          </div>
           <strong id="iteration-summary">0</strong>
         </div>
       </section>

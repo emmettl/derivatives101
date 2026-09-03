@@ -274,6 +274,7 @@ const variableMeta = {
     label: "strike",
     solvedLabel: "Solved strike",
     symbol: "K",
+    glossary: "strike",
     axis: "Strike K",
     inputs: "S, <mark>K</mark>, T, r, q, σ",
     explanation:
@@ -283,6 +284,7 @@ const variableMeta = {
     label: "volatility",
     solvedLabel: "Implied volatility",
     symbol: "σ",
+    glossary: "implied-volatility",
     axis: "Volatility σ",
     inputs: "S, K, T, r, q, <mark>σ</mark>",
     explanation:
@@ -292,6 +294,7 @@ const variableMeta = {
     label: "spot",
     solvedLabel: "Implied spot",
     symbol: "S",
+    glossary: "spot",
     axis: "Spot S",
     inputs: "<mark>S</mark>, K, T, r, q, σ",
     explanation:
@@ -301,6 +304,7 @@ const variableMeta = {
     label: "barrier",
     solvedLabel: "Solved down barrier",
     symbol: "H",
+    glossary: "barrier",
     axis: "Down barrier H",
     inputs: "S, K, T, r, q, σ, <mark>H</mark>",
     explanation:
@@ -331,6 +335,9 @@ function renderOutputs(): void {
   $("#equation-type").textContent = state.type === "call" ? "Call price" : "Put price";
   $("#solve-heading").textContent = `Solve for ${meta.label}`;
   $("#solved-label").textContent = meta.solvedLabel;
+  const solvedHelpLink = $("#solved-help-link") as HTMLAnchorElement;
+  solvedHelpLink.href = `glossary.html#${meta.glossary}`;
+  solvedHelpLink.textContent = `${meta.label[0].toUpperCase()}${meta.label.slice(1)} in the glossary →`;
   $("#equation-inputs").innerHTML = meta.inputs;
   $("#equation-explanation").textContent = meta.explanation;
   $("#lower-label").textContent = `Tested lower ${meta.label}`;

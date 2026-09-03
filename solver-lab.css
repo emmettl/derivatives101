@@ -145,7 +145,7 @@ main {
 .answer-strip {
   display: grid;
   grid-template-columns: 1.35fr repeat(4, 1fr);
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--line);
   border-radius: 11px;
   background: var(--paper);
@@ -153,6 +153,7 @@ main {
 }
 
 .answer-strip > div {
+  position: relative;
   min-width: 0;
   padding: 16px 18px;
   border-right: 1px solid var(--line);
@@ -184,6 +185,7 @@ main {
 }
 
 .answer-strip .answer-main {
+  border-radius: 10px 0 0 10px;
   background: var(--amber);
 }
 
@@ -193,6 +195,107 @@ main {
 
 .answer-strip .answer-main strong {
   font-size: 30px;
+}
+
+.metric-help {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.help-trigger {
+  display: inline-grid;
+  width: 19px;
+  height: 19px;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #aab9c3;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--steel);
+  font:
+    800 12px/1 "Segoe UI",
+    system-ui,
+    sans-serif;
+  cursor: help;
+}
+
+.answer-main .help-trigger {
+  border-color: rgb(101 64 12 / 48%);
+  color: #65400c;
+}
+
+.help-trigger:hover,
+.help-trigger:focus-visible {
+  border-color: var(--amber-dark);
+  background: var(--ink);
+  color: #fff;
+  outline: none;
+}
+
+.help-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 9px);
+  left: -10px;
+  display: block;
+  width: min(290px, calc(100vw - 36px));
+  padding: 13px 14px;
+  border: 1px solid #bfccd4;
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 12px 32px rgb(7 22 32 / 20%);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0;
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  text-transform: none;
+  transform: translateY(-4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  visibility: hidden;
+}
+
+.answer-strip > div:nth-child(n + 4):not(.calculation-overlay) .help-popover {
+  right: -10px;
+  left: auto;
+}
+
+.help-popover > span {
+  display: inline;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+
+.help-popover a {
+  display: block;
+  margin-top: 8px;
+  color: var(--deep);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.help-popover a:hover,
+.help-popover a:focus-visible {
+  color: var(--amber-dark);
+  text-decoration: underline;
+}
+
+.metric-help:hover .help-popover,
+.metric-help:focus-within .help-popover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  visibility: visible;
 }
 
 .workspace {
@@ -853,6 +956,18 @@ footer a {
   .answer-strip .answer-main {
     grid-column: 1 / -1;
     border-right: 0;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .answer-strip > div:nth-child(even) .help-popover,
+  .answer-strip > .answer-main .help-popover {
+    right: auto;
+    left: -10px;
+  }
+
+  .answer-strip > div:nth-child(odd):not(.answer-main) .help-popover {
+    right: -10px;
+    left: auto;
   }
 
   .controls {

@@ -47,6 +47,7 @@
           <a href="solver-lab.html">Option solver</a>
           <a href="structured-products.html">Structured Product Labs</a>
           <a href="payoff-explorer.html">Payoff Explorer</a>
+          <a href="glossary.html">Glossary</a>
         </div>
       </nav>
       <div class="intro">
@@ -74,23 +75,120 @@
         aria-label="Current valuation"
       >
         <div class="answer-main">
-          <span id="headline-label">Offered coupon</span>
+          <div class="metric-help">
+            <span id="headline-label">Offered coupon</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain the offered term"
+              aria-describedby="headline-value-help"
+            >
+              ?
+            </button>
+            <span class="help-popover" id="headline-value-help" role="tooltip">
+              <span id="headline-help-copy"
+                >The investor-facing coupon supported by the model after issuer
+                margin.</span
+              >
+              <a id="headline-help-link" href="glossary.html#coupon"
+                >Coupon in the glossary →</a
+              >
+            </span>
+          </div>
           <strong id="headline-value">—</strong>
         </div>
         <div>
-          <span id="secondary-label">Fair coupon before margin</span>
+          <div class="metric-help">
+            <span id="secondary-label">Fair coupon before margin</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain the fair term"
+              aria-describedby="secondary-value-help"
+            >
+              ?
+            </button>
+            <span class="help-popover" id="secondary-value-help" role="tooltip">
+              <span id="secondary-help-copy"
+                >The model’s break-even coupon before issuer margin. The gap to
+                the offered coupon shows the margin’s effect.</span
+              >
+              <a id="secondary-help-link" href="glossary.html#fair-value"
+                >Fair value in the glossary →</a
+              >
+            </span>
+          </div>
           <strong id="secondary-value">—</strong>
         </div>
         <div>
-          <span>Other volatility model</span>
+          <div class="metric-help">
+            <span>Other volatility model</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain the alternative volatility result"
+              aria-describedby="alternative-model-help"
+            >
+              ?
+            </button>
+            <span
+              class="help-popover"
+              id="alternative-model-help"
+              role="tooltip"
+            >
+              The same product repriced with the volatility model you did not
+              select. The difference makes this source of model risk visible.
+              <a href="glossary.html#volatility-skew"
+                >Volatility skew in the glossary →</a
+              >
+            </span>
+          </div>
           <strong id="alt-value">—</strong>
         </div>
         <div>
-          <span id="stat-a-label">Autocalled</span>
+          <div class="metric-help">
+            <span id="stat-a-label">Autocalled</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain this valuation driver"
+              aria-describedby="stat-a-help"
+            >
+              ?
+            </button>
+            <span class="help-popover" id="stat-a-help" role="tooltip">
+              <span id="stat-a-help-copy"
+                >The share of simulated paths that redeem early. It changes both
+                expected life and the value of future coupons.</span
+              >
+              <a id="stat-a-help-link" href="glossary.html#autocall"
+                >Autocall in the glossary →</a
+              >
+            </span>
+          </div>
           <strong id="stat-a">—</strong>
         </div>
         <div>
-          <span id="stat-b-label">Loses principal</span>
+          <div class="metric-help">
+            <span id="stat-b-label">Loses principal</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain this risk measure"
+              aria-describedby="stat-b-help"
+            >
+              ?
+            </button>
+            <span class="help-popover" id="stat-b-help" role="tooltip">
+              <span id="stat-b-help-copy"
+                >The share of simulated paths ending with a principal loss. It
+                is a model probability, not a forecast or worst-case loss.</span
+              >
+              <a id="stat-b-help-link" href="glossary.html#knock-in"
+                >Knock-in in the glossary →</a
+              >
+            </span>
+          </div>
           <strong id="stat-b">—</strong>
         </div>
         <div

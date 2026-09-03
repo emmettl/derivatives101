@@ -4,6 +4,8 @@ import { metrics, riskMeasures, scenarioMatrix } from "./engine";
 import { simulateStrategy } from "./simulation";
 import { drawSimulationChart } from "./simulation-chart";
 import { createMarketControls, render as renderView } from "./view";
+import { onResize } from "../shared/chart-size";
+import { initCollapsibleSections } from "../shared/collapsible";
 import type {
   Market,
   MarketControl,
@@ -20,6 +22,7 @@ let simulationTimer: ReturnType<typeof setTimeout> | undefined;
 let simulationVersion = 0;
 let simulationSample = 1;
 let simulationSeed = 481516;
+let lastSimulation: StrategySimulationResult | null = null;
 const simulationWorker =
   typeof Worker !== "undefined"
     ? new Worker(new URL("./simulation-worker.ts", import.meta.url), { type: "module" })
@@ -116,6 +119,7 @@ function setSimulationStatus(message: string, busy = false): void {
 
 function finishSimulation(result: StrategySimulationResult): void {
   if (result.id !== simulationVersion) return;
+  lastSimulation = result;
   drawSimulationChart(result);
   const difference = result.estimate - result.currentValue;
   byId("strategy-simulation-stats").innerHTML =
@@ -196,10 +200,22 @@ byId<HTMLButtonElement>("strategy-resample").addEventListener("click", () => {
   simulationSample += 1;
   scheduleSimulation(0);
 });
+function redrawCharts(): void {
+  render();
+  if (lastSimulation) drawSimulationChart(lastSimulation);
+}
+
 createMarketControls(state, updateMarket);
 createChartInteractions((terminalSpot) => {
   if (terminalSpot === state.terminal) return;
   state.terminal = terminalSpot;
   scheduleRender();
 });
+initCollapsibleSections("(max-width: 1100px)");
+onResize(redrawCharts);
+document.addEventListener("collapsible-toggle", (event) => {
+  if (!(event as CustomEvent<{ collapsed: boolean }>).detail.collapsed) redrawCharts();
+});
+if (window.matchMedia("(hover: none)").matches)
+  byId("chart-instruction").textContent = "Tap to inspect · drag to set expiry";
 applyPreset(state.presetId);

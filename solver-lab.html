@@ -35,7 +35,8 @@
     />
     <title>Derivatives 101 — Solver Lab</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="solver-lab.css" />
+    <link rel="stylesheet" href="solver-lab.css?v=2" />
+    <link rel="stylesheet" href="collapsible.css?v=1" />
     <script type="module" src="/src/solver/main.ts"></script>
   </head>
   <body>
@@ -88,13 +89,35 @@
       </section>
 
       <div class="workspace">
-        <aside class="controls" aria-label="Solver inputs">
-          <div class="control-head">
+        <aside
+          class="controls"
+          aria-label="Solver inputs"
+          data-collapsible="collapsed"
+        >
+          <div class="control-head" data-collapsible-keep>
             <div>
               <p class="eyebrow dark">The inverse question</p>
               <h2 id="solve-heading">Solve for strike</h2>
+              <p
+                class="section-summary"
+                id="controls-summary"
+                aria-live="polite"
+              ></p>
             </div>
-            <button type="button" class="quiet-button" id="reset">Reset</button>
+            <div class="control-actions">
+              <button type="button" class="quiet-button" id="reset">
+                Reset
+              </button>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Edit inputs"
+                data-hide-label="Hide inputs"
+              >
+                Hide inputs
+              </button>
+            </div>
           </div>
 
           <div class="mode-control">
@@ -245,7 +268,7 @@
             />
           </label>
 
-          <div class="solver-actions">
+          <div class="solver-actions" data-collapsible-keep>
             <button type="button" class="primary-action" id="solve">
               Solve automatically
             </button>
@@ -253,7 +276,12 @@
               Take one step
             </button>
           </div>
-          <p class="action-note" id="action-note" aria-live="polite">
+          <p
+            class="action-note"
+            id="action-note"
+            aria-live="polite"
+            data-collapsible-keep
+          >
             Take one step to inspect each decision, or run the full solve.
           </p>
         </aside>

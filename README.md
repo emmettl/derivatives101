@@ -31,7 +31,7 @@ Run `npm install` once, followed by `npx playwright install chromium` to install
 - `src/basket/`, `src/participation/` and `src/koda-kodd/` keep each product engine independent from its page controller and worker.
 - `src/specification/` and `src/decoder/` separate contract rules and case data from presentation.
 - `src/legacy/` contains the older standalone labs, now split into strict TypeScript calculation engines and JavaScript presentation modules without browser globals.
-- `src/shared/` contains deterministic simulation primitives and the shared flat-volatility/downside-skew local-volatility model used across product engines.
+- `src/shared/` contains deterministic simulation primitives, the shared flat-volatility/downside-skew local-volatility model used across product engines, and the presentation helpers for narrow screens: `collapsible.ts` (with `collapsible.css`) turns input panels and sections into mobile-only accordions, and `chart-size.ts` lets SVG charts switch to a pixel-matched coordinate space so labels stay legible on phones.
 
 Add an interactive page to `bundledEntries` in `vite.config.ts`. Keep financial rules in a strict TypeScript engine module where they can be tested without a browser, and keep DOM rendering in the page entry module. Presentation-only JavaScript remains appropriate where TypeScript would add assertions without improving the underlying design.
 

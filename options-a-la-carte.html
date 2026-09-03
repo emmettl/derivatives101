@@ -37,7 +37,8 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="structured-labs.css?v=18" />
     <link rel="stylesheet" href="chart-interactions.css?v=1" />
-    <link rel="stylesheet" href="strategy-lab.css?v=3" />
+    <link rel="stylesheet" href="strategy-lab.css?v=4" />
+    <link rel="stylesheet" href="collapsible.css?v=1" />
   </head>
   <body>
     <header class="site-head">
@@ -73,12 +74,34 @@
         <p id="strategy-summary"></p>
       </section>
       <div class="strategy-shell">
-        <aside class="controls strategy-controls" aria-label="Strategy inputs">
-          <div class="controls-head">
-            <h2>Market &amp; path</h2>
-            <button type="button" class="reset-button" id="strategy-reset">
-              Reset
-            </button>
+        <aside
+          class="controls strategy-controls"
+          aria-label="Strategy inputs"
+          data-collapsible="collapsed"
+        >
+          <div class="controls-head" data-collapsible-keep>
+            <div>
+              <h2>Market &amp; path</h2>
+              <p
+                class="section-summary"
+                id="strategy-controls-summary"
+                aria-live="polite"
+              ></p>
+            </div>
+            <div class="controls-actions">
+              <button type="button" class="reset-button" id="strategy-reset">
+                Reset
+              </button>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Edit inputs"
+                data-hide-label="Hide inputs"
+              >
+                Hide inputs
+              </button>
+            </div>
           </div>
           <div class="controls-body">
             <div class="control-block">
@@ -92,8 +115,21 @@
           </div>
         </aside>
         <div class="content">
-          <section class="panel" aria-labelledby="legs-title">
-            <div class="panel-head">
+          <section
+            class="panel"
+            aria-labelledby="legs-title"
+            data-collapsible="collapsed"
+          >
+            <div class="panel-head" data-collapsible-keep>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Edit legs"
+                data-hide-label="Hide legs"
+              >
+                Hide legs
+              </button>
               <div>
                 <p class="eyebrow">Strategy recipe</p>
                 <h2 id="legs-title">Build it one leg at a time</h2>
@@ -106,8 +142,21 @@
             </div>
             <div class="leg-builder" id="leg-builder"></div>
           </section>
-          <section class="panel" aria-labelledby="payoff-title">
-            <div class="panel-head">
+          <section
+            class="panel"
+            aria-labelledby="payoff-title"
+            data-collapsible="open"
+          >
+            <div class="panel-head" data-collapsible-keep>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Show chart"
+                data-hide-label="Hide chart"
+              >
+                Hide chart
+              </button>
               <div>
                 <p class="eyebrow">Combined result</p>
                 <h2 id="payoff-title">Profit or loss at expiry</h2>
@@ -148,8 +197,21 @@
               <p id="selected-outcome"></p>
             </div>
           </section>
-          <section class="panel" aria-labelledby="risk-title">
-            <div class="panel-head">
+          <section
+            class="panel"
+            aria-labelledby="risk-title"
+            data-collapsible="open"
+          >
+            <div class="panel-head" data-collapsible-keep>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Show risk"
+                data-hide-label="Hide risk"
+              >
+                Hide risk
+              </button>
               <div>
                 <p class="eyebrow">Before expiry</p>
                 <h2 id="risk-title">
@@ -178,8 +240,21 @@
               not executable prices or full stress tests.
             </p>
           </section>
-          <section class="panel" aria-labelledby="simulation-title">
-            <div class="panel-head simulation-head">
+          <section
+            class="panel"
+            aria-labelledby="simulation-title"
+            data-collapsible="open"
+          >
+            <div class="panel-head simulation-head" data-collapsible-keep>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Show simulation"
+                data-hide-label="Hide simulation"
+              >
+                Hide simulation
+              </button>
               <div>
                 <p class="eyebrow">Shared-path simulation</p>
                 <h2 id="simulation-title">Many paths, one package</h2>
@@ -229,8 +304,21 @@
               financing, transaction costs or margin.
             </p>
           </section>
-          <section class="panel" aria-labelledby="anatomy-title">
-            <div class="panel-head">
+          <section
+            class="panel"
+            aria-labelledby="anatomy-title"
+            data-collapsible="open"
+          >
+            <div class="panel-head" data-collapsible-keep>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Show anatomy"
+                data-hide-label="Hide anatomy"
+              >
+                Hide anatomy
+              </button>
               <div>
                 <p class="eyebrow">Strategy anatomy</p>
                 <h2 id="anatomy-title">Which leg makes—or loses—the money?</h2>
@@ -261,8 +349,21 @@
               </table>
             </div>
           </section>
-          <section class="panel" aria-labelledby="barrier-title">
-            <div class="panel-head">
+          <section
+            class="panel"
+            aria-labelledby="barrier-title"
+            data-collapsible="open"
+          >
+            <div class="panel-head" data-collapsible-keep>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Show barriers"
+                data-hide-label="Hide barriers"
+              >
+                Hide barriers
+              </button>
               <div>
                 <p class="eyebrow">Path dependency</p>
                 <h2 id="barrier-title">A barrier adds a second axis</h2>
@@ -277,8 +378,21 @@
             <div class="barrier-state-grid" id="barrier-states"></div>
             <p class="barrier-note" id="barrier-note"></p>
           </section>
-          <section class="panel" aria-labelledby="catalogue-title">
-            <div class="panel-head">
+          <section
+            class="panel"
+            aria-labelledby="catalogue-title"
+            data-collapsible="collapsed"
+          >
+            <div class="panel-head" data-collapsible-keep>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Show recipes"
+                data-hide-label="Hide recipes"
+              >
+                Hide recipes
+              </button>
               <div>
                 <p class="eyebrow">Classic recipes</p>
                 <h2 id="catalogue-title">
@@ -305,8 +419,21 @@
               </table>
             </div>
           </section>
-          <section class="panel" aria-labelledby="rules-title">
-            <div class="panel-head">
+          <section
+            class="panel"
+            aria-labelledby="rules-title"
+            data-collapsible="collapsed"
+          >
+            <div class="panel-head" data-collapsible-keep>
+              <button
+                type="button"
+                class="section-toggle"
+                aria-expanded="true"
+                data-show-label="Show checklist"
+                data-hide-label="Hide checklist"
+              >
+                Hide checklist
+              </button>
               <div>
                 <p class="eyebrow">Specification discipline</p>
                 <h2 id="rules-title">

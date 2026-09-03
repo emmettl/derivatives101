@@ -2,6 +2,7 @@
 
 import { metricValue, optionMetrics as calculateOptionMetrics } from "./math";
 import { simulatePaths } from "./simulation";
+import { initCollapsibleSections } from "../shared/collapsible";
 
 const $ = (id) => document.getElementById(id);
 const inputs = ["spot", "strike", "vol", "expiry", "rate", "dividend"];
@@ -87,6 +88,8 @@ function updateReadouts() {
   $("expiry-out").textContent = fmt(p.T, 2) + "y";
   $("rate-out").textContent = fmt(p.r * 100, 1) + "%";
   $("dividend-out").textContent = fmt(p.q * 100, 1) + "%";
+  $("controls-summary").textContent =
+    `${state.type === "call" ? "Call" : "Put"} · spot ${fmt(p.S, 0)} · strike ${fmt(p.K, 0)} · vol ${fmt(p.v * 100, 0)}% · ${fmt(p.T, 2)}y`;
   $("price").textContent = fmt(m.price);
   $("intrinsic").textContent = fmt(m.intrinsic);
   $("time-value").textContent = fmt(Math.max(0, m.price - m.intrinsic));
@@ -887,6 +890,7 @@ window.addEventListener("resize", () => {
     if (lastSimulation) drawPaths(lastSimulation);
   });
 });
+initCollapsibleSections("(max-width: 1050px)");
 restore();
 renderFast();
 scheduleSimulation(0);

@@ -129,6 +129,8 @@ function renderSummary(state: StrategyState, metrics: StrategyMetrics): string {
   const active = state.legs.filter((item) => item.enabled);
   const title = preset?.name ?? "Custom multi-leg strategy";
   byId("strategy-name").textContent = title;
+  byId("strategy-controls-summary").textContent =
+    `${title} · spot ${state.spot.toFixed(0)} · vol ${(state.volatility * 100).toFixed(0)}% · ${state.tenor.toFixed(1)}y`;
   byId("strategy-summary").textContent =
     preset?.description ??
     `${active.length} active leg${active.length === 1 ? "" : "s"}; the combined payoff, premium and risk update directly from the recipe below.`;

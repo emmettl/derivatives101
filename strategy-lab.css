@@ -11,6 +11,21 @@
   top: 16px;
 }
 
+.controls-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+}
+
+.strategy-controls.is-collapsed .controls-head {
+  margin-bottom: 0;
+}
+
+.panel-head .section-toggle {
+  order: 2;
+}
+
 .compact-presets {
   grid-template-columns: repeat(2, 1fr);
 }
@@ -236,7 +251,7 @@
 
 .strategy-chart {
   cursor: crosshair;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .strategy-chart:focus {
@@ -841,6 +856,41 @@
 }
 
 @media (width <= 680px) {
+  h1 {
+    font-size: 36px;
+  }
+
+  .hero {
+    padding: 20px 16px 14px;
+  }
+
+  .variant-summary {
+    margin-bottom: 14px;
+    padding: 14px 16px;
+  }
+
+  .strategy-shell,
+  .content {
+    gap: 14px;
+  }
+
+  .strategy-controls {
+    padding: 16px;
+  }
+
+  .panel-head {
+    padding: 16px 16px 10px;
+  }
+
+  .panel-head h2 {
+    font-size: 22px;
+  }
+
+  .panel-head .section-toggle {
+    float: right;
+    margin: 0 0 8px 12px;
+  }
+
   .compact-presets,
   .strategy-stats,
   .strategy-risk-stats,
@@ -848,6 +898,30 @@
   .leg-builder,
   .barrier-state-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .strategy-stats,
+  .strategy-risk-stats,
+  .strategy-simulation-stats {
+    margin: 0 16px 12px;
+  }
+
+  .strategy-stats strong,
+  .strategy-risk-stats strong,
+  .strategy-simulation-stats strong {
+    font-size: 17px;
+  }
+
+  .strategy-legend {
+    margin: 8px 16px 14px;
+  }
+
+  .strategy-simulation-note,
+  .strategy-risk-note,
+  .scenario-note,
+  .barrier-note {
+    margin-right: 16px;
+    margin-left: 16px;
   }
 
   .leg-builder,

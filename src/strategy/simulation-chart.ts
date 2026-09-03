@@ -1,5 +1,8 @@
 import type { StrategySimulationResult } from "./types";
+import { applyChartSize, responsiveChartSize } from "../shared/chart-size";
 import { attachVerticalInspector } from "../shared/svg-interaction";
+
+const baseSize = { width: 900, height: 390 };
 
 function byId<T extends Element>(id: string): T {
   const element = document.getElementById(id);
@@ -8,6 +11,8 @@ function byId<T extends Element>(id: string): T {
 }
 
 interface SimulationChartContext {
+  width: number;
+  height: number;
   pnlLow: number;
   pnlHigh: number;
   bins: number;
@@ -47,10 +52,10 @@ const simulationInspector = attachVerticalInspector(
     const maximum = context.pnlHigh - binWidth / 2;
     const selected = Math.max(minimum, Math.min(maximum, selectedSimulationPnl ?? 0));
     return {
-      width: 900,
-      height: 390,
+      width: context.width,
+      height: context.height,
       left: context.histogramLeft,
-      right: 900 - context.histogramRight,
+      right: context.width - context.histogramRight,
       top: context.top,
       bottom: context.bottom,
       minimum,
@@ -101,11 +106,19 @@ const simulationInspector = attachVerticalInspector(
 
 export function drawSimulationChart(result: StrategySimulationResult): void {
   const svg = byId<SVGSVGElement>("strategy-simulation-chart");
-  const width = 900;
-  const height = 390;
+  // Wide layouts place the histogram beside the paths; narrow layouts stack it underneath.
+  const { width } = responsiveChartSize(svg, baseSize, 1);
+  const stacked = width < 600;
   const margin = { left: 58, right: 22, top: 38, bottom: 42 };
-  const split = 630;
-  const pathRight = split - 24;
+  const split = Math.round(width * 0.7);
+  const pathRight = stacked ? width - margin.right : split - 24;
+  const pathBottom = stacked ? margin.top + 200 : baseSize.height - margin.bottom;
+  const histogramLeft = stacked ? margin.left : split + 22;
+  const histogramRight = width - margin.right;
+  const histogramTop = stacked ? pathBottom + 60 : margin.top;
+  const histogramBottom = stacked ? histogramTop + 190 : baseSize.height - margin.bottom;
+  const height = histogramBottom + margin.bottom;
+  applyChartSize(svg, { width, height });
   const pathValues = result.paths.flatMap((path) => Array.from(path));
   const rawLow = Math.min(result.market.spot, ...pathValues);
   const rawHigh = Math.max(result.market.spot, ...pathValues);
@@ -114,7 +127,7 @@ export function drawSimulationChart(result: StrategySimulationResult): void {
   const spotHigh = rawHigh + spotPadding;
   const x = (step: number) => margin.left + (step / result.steps) * (pathRight - margin.left);
   const y = (spot: number) =>
-    margin.top + ((spotHigh - spot) / (spotHigh - spotLow)) * (height - margin.top - margin.bottom);
+    margin.top + ((spotHigh - spot) / (spotHigh - spotLow)) * (pathBottom - margin.top);
   const spotTicks = Array.from(
     { length: 5 },
     (_, index) => spotLow + ((spotHigh - spotLow) * index) / 4,
@@ -134,18 +147,16 @@ export function drawSimulationChart(result: StrategySimulationResult): void {
     counts[Math.min(bins - 1, Math.max(0, Math.floor(position * bins)))] += 1;
   });
   const maxCount = Math.max(1, ...counts);
-  const histogramLeft = split + 22;
-  const histogramRight = width - margin.right;
-  const histogramHeight = height - margin.top - margin.bottom;
+  const histogramHeight = histogramBottom - histogramTop;
   const barHeight = histogramHeight / bins;
   const pnlY = (value: number) =>
-    margin.top + ((pnlHigh - value) / (pnlHigh - pnlLow)) * histogramHeight;
+    histogramTop + ((pnlHigh - value) / (pnlHigh - pnlLow)) * histogramHeight;
 
   svg.setAttribute(
     "aria-label",
     `${result.paths.length} visible shared underlying paths and a terminal strategy profit and loss distribution from ${result.terminalPnls.length.toLocaleString()} simulations`,
   );
-  svg.innerHTML = `<title>Shared-path Monte Carlo simulation</title><desc>Every visible path drives all active option legs together. The histogram shows the resulting complete-strategy profit and loss at expiry.</desc><text class="simulation-label" x="${margin.left}" y="19">SHARED UNDERLYING PATHS</text><text class="simulation-label" x="${histogramLeft}" y="19">STRATEGY P/L AT EXPIRY</text>${spotTicks.map((tick) => `<line class="grid" x1="${margin.left}" x2="${pathRight}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${margin.left - 8}" y="${y(tick) + 3}" text-anchor="end">${tick.toFixed(0)}</text>`).join("")}${timeTicks.map((tick) => `<line class="grid" x1="${x(tick * result.steps)}" x2="${x(tick * result.steps)}" y1="${margin.top}" y2="${height - margin.bottom}"></line><text class="axis" x="${x(tick * result.steps)}" y="${height - 17}" text-anchor="middle">${tick === 0 ? "Today" : tick === 1 ? "Expiry" : `${Math.round(tick * 100)}%`}</text>`).join("")}<line class="simulation-start" x1="${margin.left}" x2="${pathRight}" y1="${y(result.market.spot)}" y2="${y(result.market.spot)}"></line>${result.paths
+  svg.innerHTML = `<title>Shared-path Monte Carlo simulation</title><desc>Every visible path drives all active option legs together. The histogram shows the resulting complete-strategy profit and loss at expiry.</desc><text class="simulation-label" x="${margin.left}" y="19">SHARED UNDERLYING PATHS</text><text class="simulation-label" x="${histogramLeft}" y="${histogramTop - 19}">STRATEGY P/L AT EXPIRY</text>${spotTicks.map((tick) => `<line class="grid" x1="${margin.left}" x2="${pathRight}" y1="${y(tick)}" y2="${y(tick)}"></line><text class="axis" x="${margin.left - 8}" y="${y(tick) + 3}" text-anchor="end">${tick.toFixed(0)}</text>`).join("")}${timeTicks.map((tick) => `<line class="grid" x1="${x(tick * result.steps)}" x2="${x(tick * result.steps)}" y1="${margin.top}" y2="${pathBottom}"></line><text class="axis" x="${x(tick * result.steps)}" y="${pathBottom + 25}" text-anchor="middle">${tick === 0 ? "Today" : tick === 1 ? "Expiry" : `${Math.round(tick * 100)}%`}</text>`).join("")}<line class="simulation-start" x1="${margin.left}" x2="${pathRight}" y1="${y(result.market.spot)}" y2="${y(result.market.spot)}"></line>${result.paths
     .map(
       (path, index) =>
         `<path class="simulation-path ${result.pathPnls[index] >= 0 ? "positive" : "negative"}" d="${Array.from(
@@ -160,12 +171,14 @@ export function drawSimulationChart(result: StrategySimulationResult): void {
     .map((count, index) => {
       const center = pnlLow + ((index + 0.5) / bins) * (pnlHigh - pnlLow);
       const barWidth = (count / maxCount) * (histogramRight - histogramLeft);
-      return `<rect class="simulation-bin ${center >= 0 ? "positive" : "negative"}" data-bin="${index}" x="${histogramLeft}" y="${margin.top + (bins - index - 1) * barHeight}" width="${Math.max(1, barWidth)}" height="${Math.max(1, barHeight - 1)}"><title>${count.toLocaleString()} paths around P/L ${center.toFixed(2)}</title></rect>`;
+      return `<rect class="simulation-bin ${center >= 0 ? "positive" : "negative"}" data-bin="${index}" x="${histogramLeft}" y="${histogramTop + (bins - index - 1) * barHeight}" width="${Math.max(1, barWidth)}" height="${Math.max(1, barHeight - 1)}"><title>${count.toLocaleString()} paths around P/L ${center.toFixed(2)}</title></rect>`;
     })
     .join(
       "",
-    )}<line class="simulation-zero" x1="${histogramLeft}" x2="${histogramRight}" y1="${pnlY(0)}" y2="${pnlY(0)}"></line><text class="axis" x="${histogramLeft}" y="${height - 17}">P/L ${pnlLow.toFixed(1)}</text><text class="axis" x="${histogramRight}" y="${height - 17}" text-anchor="end">${pnlHigh.toFixed(1)}</text>`;
+    )}<line class="simulation-zero" x1="${histogramLeft}" x2="${histogramRight}" y1="${pnlY(0)}" y2="${pnlY(0)}"></line><text class="axis" x="${histogramLeft}" y="${histogramBottom + 25}">P/L ${pnlLow.toFixed(1)}</text><text class="axis" x="${histogramRight}" y="${histogramBottom + 25}" text-anchor="end">${pnlHigh.toFixed(1)}</text>`;
   simulationChartContext = {
+    width,
+    height,
     pnlLow,
     pnlHigh,
     bins,
@@ -173,8 +186,8 @@ export function drawSimulationChart(result: StrategySimulationResult): void {
     maxCount,
     histogramLeft,
     histogramRight,
-    top: margin.top,
-    bottom: height - margin.bottom,
+    top: histogramTop,
+    bottom: histogramBottom,
     total: result.terminalPnls.length,
   };
   if (selectedSimulationPnl != null) {

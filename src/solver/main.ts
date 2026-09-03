@@ -14,9 +14,10 @@ import type {
 import type { OptionType } from "../option-lab/types";
 import { applyChartSize, onResize, responsiveChartSize } from "../shared/chart-size";
 import { initCollapsibleSections } from "../shared/collapsible";
+import marketSnapshotJson from "../../market-data/latest.json";
 import {
-  loadMarketSnapshot,
   marketDataAgeDays,
+  parseMarketSnapshot,
   type MarketInstrumentSnapshot,
   type MarketSnapshot,
 } from "./market-snapshot";
@@ -160,9 +161,9 @@ function applyMarketInstrument(): void {
   marketControls.status.textContent = `${instrument.label} inputs applied: latest reference spot and 60-session realised-volatility proxy. Rates remain assumptions, not snapshot observations.`;
 }
 
-async function initialiseMarketSnapshot(): Promise<void> {
+function initialiseMarketSnapshot(): void {
   try {
-    marketSnapshot = await loadMarketSnapshot("./market-data/latest.json");
+    marketSnapshot = parseMarketSnapshot(marketSnapshotJson);
     marketControls.underlying.replaceChildren(
       ...marketSnapshot.instruments.map((instrument) => {
         const option = document.createElement("option");
@@ -756,4 +757,4 @@ $("#reset").addEventListener("click", () => {
 initCollapsibleSections("(max-width: 760px)");
 onResize(render);
 render();
-void initialiseMarketSnapshot();
+initialiseMarketSnapshot();

@@ -1,10 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
-import {
-  loadMarketSnapshot,
-  marketDataAgeDays,
-  parseMarketSnapshot,
-  type MarketSnapshot,
-} from "./market-snapshot";
+import { describe, expect, it } from "vitest";
+import marketSnapshotJson from "../../market-data/latest.json";
+import { marketDataAgeDays, parseMarketSnapshot, type MarketSnapshot } from "./market-snapshot";
 
 const validSnapshot: MarketSnapshot = {
   schemaVersion: 1,
@@ -30,6 +26,10 @@ const validSnapshot: MarketSnapshot = {
 };
 
 describe("market snapshot", () => {
+  it("accepts the snapshot bundled with the solver", () => {
+    expect(parseMarketSnapshot(marketSnapshotJson).instruments).toHaveLength(3);
+  });
+
   it("accepts a complete versioned snapshot", () => {
     expect(parseMarketSnapshot(validSnapshot).instruments[0].spot).toBe(1.1578);
   });
@@ -44,13 +44,6 @@ describe("market snapshot", () => {
         instruments: [{ ...validSnapshot.instruments[0], realisedVolatility60: 0 }],
       }),
     ).toThrow("Invalid market snapshot instrument");
-  });
-
-  it("loads without relying on cross-origin browser access", async () => {
-    const request = vi.fn(async () => new Response(JSON.stringify(validSnapshot)));
-    const snapshot = await loadMarketSnapshot("./market-data/latest.json", request);
-    expect(request).toHaveBeenCalledWith("./market-data/latest.json", { cache: "no-store" });
-    expect(snapshot.instruments[0].id).toBe("EURUSD");
   });
 
   it("reports snapshot age", () => {

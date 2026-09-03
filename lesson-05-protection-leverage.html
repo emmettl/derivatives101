@@ -9,6 +9,7 @@
     />
     <meta name="theme-color" content="#0b1e2d" />
     <title>Protection &amp; leverage — Derivatives 101</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="lesson.css" />
   </head>
   <body data-lesson="protection-leverage">
@@ -246,6 +247,35 @@
                 data-feedback="Lower fees could help, but that is not the general link between issuer quality and participation."
               >
                 Its fees must be lower
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
+          <div class="quiz">
+            <h3>
+              A long mini future has spot at 100 and a financing level of 90.
+              The underlying rises 5%. Roughly what happens to the certificate?
+            </h3>
+            <p>Value is approximately spot minus the financing level.</p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="The certificate tracks the underlying in points, not in percent. Its own base is only 10."
+              >
+                It rises about 5%, tracking the underlying
+              </button>
+              <button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. Value moves from about 10 to about 15. Leverage is a ratio, and the same ratio applies on the way down."
+              >
+                It rises about 50%: a 5-point move on a 10-point certificate
+              </button>
+              <button
+                type="button"
+                data-feedback="The financing level sets the leverage ratio; it is not the percentage return."
+              >
+                It rises about 10%, matching the financing level
               </button>
             </div>
             <p class="quiz-feedback" aria-live="polite"></p>

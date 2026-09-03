@@ -9,6 +9,7 @@
     />
     <meta name="theme-color" content="#0b1e2d" />
     <title>FCN &amp; ELN — Derivatives 101</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="lesson.css" />
   </head>
   <body data-lesson="fcn">
@@ -150,6 +151,13 @@
                   value="50"
                 />
               </div>
+              <div class="control check">
+                <label for="basket-skew"
+                  ><input id="basket-skew" type="checkbox" /> Downside
+                  skew</label
+                >
+                <small>Higher local volatility below each initial level.</small>
+              </div>
               <div class="control">
                 <label for="basket-barrier"
                   >Barrier · <span id="basket-barrier-value">70%</span></label
@@ -191,10 +199,10 @@
             </dl>
           </div>
           <p>
-            For deterministic teaching paths, correlation does not change the
-            selected drawing. Select “Random path” and resample in the full
-            basket lab to see lower correlation create wider dispersion and a
-            weaker expected worst performer.
+            Correlation only shapes the random path, so the slider is disabled
+            on the four teaching paths. Choose “Random path” and resample to see
+            lower correlation create wider dispersion and a weaker expected
+            worst performer.
           </p>
         </section>
         <section id="settlement">
@@ -254,6 +262,35 @@
                 data-feedback="Physical settlement can deliver shares rather than a fixed cash value."
               >
                 The cash value of delivered shares
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
+          <div class="quiz">
+            <h3>
+              A note with notional 100,000 is struck at 80% of an initial price
+              of 50. If it delivers shares, how many, before rounding?
+            </h3>
+            <p>Use the share-count rule from the settlement section.</p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="Delivery uses the strike price, not the initial price. The client is buying at the strike."
+              >
+                2,000 shares: notional divided by the initial price
+              </button>
+              <button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. 100,000 ÷ (0.8 × 50) is 2,500 shares, fixed at issue. Their value at maturity is 2,500 × the final price, which is why the loss tracks the worst name."
+              >
+                2,500 shares: notional divided by the strike price of 40
+              </button>
+              <button
+                type="button"
+                data-feedback="There is no halving. The share count is notional over the strike price."
+              >
+                1,250 shares: half the notional divided by the initial price
               </button>
             </div>
             <p class="quiz-feedback" aria-live="polite"></p>

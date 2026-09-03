@@ -9,6 +9,7 @@
     />
     <meta name="theme-color" content="#0b1e2d" />
     <title>Foundations — Derivatives 101</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="lesson.css" />
   </head>
   <body data-lesson="foundations">
@@ -250,6 +251,35 @@
             </div>
             <p class="quiz-feedback" aria-live="polite"></p>
           </div>
+          <div class="quiz">
+            <h3>
+              An investor pays 8.50 for a one-year call struck at 100. At expiry
+              the underlying is at 105. What is the result?
+            </h3>
+            <p>Use the break-even line on the chart.</p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="The option is worth 5 at expiry, but it cost 8.50. Being in the money is not the same as being profitable."
+              >
+                A gain of 5, because the option finished in the money
+              </button>
+              <button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. The payoff of 5 less the 8.50 premium leaves a loss of 3.50. Break-even is strike plus premium."
+              >
+                A loss of 3.50, because 105 is below break-even
+              </button>
+              <button
+                type="button"
+                data-feedback="The premium is a sunk cost, but the option still pays 5 here, which recovers part of it."
+              >
+                A loss of 8.50, because the premium is always lost
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
         </section>
         <section id="takeaways">
           <p class="section-label">Takeaways</p>
@@ -296,6 +326,7 @@
           <h2>Go deeper</h2>
           <p>Build multi-leg combinations and inspect Greeks.</p>
           <a href="options-a-la-carte.html">Open strategy lab →</a>
+          <a href="solver-lab.html">Watch a solver converge →</a>
         </div>
       </aside>
     </main>

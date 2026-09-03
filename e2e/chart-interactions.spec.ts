@@ -119,6 +119,49 @@ test("Payoff Explorer simulation histograms support direct bin inspection", asyn
   expect(errors).toEqual([]);
 });
 
+test("solver chart shades the bracket whose midpoint is being tested", async ({ page }) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/solver-lab.html");
+
+  await expect(page.locator("#solver-chart .candidate-dot")).toHaveCount(0);
+  await page.getByRole("button", { name: "Take one step" }).click();
+  const chart = page.locator("#solver-chart");
+  const bracket = chart.locator(".bracket-zone");
+  const candidate = chart.locator(".candidate-dot");
+  await expect(bracket).toHaveCount(1);
+  await expect(candidate).toHaveCount(1);
+
+  const [bracketX, bracketWidth, candidateX] = await Promise.all([
+    bracket.getAttribute("x"),
+    bracket.getAttribute("width"),
+    candidate.getAttribute("cx"),
+  ]);
+  expect(Number(candidateX)).toBeCloseTo(Number(bracketX) + Number(bracketWidth) / 2, 6);
+  expect(errors).toEqual([]);
+});
+
+test("solver can apply and download the dated market snapshot", async ({ page }) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/solver-lab.html");
+
+  const underlying = page.locator("#market-underlying");
+  await expect(underlying).toBeEnabled();
+  await expect(underlying.locator("option")).toHaveCount(3);
+  const response = await page.request.get("/market-data/latest.json");
+  expect(response.ok()).toBe(true);
+  const snapshot = await response.json();
+  expect(snapshot.schemaVersion).toBe(1);
+
+  await page.getByRole("button", { name: "Apply snapshot" }).click();
+  await expect(page.locator("#market-status")).toContainText("inputs applied");
+  await expect(page.locator("#spot-out")).not.toHaveText("100.00");
+  await expect(page.locator("#vol-out")).toHaveText(
+    `${(snapshot.instruments[0].realisedVolatility60 * 100).toFixed(1)}%`,
+  );
+  await expect(page.locator("#download-market")).toHaveAttribute("download", "");
+  expect(errors).toEqual([]);
+});
+
 test("simulation inspectors remain inside a narrow viewport", async ({ page }) => {
   const errors = monitorRuntimeErrors(page);
   await page.setViewportSize({ width: 390, height: 844 });

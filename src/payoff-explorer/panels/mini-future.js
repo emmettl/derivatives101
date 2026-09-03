@@ -1,4 +1,4 @@
-import { $, C, fmt, pct, rng, normals, frame, ticks, statCards } from "../core";
+import { $, C, fmt, pct, rng, normals, frame, ticks, statCards, histogram } from "../core";
 
 (function () {
   let dir = "long",
@@ -126,6 +126,15 @@ import { $, C, fmt, pct, rng, normals, frame, ticks, statCards } from "../core";
       { v: pct(wiped / paths, 0), l: "total loss", c: C.brick },
       { v: fmt(sum / paths, 0) + "%", l: "average return", c: C.ink },
     ]);
+    histogram($("mf-hist"), rets, {
+      lo: Math.max(-100, q(0.002) - 5),
+      hi: Math.min(500, q(0.998) + 5),
+      split: 0,
+      bins: 38,
+      xfmt: (value) => value.toFixed(0) + "%",
+      xlab: "Return on initial certificate cost over " + days + " days",
+      title: "Distribution of outcomes across 2,000 simulated markets",
+    });
     $("mf-terms").innerHTML =
       "<tr><td>Buffer, spot to stop-loss</td><td>" +
       fmt((Math.abs(S0 - SLat(0)) / S0) * 100, 2) +

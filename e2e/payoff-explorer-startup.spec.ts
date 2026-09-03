@@ -36,3 +36,17 @@ test("Payoff Explorer paints before loading only the active product model", asyn
   await expect(page.locator("#p-blocks")).toHaveAttribute("data-model-ready", "true");
   await expect(page.locator("#bk-svg path").first()).toBeAttached();
 });
+
+test("every path-simulated certificate tab renders its outcome distribution", async ({ page }) => {
+  await page.goto("/payoff-explorer.html");
+
+  for (const [panel, prefix] of [
+    ["disc", "dc"],
+    ["bonus", "bn"],
+    ["mini", "mf"],
+  ]) {
+    await page.locator(`#tabs [data-t="${panel}"]`).click();
+    await expect(page.locator(`#p-${panel}`)).toHaveAttribute("data-model-ready", "true");
+    await expect(page.locator(`#${prefix}-hist .interactive-histogram-bar`)).not.toHaveCount(0);
+  }
+});

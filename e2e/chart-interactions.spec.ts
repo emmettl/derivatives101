@@ -37,6 +37,17 @@ test("Option Lab headline values expose keyboard-accessible explanations", async
     "href",
     "glossary.html#delta",
   );
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Explain time value" }).focus();
+  const mobileHelp = await page.locator("#time-value-help").boundingBox();
+  expect(mobileHelp).not.toBeNull();
+  expect(mobileHelp!.x).toBeGreaterThanOrEqual(0);
+  expect(mobileHelp!.x + mobileHelp!.width).toBeLessThanOrEqual(390);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
 });
 
 test("strategy payoff and Monte Carlo charts support keyboard inspection and resampling", async ({

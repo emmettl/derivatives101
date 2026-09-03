@@ -1,4 +1,4 @@
-import { $, C, fmt, pct, rng, normals, frame, ticks, statCards } from "../core";
+import { $, C, fmt, pct, rng, normals, frame, ticks, statCards, histogram } from "../core";
 import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
@@ -173,6 +173,7 @@ import { attachHorizontalInspector } from "../../shared/svg-interaction";
       if (ret > dir) beat++;
     }
     rets.sort((a, b) => a - b);
+    const percentile = (level) => rets[Math.min(rets.length - 1, Math.floor(level * rets.length))];
     statCards($("bn-stats"), [
       { v: pct(broke / paths, 0), l: "barrier breached", c: C.brick },
       { v: pct(bonusPaid / paths, 0), l: "bonus paid", c: C.amberD },
@@ -180,6 +181,15 @@ import { attachHorizontalInspector } from "../../shared/svg-interaction";
       { v: pct(beat / paths, 0), l: "beat the share, dividends included", c: C.deep },
       { v: fmt(sum / paths, 1), l: "average return per 100", c: C.ink },
     ]);
+    histogram($("bn-hist"), rets, {
+      lo: Math.max(-100, percentile(0.002) - 3),
+      hi: Math.min(300, percentile(0.998) + 3),
+      split: 0,
+      bins: 38,
+      xfmt: (value) => value.toFixed(0),
+      xlab: "Return per 100 invested over " + months + " months",
+      title: "Distribution of outcomes across 2,000 simulated markets",
+    });
 
     const budget = 100 * (1 - Math.exp(-q0 * T));
     $("bn-terms").innerHTML =

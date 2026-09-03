@@ -1,4 +1,4 @@
-import { $, C, fmt, pct, rng, normals, frame, ticks, statCards } from "../core";
+import { $, C, fmt, pct, rng, normals, frame, ticks, statCards, histogram } from "../core";
 import { attachHorizontalInspector } from "../../shared/svg-interaction";
 
 (function () {
@@ -219,6 +219,15 @@ import { attachHorizontalInspector } from "../../shared/svg-interaction";
     ];
     if (isBar) cards.splice(2, 0, { v: pct(broke / paths, 0), l: "barrier breached", c: C.amberD });
     statCards($("dc-stats"), cards);
+    histogram($("dc-hist"), rets, {
+      lo: Math.max(-100, q(0.002) - 3),
+      hi: Math.min(300, q(0.998) + 3),
+      split: 0,
+      bins: 38,
+      xfmt: (value) => value.toFixed(0) + "%",
+      xlab: "Return on purchase price over " + months + " months",
+      title: "Distribution of outcomes across 2,000 simulated markets",
+    });
 
     const maxRet = (cap / px - 1) * 100;
     $("dc-terms").innerHTML =

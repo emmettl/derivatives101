@@ -252,7 +252,7 @@ async function copySetup() {
   }, 1800);
 }
 
-function restoreSetup() {
+export function restoreSetup() {
   const params = new URLSearchParams(location.search),
     panel = currentPanel();
   panel.querySelectorAll(".seg").forEach((group) => {
@@ -289,5 +289,3 @@ $("reset-setup").addEventListener("click", () => {
 });
 
 window.addEventListener("hashchange", () => activateTab(location.hash.slice(1), false));
-activateTab(location.hash.slice(1), false);
-restoreSetup();

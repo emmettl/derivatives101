@@ -1,9 +1,4 @@
-import {
-  candidateBounds,
-  priceAtCandidate,
-  priceIncreasesWithCandidate,
-  solveVariable,
-} from "./engine";
+import { candidateBounds, priceIncreasesWithCandidate } from "./engine";
 import type {
   BarrierStyle,
   SolveVariable,
@@ -11,6 +6,11 @@ import type {
   SolverSolution,
   SolverStep,
 } from "./engine";
+import {
+  calculateSolver,
+  type SolverCalculationRequest,
+  type SolverCalculationResult,
+} from "./calculation";
 import type { OptionType } from "../option-lab/types";
 import { applyChartSize, onResize, responsiveChartSize } from "../shared/chart-size";
 import { initCollapsibleSections } from "../shared/collapsible";
@@ -47,7 +47,25 @@ function solverTolerance(inputs: SolverInputs): number {
   return Math.max(0.0000005, inputs.S * 0.00005);
 }
 
-let solution: SolverSolution = solveVariable(state, solverTolerance(state));
+const emptySolution = (): SolverSolution => ({
+  steps: [],
+  value: Number.NaN,
+  price: Number.NaN,
+  converged: false,
+});
+
+let solution: SolverSolution = emptySolution();
+let calculation: SolverCalculationResult | undefined;
+let calculationPending = true;
+let calculationVersion = 0;
+let calculationTimer: ReturnType<typeof setTimeout> | undefined;
+let renderFrame: number | undefined;
+let activeRequest: SolverCalculationRequest | undefined;
+let calculationSource: "worker" | "fallback" = "worker";
+let solverWorker =
+  typeof Worker !== "undefined"
+    ? new Worker(new URL("./calculation-worker.ts", import.meta.url), { type: "module" })
+    : null;
 let visibleSteps = 0;
 let timer: number | undefined;
 let animateNextRender = false;
@@ -189,14 +207,62 @@ function stopTimer(): void {
   $("#solve").textContent = "Solve automatically";
 }
 
-function resetTrail(): void {
+function finishCalculation(result: SolverCalculationResult, source: "worker" | "fallback"): void {
+  if (result.id !== calculationVersion) return;
+  activeRequest = undefined;
+  calculation = result;
+  calculationSource = source;
+  calculationPending = false;
+  solution = result.solution;
+  render();
+}
+
+function calculateWithoutWorker(request: SolverCalculationRequest): void {
+  setTimeout(() => finishCalculation(calculateSolver(request), "fallback"), 0);
+}
+
+function startCalculation(request: SolverCalculationRequest): void {
+  if (request.id !== calculationVersion) return;
+  activeRequest = request;
+  if (solverWorker) solverWorker.postMessage(request);
+  else calculateWithoutWorker(request);
+}
+
+function scheduleRender(): void {
+  if (renderFrame !== undefined) return;
+  renderFrame = requestAnimationFrame(() => {
+    renderFrame = undefined;
+    render();
+  });
+}
+
+function resetTrail(delay = 48): void {
   stopTimer();
   state = readInputs();
-  solution = solveVariable(state, solverTolerance(state));
+  solution = emptySolution();
+  calculation = undefined;
+  calculationPending = true;
   visibleSteps = 0;
   animateNextRender = false;
   previousChartVisual = undefined;
-  render();
+  const request: SolverCalculationRequest = {
+    id: ++calculationVersion,
+    inputs: { ...state },
+    tolerance: solverTolerance(state),
+  };
+  clearTimeout(calculationTimer);
+  calculationTimer = setTimeout(() => startCalculation(request), delay);
+  scheduleRender();
+}
+
+if (solverWorker) {
+  solverWorker.onmessage = (event: MessageEvent<SolverCalculationResult>) =>
+    finishCalculation(event.data, "worker");
+  solverWorker.onerror = () => {
+    solverWorker?.terminate();
+    solverWorker = null;
+    if (activeRequest?.id === calculationVersion) calculateWithoutWorker(activeRequest);
+  };
 }
 
 function currentStep(): SolverStep | undefined {
@@ -303,13 +369,17 @@ function renderSummary(): void {
 
   const pill = $("#status-pill");
   pill.classList.toggle("solved", complete);
-  pill.textContent = complete
-    ? `Solved in ${solution.steps.length} steps`
-    : visibleSteps
-      ? `Step ${visibleSteps} of ${solution.steps.length}`
-      : "Ready to solve";
+  pill.textContent = calculationPending
+    ? "Updating model…"
+    : complete
+      ? `Solved in ${solution.steps.length} steps`
+      : visibleSteps
+        ? `Step ${visibleSteps} of ${solution.steps.length}`
+        : "Ready to solve";
 
-  if (!solution.steps.length) {
+  if (calculationPending) {
+    $("#action-note").textContent = "Inputs updated. Repricing…";
+  } else if (!solution.steps.length) {
     $("#action-note").textContent =
       "The target is outside the prices available in this search range. Adjust the target or model inputs.";
   } else if (complete) {
@@ -348,6 +418,10 @@ function renderDecision(): void {
     step?.midpoint ?? (initialLower + initialUpper) / 2,
   );
 
+  if (calculationPending) {
+    $("#decision-copy").textContent = "Updating the solution and chart…";
+    return;
+  }
   if (!step) {
     $("#decision-copy").textContent = "The first step will test the middle of the starting range.";
     return;
@@ -382,8 +456,10 @@ function renderTable(): void {
   const body = $("#iteration-body") as HTMLTableSectionElement;
   const shown = solution.steps.slice(0, visibleSteps);
   if (!shown.length) {
-    body.innerHTML =
-      '<tr class="empty-row"><td colspan="6">No guesses yet. Take the first step above.</td></tr>';
+    const message = calculationPending
+      ? "Updating the model…"
+      : "No guesses yet. Take the first step above.";
+    body.innerHTML = `<tr class="empty-row"><td colspan="6">${message}</td></tr>`;
     return;
   }
   body.innerHTML = shown
@@ -441,17 +517,21 @@ function svgElement<K extends keyof SVGElementTagNameMap>(
 
 function renderChart(): void {
   const svg = $("#solver-chart") as unknown as SVGSVGElement;
+  if (!calculation) {
+    svg.classList.add("is-updating");
+    svg.setAttribute("aria-busy", "true");
+    return;
+  }
+  svg.classList.remove("is-updating");
+  svg.setAttribute("aria-busy", "false");
+  svg.dataset.calculationSource = calculationSource;
+  svg.dataset.modelSpot = String(state.S);
   const { width, height } = responsiveChartSize(svg, { width: 900, height: 350 }, 0.8);
   applyChartSize(svg, { width, height });
   const margin = { top: 22, right: 24, bottom: 46, left: width < 600 ? 48 : 58 };
   const plotW = width - margin.left - margin.right;
   const plotH = height - margin.top - margin.bottom;
-  const [minCandidate, maxCandidate] = candidateBounds(state);
-  const samples = Array.from({ length: 101 }, (_, index) => {
-    const candidate = minCandidate + ((maxCandidate - minCandidate) * index) / 100;
-    return { candidate, price: priceAtCandidate(state, candidate) };
-  });
-  const maxPrice = Math.max(state.target * 1.2, ...samples.map((point) => point.price)) * 1.04;
+  const { minCandidate, maxCandidate, samples, maxPrice } = calculation;
   const x = (candidate: number) =>
     margin.left + ((candidate - minCandidate) / (maxCandidate - minCandidate)) * plotW;
   const y = (price: number) => margin.top + plotH - (price / maxPrice) * plotH;
@@ -502,9 +582,13 @@ function renderChart(): void {
   const testedUpper = step?.upper ?? maxCandidate;
   const lower = step?.nextLower ?? minCandidate;
   const upper = step?.nextUpper ?? maxCandidate;
+  const boundPrices = step
+    ? calculation.retainedBoundPrices[visibleSteps - 1]
+    : calculation.initialBoundPrices;
+  if (!boundPrices) return;
   const currentVisual: ChartVisual = {
-    lower: { x: x(lower), y: y(priceAtCandidate(state, lower)) },
-    upper: { x: x(upper), y: y(priceAtCandidate(state, upper)) },
+    lower: { x: x(lower), y: y(boundPrices.lower) },
+    upper: { x: x(upper), y: y(boundPrices.upper) },
     midpoint: step ? { x: x(step.midpoint), y: y(step.price) } : undefined,
   };
   if (step) {
@@ -667,7 +751,7 @@ function render(): void {
   animateNextRender = false;
 }
 
-Object.values(controls).forEach((control) => control.addEventListener("input", resetTrail));
+Object.values(controls).forEach((control) => control.addEventListener("input", () => resetTrail()));
 
 marketControls.underlying.addEventListener("change", () => {
   const instrument = selectedMarketInstrument();
@@ -785,3 +869,4 @@ initCollapsibleSections("(max-width: 760px)");
 onResize(render);
 render();
 initialiseMarketSnapshot();
+resetTrail(0);

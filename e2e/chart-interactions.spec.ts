@@ -180,6 +180,25 @@ test("solver can apply and download the dated market snapshot", async ({ page })
   expect(errors).toEqual([]);
 });
 
+test("solver prices rapid input changes in a worker and keeps only the latest result", async ({
+  page,
+}) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/solver-lab.html");
+
+  const chart = page.locator("#solver-chart");
+  await expect(chart).toHaveAttribute("data-calculation-source", "worker");
+  const spot = page.locator("#spot");
+  await spot.fill("85");
+  await spot.fill("125");
+  await spot.fill("105");
+
+  await expect(page.locator("#spot-out")).toHaveText("105.00");
+  await expect(chart).toHaveAttribute("data-model-spot", "105");
+  await expect(page.locator("#status-pill")).toHaveText("Ready to solve");
+  expect(errors).toEqual([]);
+});
+
 test("simulation inspectors remain inside a narrow viewport", async ({ page }) => {
   const errors = monitorRuntimeErrors(page);
   await page.setViewportSize({ width: 390, height: 844 });

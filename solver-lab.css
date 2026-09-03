@@ -542,6 +542,11 @@ button:disabled {
   width: 100%;
   height: auto;
   overflow: visible;
+  transition: opacity 120ms ease-out;
+}
+
+#solver-chart.is-updating {
+  opacity: 0.5;
 }
 
 .grid-line {

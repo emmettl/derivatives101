@@ -23,6 +23,12 @@ Every push to `main` builds and publishes the multi-page site through GitHub Pag
 
 Run `npm install` once, followed by `npx playwright install chromium` to install the browser used by the interaction tests. Use `npm run dev` for local development and `npm run build` for a type-checked production bundle plus the complete site. `npm run check` verifies Oxfmt formatting, runs Oxlint, checks TypeScript and executes the financial-engine tests. `npm run test:e2e` runs a smoke sweep of every page (load, nudge the first controls, no runtime errors, no NaN, no horizontal overflow at phone width) plus focused checks of chart inspection, Monte Carlo resampling, barrier defaults, lessons and solvers in Chromium; `npm run check:all` runs every check and the production build. Use `npm run format` and `npm run lint:fix` for automatic source cleanup.
 
+## Market snapshot
+
+The Solver Lab can apply a small dated FX snapshot from `market-data/latest.json`. Run `npm run market:snapshot` to refresh it from the ECB Data Portal. The downloader stores the latest EUR/USD, EUR/GBP and EUR/CHF reference rates plus 20- and 60-session annualised realised-volatility calculations; it does not republish the underlying daily history. The Pages workflow refreshes this file on weekday evenings and retains the checked-in last-good snapshot if the source is temporarily unavailable.
+
+The snapshot intentionally supplies only spot and a historical-volatility proxy. Discount and foreign-rate inputs remain explicit user assumptions, and the calculated volatility is not an option-market implied volatility.
+
 ## Interactive source layout
 
 - `src/strategy/` contains the typed multi-leg strategy engine, chart and view.

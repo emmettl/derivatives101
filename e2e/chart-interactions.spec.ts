@@ -123,6 +123,7 @@ test("solver chart shades the bracket whose midpoint is being tested", async ({ 
   const errors = monitorRuntimeErrors(page);
   await page.goto("/solver-lab.html");
 
+  await expect(page.locator("#solver-chart .candidate-dot")).toHaveCount(0);
   await page.getByRole("button", { name: "Take one step" }).click();
   const chart = page.locator("#solver-chart");
   const bracket = chart.locator(".bracket-zone");
@@ -136,6 +137,28 @@ test("solver chart shades the bracket whose midpoint is being tested", async ({ 
     candidate.getAttribute("cx"),
   ]);
   expect(Number(candidateX)).toBeCloseTo(Number(bracketX) + Number(bracketWidth) / 2, 6);
+  expect(errors).toEqual([]);
+});
+
+test("solver can apply and download the dated market snapshot", async ({ page }) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/solver-lab.html");
+
+  const underlying = page.locator("#market-underlying");
+  await expect(underlying).toBeEnabled();
+  await expect(underlying.locator("option")).toHaveCount(3);
+  const response = await page.request.get("/market-data/latest.json");
+  expect(response.ok()).toBe(true);
+  const snapshot = await response.json();
+  expect(snapshot.schemaVersion).toBe(1);
+
+  await page.getByRole("button", { name: "Apply snapshot" }).click();
+  await expect(page.locator("#market-status")).toContainText("inputs applied");
+  await expect(page.locator("#spot-out")).not.toHaveText("100.00");
+  await expect(page.locator("#vol-out")).toHaveText(
+    `${(snapshot.instruments[0].realisedVolatility60 * 100).toFixed(1)}%`,
+  );
+  await expect(page.locator("#download-market")).toHaveAttribute("download", "");
   expect(errors).toEqual([]);
 });
 

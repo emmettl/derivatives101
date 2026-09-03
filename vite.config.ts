@@ -44,6 +44,7 @@ const buildOnly = new Set([
   "node_modules",
   "playwright-report",
   "playwright.config.ts",
+  "scripts",
   "src",
   "test-results",
   "README.md",

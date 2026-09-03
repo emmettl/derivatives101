@@ -120,6 +120,30 @@
             </div>
           </div>
 
+          <div class="market-snapshot" aria-labelledby="market-snapshot-label">
+            <span class="group-label" id="market-snapshot-label"
+              >Real market snapshot</span
+            >
+            <div class="market-picker">
+              <select
+                id="market-underlying"
+                aria-label="Snapshot underlying"
+                disabled
+              >
+                <option>Loading ECB rates…</option>
+              </select>
+              <button type="button" id="apply-market" disabled>
+                Apply snapshot
+              </button>
+            </div>
+            <p id="market-status" aria-live="polite">
+              Loading the latest same-origin snapshot.
+            </p>
+            <a id="download-market" href="market-data/latest.json" download>
+              Download snapshot JSON ↓
+            </a>
+          </div>
+
           <div class="mode-control">
             <span class="group-label">Solve for</span>
             <div
@@ -246,7 +270,7 @@
             />
           </label>
           <label class="slider-row" for="rate">
-            <span>Interest rate <output id="rate-out">3.0%</output></span>
+            <span>Discount rate <output id="rate-out">3.0%</output></span>
             <input
               id="rate"
               type="range"
@@ -257,7 +281,10 @@
             />
           </label>
           <label class="slider-row" for="dividend">
-            <span>Dividend yield <output id="dividend-out">1.0%</output></span>
+            <span
+              >Dividend / foreign rate
+              <output id="dividend-out">1.0%</output></span
+            >
             <input
               id="dividend"
               type="range"
@@ -389,7 +416,8 @@
     <footer>
       <p>
         Educational model only. European exercise, continuous rates and
-        dividends, constant volatility.
+        dividends, constant volatility. FX reference rates are sourced from ECB
+        statistics; displayed realised volatility is calculated by this site.
       </p>
       <a href="product-solver.html">Continue to the market solver →</a>
     </footer>

@@ -3,6 +3,8 @@ name: Publish course to GitHub Pages
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "17 18 * * 1-5"
   workflow_dispatch:
 
 permissions:
@@ -32,6 +34,8 @@ jobs:
         run: npm ci
       - name: Install browser testing dependencies
         run: npx playwright install --with-deps chromium
+      - name: Refresh the public market snapshot
+        run: npm run market:snapshot -- --allow-stale
       - name: Build and test the course
         run: npm run check:all
       - name: Configure GitHub Pages

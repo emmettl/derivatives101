@@ -14,6 +14,12 @@ import type {
 import type { OptionType } from "../option-lab/types";
 import { applyChartSize, onResize, responsiveChartSize } from "../shared/chart-size";
 import { initCollapsibleSections } from "../shared/collapsible";
+import {
+  loadMarketSnapshot,
+  marketDataAgeDays,
+  type MarketInstrumentSnapshot,
+  type MarketSnapshot,
+} from "./market-snapshot";
 
 const $ = <T extends HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector);
@@ -35,11 +41,17 @@ const defaults = {
 };
 
 let state = { ...defaults };
-let solution: SolverSolution = solveVariable(state);
+
+function solverTolerance(inputs: SolverInputs): number {
+  return Math.max(0.0000005, inputs.S * 0.00005);
+}
+
+let solution: SolverSolution = solveVariable(state, solverTolerance(state));
 let visibleSteps = 0;
 let timer: number | undefined;
 let animateNextRender = false;
 let previousChartVisual: ChartVisual | undefined;
+let marketSnapshot: MarketSnapshot | undefined;
 
 interface ChartPoint {
   x: number;
@@ -62,7 +74,32 @@ const controls = {
   dividend: $("#dividend") as HTMLInputElement,
 };
 
-const format2 = (value: number) => value.toFixed(2);
+const marketControls = {
+  underlying: $("#market-underlying") as HTMLSelectElement,
+  apply: $("#apply-market") as HTMLButtonElement,
+  status: $("#market-status"),
+};
+
+const defaultControlRanges = new Map(
+  Object.values(controls).map((control) => [
+    control,
+    { min: control.min, max: control.max, step: control.step },
+  ]),
+);
+
+function priceDecimals(): number {
+  if (state.S < 10) return 4;
+  if (state.S < 100) return 3;
+  return 2;
+}
+
+function formatPrice(value: number): string {
+  return value.toFixed(priceDecimals());
+}
+
+function formatError(value: number): string {
+  return value.toFixed(priceDecimals() + 2);
+}
 
 function readInputs(): SolverInputs {
   return {
@@ -79,6 +116,72 @@ function readInputs(): SolverInputs {
   };
 }
 
+function selectedMarketInstrument(): MarketInstrumentSnapshot | undefined {
+  return marketSnapshot?.instruments.find(
+    (instrument) => instrument.id === marketControls.underlying.value,
+  );
+}
+
+function marketInputStep(value: number): number {
+  if (value < 10) return 0.0001;
+  if (value < 100) return 0.01;
+  return 0.1;
+}
+
+function setRange(
+  control: HTMLInputElement,
+  minimum: number,
+  maximum: number,
+  step: number,
+  value: number,
+): void {
+  control.min = String(minimum);
+  control.max = String(maximum);
+  control.step = String(step);
+  control.value = String(value);
+}
+
+function describeMarketInstrument(instrument: MarketInstrumentSnapshot): void {
+  const age = marketDataAgeDays(instrument);
+  const freshness = age > 3 ? `Snapshot is ${Math.floor(age)} days old. ` : "";
+  marketControls.status.textContent = `${freshness}${instrument.spotAsOf}: ${instrument.quoteConvention}; spot ${instrument.spot.toFixed(4)} and 60-session realised vol ${(instrument.realisedVolatility60 * 100).toFixed(1)}%. Discount and foreign-rate assumptions remain editable.`;
+}
+
+function applyMarketInstrument(): void {
+  const instrument = selectedMarketInstrument();
+  if (!instrument) return;
+  const spot = instrument.spot;
+  const inputStep = marketInputStep(spot);
+  setRange(controls.spot, spot * 0.5, spot * 1.5, inputStep, spot);
+  setRange(controls.strike, spot * 0.4, spot * 1.8, inputStep, spot);
+  setRange(controls.target, spot * 0.0025, spot * 0.4, inputStep / 2, spot * 0.085);
+  setRange(controls.vol, 0.5, 80, 0.1, instrument.realisedVolatility60 * 100);
+  resetTrail();
+  marketControls.status.textContent = `${instrument.label} inputs applied: latest reference spot and 60-session realised-volatility proxy. Rates remain assumptions, not snapshot observations.`;
+}
+
+async function initialiseMarketSnapshot(): Promise<void> {
+  try {
+    marketSnapshot = await loadMarketSnapshot("./market-data/latest.json");
+    marketControls.underlying.replaceChildren(
+      ...marketSnapshot.instruments.map((instrument) => {
+        const option = document.createElement("option");
+        option.value = instrument.id;
+        option.textContent = instrument.label;
+        return option;
+      }),
+    );
+    marketControls.underlying.disabled = false;
+    marketControls.apply.disabled = false;
+    const first = selectedMarketInstrument();
+    if (first) describeMarketInstrument(first);
+  } catch {
+    marketControls.underlying.replaceChildren(new Option("Snapshot unavailable"));
+    marketControls.status.textContent =
+      "The dated market snapshot could not be loaded. The illustrative inputs remain available.";
+  }
+}
+
 function stopTimer(): void {
   if (timer !== undefined) window.clearInterval(timer);
   timer = undefined;
@@ -88,7 +191,7 @@ function stopTimer(): void {
 function resetTrail(): void {
   stopTimer();
   state = readInputs();
-  solution = solveVariable(state);
+  solution = solveVariable(state, solverTolerance(state));
   visibleSteps = 0;
   animateNextRender = false;
   previousChartVisual = undefined;
@@ -96,7 +199,7 @@ function resetTrail(): void {
 }
 
 function currentStep(): SolverStep | undefined {
-  return solution.steps[Math.max(0, visibleSteps - 1)];
+  return visibleSteps > 0 ? solution.steps[visibleSteps - 1] : undefined;
 }
 
 const variableMeta = {
@@ -139,24 +242,25 @@ const variableMeta = {
 } as const;
 
 function formatCandidate(value: number): string {
-  return state.solveFor === "volatility" ? `${(value * 100).toFixed(1)}%` : value.toFixed(2);
+  return state.solveFor === "volatility" ? `${(value * 100).toFixed(1)}%` : formatPrice(value);
 }
 
 function formatAxisCandidate(value: number): string {
-  return state.solveFor === "volatility" ? `${(value * 100).toFixed(0)}%` : value.toFixed(0);
+  if (state.solveFor === "volatility") return `${(value * 100).toFixed(0)}%`;
+  return value.toFixed(state.S < 10 ? 3 : 0);
 }
 
 function renderOutputs(): void {
   const meta = variableMeta[state.solveFor];
-  $("#target-out").textContent = format2(state.target);
-  $("#spot-out").textContent = state.S.toFixed(0);
-  $("#strike-out").textContent = state.K.toFixed(0);
-  $("#vol-out").textContent = `${(state.v * 100).toFixed(0)}%`;
+  $("#target-out").textContent = formatPrice(state.target);
+  $("#spot-out").textContent = formatPrice(state.S);
+  $("#strike-out").textContent = formatPrice(state.K);
+  $("#vol-out").textContent = `${(state.v * 100).toFixed(1)}%`;
   $("#expiry-out").textContent = `${state.T.toFixed(2)}y`;
   $("#rate-out").textContent = `${(state.r * 100).toFixed(1)}%`;
   $("#dividend-out").textContent = `${(state.q * 100).toFixed(1)}%`;
-  $("#target-summary").textContent = format2(state.target);
-  $("#equation-target").textContent = format2(state.target);
+  $("#target-summary").textContent = formatPrice(state.target);
+  $("#equation-target").textContent = formatPrice(state.target);
   $("#equation-type").textContent = state.type === "call" ? "Call price" : "Put price";
   $("#solve-heading").textContent = `Solve for ${meta.label}`;
   $("#solved-label").textContent = meta.solvedLabel;
@@ -165,9 +269,9 @@ function renderOutputs(): void {
   $("#lower-label").textContent = `Lower ${meta.label}`;
   $("#upper-label").textContent = `Upper ${meta.label}`;
   $("#test-variable-heading").textContent = `Test ${meta.symbol}`;
-  const known = [state.type === "call" ? "Call" : "Put", `target ${format2(state.target)}`];
-  if (state.solveFor !== "spot") known.push(`S ${state.S.toFixed(0)}`);
-  if (state.solveFor !== "strike") known.push(`K ${state.K.toFixed(0)}`);
+  const known = [state.type === "call" ? "Call" : "Put", `target ${formatPrice(state.target)}`];
+  if (state.solveFor !== "spot") known.push(`S ${formatPrice(state.S)}`);
+  if (state.solveFor !== "strike") known.push(`K ${formatPrice(state.K)}`);
   if (state.solveFor !== "volatility") known.push(`σ ${(state.v * 100).toFixed(0)}%`);
   known.push(`${state.T.toFixed(2)}y`);
   $("#controls-summary").textContent = known.join(" · ");
@@ -187,8 +291,8 @@ function renderSummary(): void {
     : step
       ? formatCandidate(step.midpoint)
       : "—";
-  $("#candidate-price").textContent = step ? format2(step.price) : "—";
-  $("#error-summary").textContent = step ? Math.abs(step.error).toFixed(4) : "—";
+  $("#candidate-price").textContent = step ? formatPrice(step.price) : "—";
+  $("#error-summary").textContent = step ? formatError(Math.abs(step.error)) : "—";
   $("#iteration-summary").textContent = String(visibleSteps);
   $("#step").toggleAttribute(
     "disabled",
@@ -206,17 +310,18 @@ function renderSummary(): void {
 
   if (!solution.steps.length) {
     $("#action-note").textContent =
-      "The target is outside the current search range. Lower the target premium or raise spot.";
+      "The target is outside the prices available in this search range. Adjust the target or model inputs.";
   } else if (complete) {
     const [initialLower, initialUpper] = candidateBounds(state);
     const finalStep = solution.steps.at(-1);
     const bracketShare = finalStep
       ? (finalStep.nextUpper - finalStep.nextLower) / (initialUpper - initialLower)
       : 0;
+    const toleranceCopy = `The model price is within ${formatError(solverTolerance(state))} of the ${formatPrice(state.target)} target.`;
     $("#action-note").textContent =
       bracketShare > 0.05
-        ? `The model price is within 0.005 of the ${format2(state.target)} target, but the bracket is still wide: the price barely moves with this variable here, so many candidates pass the tolerance.`
-        : `The model price is within 0.005 of the ${format2(state.target)} target.`;
+        ? `${toleranceCopy} The bracket is still wide: the price barely moves with this variable here, so many candidates pass the tolerance.`
+        : toleranceCopy;
   } else if (!step) {
     $("#action-note").textContent =
       "Take one step to inspect each decision, or run the full solve.";
@@ -248,7 +353,7 @@ function renderDecision(): void {
   }
   if (step.converged) {
     $("#decision-copy").textContent =
-      `The price ${format2(step.price)} is close enough to the target. The search stops.`;
+      `The price ${formatPrice(step.price)} is close enough to the target. The search stops.`;
     return;
   }
   const comparison = step.price > state.target ? "above" : "below";
@@ -257,7 +362,7 @@ function renderDecision(): void {
   const variable = variableMeta[state.solveFor].label;
   const implication = `The ${variable} is too ${candidateTooLow ? "low" : "high"}, so discard the ${candidateTooLow ? "lower" : "upper"} half.`;
   $("#decision-copy").textContent =
-    `${format2(step.price)} is ${comparison} ${format2(state.target)}. ${implication}`;
+    `${formatPrice(step.price)} is ${comparison} ${formatPrice(state.target)}. ${implication}`;
 
   if (animateNextRender) {
     ["#lower-value", "#mid-value", "#upper-value"].forEach((selector) => pulseValue($(selector)));
@@ -288,8 +393,8 @@ function renderTable(): void {
         <td>${step.iteration}</td>
         <td>${formatCandidate(step.lower)} — ${formatCandidate(step.upper)}</td>
         <td><strong>${formatCandidate(step.midpoint)}</strong></td>
-        <td>${format2(step.price)}</td>
-        <td>${step.error >= 0 ? "+" : ""}${step.error.toFixed(4)}</td>
+        <td>${formatPrice(step.price)}</td>
+        <td>${step.error >= 0 ? "+" : ""}${formatError(step.error)}</td>
         <td class="decision-keep">${step.decision}</td>
       </tr>`,
     )
@@ -374,7 +479,7 @@ function renderChart(): void {
       "text-anchor": "end",
       class: "axis-label",
     });
-    label.textContent = price.toFixed(0);
+    label.textContent = price.toFixed(state.S < 10 ? 3 : 0);
     svg.append(label);
   }
 
@@ -429,7 +534,7 @@ function renderChart(): void {
     "text-anchor": "end",
     class: "target-label",
   });
-  targetLabel.textContent = `TARGET ${format2(state.target)}`;
+  targetLabel.textContent = `TARGET ${formatPrice(state.target)}`;
   svg.append(targetLabel);
 
   const bracketLine = svgElement("line", {
@@ -536,6 +641,12 @@ function render(): void {
 
 Object.values(controls).forEach((control) => control.addEventListener("input", resetTrail));
 
+marketControls.underlying.addEventListener("change", () => {
+  const instrument = selectedMarketInstrument();
+  if (instrument) describeMarketInstrument(instrument);
+});
+marketControls.apply.addEventListener("click", applyMarketInstrument);
+
 $("#solve-variable").addEventListener("click", (event) => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-value]");
   if (!button) return;
@@ -610,6 +721,11 @@ $("#restart").addEventListener("click", () => {
 
 $("#reset").addEventListener("click", () => {
   state = { ...defaults };
+  defaultControlRanges.forEach((range, control) => {
+    control.min = range.min;
+    control.max = range.max;
+    control.step = range.step;
+  });
   controls.target.value = String(defaults.target);
   controls.spot.value = String(defaults.S);
   controls.strike.value = String(defaults.K);
@@ -633,8 +749,11 @@ $("#reset").addEventListener("click", () => {
     button.setAttribute("aria-pressed", String(on));
   });
   resetTrail();
+  const instrument = selectedMarketInstrument();
+  if (instrument) describeMarketInstrument(instrument);
 });
 
 initCollapsibleSections("(max-width: 760px)");
 onResize(render);
 render();
+void initialiseMarketSnapshot();

@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "market:snapshot": "node scripts/fetch-market-snapshot.mjs",
     "test": "vitest run",
     "format": "oxfmt src e2e vite.config.ts playwright.config.ts && prettier --write \"*.{css,html}\"",
     "format:check": "oxfmt --check src e2e vite.config.ts playwright.config.ts && prettier --check \"*.{css,html}\"",

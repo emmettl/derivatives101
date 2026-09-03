@@ -54,10 +54,10 @@
       <nav class="topbar" aria-label="Course navigation">
         <a class="brand" href="./" aria-current="page">Derivatives 101</a>
         <span class="toplinks">
+          <a class="toplink" href="#learning-path">Lessons</a>
+          <a class="toplink" href="#labs">Labs</a>
+          <a class="toplink" href="#term-sheets">Term sheets</a>
           <a class="toplink" href="glossary.html">Glossary</a>
-          <a class="toplink" href="payoff-explorer.html"
-            >Open payoff explorer <span aria-hidden="true">↗</span></a
-          >
         </span>
       </nav>
       <div class="hero-grid">
@@ -73,14 +73,8 @@
             <a class="button primary" href="lesson-00-foundations.html"
               >Start with foundations</a
             >
-            <a class="button secondary" href="payoff-explorer.html"
-              >Explore the payoffs</a
-            >
-            <a class="button secondary" href="option-lab.html"
-              >Open Option Lab</a
-            >
-            <a class="button secondary" href="structured-products.html"
-              >Structured Product Labs</a
+            <a class="button secondary" href="#learning-path"
+              >Browse the learning path</a
             >
           </div>
         </div>
@@ -99,10 +93,50 @@
           </p>
         </aside>
       </div>
+
+      <nav class="hero-lab-nav" id="labs" aria-labelledby="lab-nav-heading">
+        <div class="lab-nav-intro">
+          <p class="eyebrow">Interactive labs</p>
+          <h2 id="lab-nav-heading">
+            Change one term.<br />Watch the risk move.
+          </h2>
+          <p>
+            Explore payoffs, unpack product structures, and see pricing models
+            at work.
+          </p>
+        </div>
+        <div class="lab-nav-groups">
+          <div class="lab-nav-group" role="group" aria-labelledby="payoff-labs">
+            <p class="lab-nav-label" id="payoff-labs">Explore payoffs</p>
+            <a href="payoff-explorer.html">Payoff Explorer</a>
+            <a href="option-lab.html">Option Lab</a>
+          </div>
+          <div
+            class="lab-nav-group"
+            role="group"
+            aria-labelledby="product-labs"
+          >
+            <p class="lab-nav-label" id="product-labs">Structure products</p>
+            <a href="structured-products.html">Structured Product Labs</a>
+            <a href="term-sheet-decoder.html">Term Sheet Decoder</a>
+            <a href="specification-capstone.html">Specification Builder</a>
+          </div>
+          <div class="lab-nav-group" role="group" aria-labelledby="model-labs">
+            <p class="lab-nav-label" id="model-labs">Model and price</p>
+            <a href="options-a-la-carte.html">Option Strategy Builder</a>
+            <a href="solver-lab.html">Solver Lab</a>
+            <a href="product-solver.html">Real-Index Pricer</a>
+          </div>
+        </div>
+      </nav>
     </header>
 
     <main>
-      <section class="section course-section" aria-labelledby="course-heading">
+      <section
+        class="section course-section"
+        id="learning-path"
+        aria-labelledby="course-heading"
+      >
         <div class="section-heading">
           <div>
             <p class="eyebrow dark">The learning path</p>
@@ -204,51 +238,11 @@
         </ol>
       </section>
 
-      <section class="lab-band" aria-labelledby="lab-heading">
-        <div class="lab-copy">
-          <p class="eyebrow">Interactive labs</p>
-          <h2 id="lab-heading">Change one term.<br />Watch the risk move.</h2>
-          <p>
-            Explore complete product payoffs, step underneath them to see option
-            value and Greeks, or follow path-dependent products event by event.
-          </p>
-          <div class="lab-actions">
-            <a class="button primary" href="option-lab.html">Open Option Lab</a>
-            <a class="button secondary" href="payoff-explorer.html"
-              >Open Payoff Explorer</a
-            >
-            <a class="button secondary" href="structured-products.html"
-              >Open Structured Product Labs</a
-            >
-            <a class="button secondary" href="term-sheet-decoder.html"
-              >Decode a Term Sheet</a
-            >
-            <a class="button secondary" href="specification-capstone.html"
-              >Build a Specification</a
-            >
-            <a class="button secondary" href="options-a-la-carte.html"
-              >Build an Option Strategy</a
-            >
-            <a class="button secondary" href="solver-lab.html"
-              >Watch a Solver Work</a
-            >
-            <a class="button secondary" href="product-solver.html"
-              >Price a Real-Index Note</a
-            >
-          </div>
-        </div>
-        <div class="mini-chart" aria-hidden="true">
-          <div class="chart-label top">capped upside</div>
-          <div class="chart-axis x"></div>
-          <div class="chart-axis y"></div>
-          <div class="chart-loss"></div>
-          <div class="chart-gain"></div>
-          <div class="chart-dot"></div>
-          <div class="chart-label bottom">equity downside</div>
-        </div>
-      </section>
-
-      <section class="section resources" aria-labelledby="resources-heading">
+      <section
+        class="section resources"
+        id="term-sheets"
+        aria-labelledby="resources-heading"
+      >
         <div class="section-heading">
           <div>
             <p class="eyebrow dark">Apply the concepts</p>

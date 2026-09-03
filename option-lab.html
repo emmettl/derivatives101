@@ -40,7 +40,7 @@
       type="image/svg+xml"
       sizes="any"
     />
-    <link rel="stylesheet" href="option-lab.css?v=3" />
+    <link rel="stylesheet" href="option-lab.css?v=6" />
     <link rel="stylesheet" href="collapsible.css?v=1" />
     <link rel="stylesheet" href="predict.css" />
   </head>
@@ -56,39 +56,169 @@
           <button type="button" id="share-link">Copy setup link</button>
         </div>
       </nav>
-      <div class="hero">
-        <div>
-          <p class="eyebrow">Interactive option mechanics</p>
-          <h1>Option Lab</h1>
-          <p class="lede">
-            A price is only one point on a much richer landscape. Move the
-            inputs to see how value bends across spot and time, where each Greek
-            lives, and how thousands of possible paths become one expectation.
-          </p>
-        </div>
-        <div class="model-note">
-          <span>Model</span>
-          <strong>Black–Scholes–Merton</strong>
-          <p>
-            European exercise · continuous rates and dividends · constant
-            volatility · illustrative only
-          </p>
-        </div>
-      </div>
     </header>
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Interactive option mechanics</p>
+        <h1>Option Lab</h1>
+        <p class="lede">
+          A price is only one point on a much richer landscape. Move the inputs
+          to see how value bends across spot and time, where each Greek lives,
+          and how thousands of possible paths become one expectation.
+        </p>
+      </div>
+      <div class="model-note">
+        <span>Model</span>
+        <strong>Black–Scholes–Merton</strong>
+        <p>
+          European exercise · continuous rates and dividends · constant
+          volatility · illustrative only
+        </p>
+      </div>
+    </div>
 
     <main>
       <section class="price-strip" aria-label="Current option values">
         <div class="primary-price">
-          <span>Theoretical value</span>
+          <div class="metric-help">
+            <span>Theoretical value</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain theoretical value"
+              aria-describedby="theoretical-value-help"
+            >
+              ?
+            </button>
+            <div
+              class="help-popover"
+              id="theoretical-value-help"
+              role="tooltip"
+            >
+              The Black–Scholes–Merton estimate for this option today. It
+              combines intrinsic value with the value of the remaining
+              uncertainty.
+              <a href="glossary.html#fair-value"
+                >Fair value in the glossary →</a
+              >
+            </div>
+          </div>
           <strong id="price">—</strong>
         </div>
-        <div><span>Intrinsic</span><strong id="intrinsic">—</strong></div>
-        <div><span>Time value</span><strong id="time-value">—</strong></div>
-        <div><span>Delta</span><strong id="delta">—</strong></div>
-        <div><span>Gamma</span><strong id="gamma">—</strong></div>
-        <div><span>Vega / vol pt</span><strong id="vega">—</strong></div>
-        <div><span>Theta / day</span><strong id="theta">—</strong></div>
+        <div>
+          <div class="metric-help">
+            <span>Intrinsic</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain intrinsic value"
+              aria-describedby="intrinsic-help"
+            >
+              ?
+            </button>
+            <div class="help-popover" id="intrinsic-help" role="tooltip">
+              What the option would pay if it expired now: the favorable
+              difference between spot and strike, floored at zero.
+              <a href="glossary.html#strike">Strike in the glossary →</a>
+            </div>
+          </div>
+          <strong id="intrinsic">—</strong>
+        </div>
+        <div>
+          <div class="metric-help">
+            <span>Time value</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain time value"
+              aria-describedby="time-value-help"
+            >
+              ?
+            </button>
+            <div class="help-popover" id="time-value-help" role="tooltip">
+              The part of the option value above intrinsic value. It reflects
+              the chance that future moves improve the payoff before expiry.
+              <a href="glossary.html#premium">Premium in the glossary →</a>
+            </div>
+          </div>
+          <strong id="time-value">—</strong>
+        </div>
+        <div>
+          <div class="metric-help">
+            <span>Delta</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain delta"
+              aria-describedby="delta-help"
+            >
+              ?
+            </button>
+            <div class="help-popover" id="delta-help" role="tooltip">
+              The estimated change in option value for a one-unit rise in spot,
+              with the other inputs unchanged.
+              <a href="glossary.html#delta">Delta in the glossary →</a>
+            </div>
+          </div>
+          <strong id="delta">—</strong>
+        </div>
+        <div>
+          <div class="metric-help">
+            <span>Gamma</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain gamma"
+              aria-describedby="gamma-help"
+            >
+              ?
+            </button>
+            <div class="help-popover" id="gamma-help" role="tooltip">
+              The estimated change in delta for a one-unit move in spot. It
+              measures the curvature of the value line.
+              <a href="glossary.html#gamma">Gamma in the glossary →</a>
+            </div>
+          </div>
+          <strong id="gamma">—</strong>
+        </div>
+        <div>
+          <div class="metric-help">
+            <span>Vega / vol pt</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain vega"
+              aria-describedby="vega-help"
+            >
+              ?
+            </button>
+            <div class="help-popover" id="vega-help" role="tooltip">
+              The estimated change in option value for a one-percentage-point
+              rise in volatility.
+              <a href="glossary.html#vega">Vega in the glossary →</a>
+            </div>
+          </div>
+          <strong id="vega">—</strong>
+        </div>
+        <div>
+          <div class="metric-help">
+            <span>Theta / day</span>
+            <button
+              class="help-trigger"
+              type="button"
+              aria-label="Explain theta"
+              aria-describedby="theta-help"
+            >
+              ?
+            </button>
+            <div class="help-popover" id="theta-help" role="tooltip">
+              The estimated one-day change in option value from the passage of
+              time, with market inputs held constant.
+              <a href="glossary.html#theta">Theta in the glossary →</a>
+            </div>
+          </div>
+          <strong id="theta">—</strong>
+        </div>
       </section>
 
       <div class="lab-layout">

@@ -25,6 +25,20 @@ test("a new down barrier receives a valid default and never renders NaN", async 
   expect(errors).toEqual([]);
 });
 
+test("Option Lab headline values expose keyboard-accessible explanations", async ({ page }) => {
+  await page.goto("/option-lab.html");
+
+  await expect(page.locator(".price-strip .help-trigger")).toHaveCount(7);
+  const deltaHelp = page.locator("#delta-help");
+  await expect(deltaHelp).toBeHidden();
+  await page.getByRole("button", { name: "Explain delta" }).focus();
+  await expect(deltaHelp).toBeVisible();
+  await expect(deltaHelp.getByRole("link", { name: "Delta in the glossary" })).toHaveAttribute(
+    "href",
+    "glossary.html#delta",
+  );
+});
+
 test("strategy payoff and Monte Carlo charts support keyboard inspection and resampling", async ({
   page,
 }) => {

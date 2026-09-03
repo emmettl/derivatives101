@@ -46,7 +46,7 @@ a {
   border-bottom: 1px solid var(--line);
   background: #fff;
   color: var(--ink);
-  padding: 0 max(24px, calc((100vw - 1400px) / 2)) 26px;
+  padding: 0 max(22px, calc((100vw - 1360px) / 2));
 }
 
 .site-head nav {
@@ -54,7 +54,6 @@ a {
   align-items: center;
   justify-content: space-between;
   min-height: 58px;
-  border-bottom: 1px solid var(--line);
 }
 
 .brand {
@@ -92,15 +91,17 @@ a {
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 48px;
   align-items: center;
-  padding-top: 24px;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 32px 22px 26px;
 }
 
 .eyebrow {
-  margin: 0 0 10px;
-  color: var(--amber);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
+  margin: 0 0 8px;
+  color: var(--amber-d);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 
@@ -116,8 +117,8 @@ h2 {
 
 h1 {
   margin: 0;
-  font-size: clamp(44px, 6vw, 68px);
-  letter-spacing: -0.045em;
+  font-size: clamp(43px, 6vw, 72px);
+  letter-spacing: -0.04em;
 }
 
 h2 {
@@ -127,10 +128,10 @@ h2 {
 }
 
 .lede {
-  max-width: 800px;
-  margin: 10px 0 0;
+  max-width: 880px;
+  margin: 12px 0 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .model-note {
@@ -173,7 +174,7 @@ main {
 .price-strip {
   display: grid;
   grid-template-columns: 1.4fr repeat(6, 1fr);
-  overflow: hidden;
+  overflow: visible;
   margin-top: 16px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -216,6 +217,7 @@ main {
 }
 
 .price-strip .primary-price {
+  border-radius: 9px 0 0 9px;
   background: var(--ink);
   color: #fff;
 }
@@ -226,6 +228,108 @@ main {
 
 .price-strip .primary-price strong {
   font-size: 29px;
+}
+
+.metric-help {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metric-help > span {
+  min-width: 0;
+}
+
+.help-trigger {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #aab9c3;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--steel);
+  font:
+    800 11px/1 "Segoe UI",
+    system-ui,
+    sans-serif;
+  cursor: help;
+}
+
+.help-trigger:hover,
+.help-trigger:focus-visible {
+  border-color: var(--amber-d);
+  background: var(--ink);
+  color: #fff;
+  outline: none;
+}
+
+.primary-price .help-trigger {
+  border-color: rgb(228 163 64 / 70%);
+  color: var(--amber);
+}
+
+.primary-price .help-trigger:hover,
+.primary-price .help-trigger:focus-visible {
+  background: #fff;
+  color: var(--ink);
+}
+
+.help-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 9px);
+  left: -10px;
+  width: min(290px, calc(100vw - 36px));
+  padding: 13px 14px;
+  border: 1px solid #bfccd4;
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 12px 32px rgb(7 22 32 / 20%);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  text-align: left;
+  text-transform: none;
+  transform: translateY(-4px);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+  visibility: hidden;
+}
+
+.price-strip > div:nth-child(n + 5) .help-popover {
+  right: -10px;
+  left: auto;
+}
+
+.help-popover a {
+  display: block;
+  margin-top: 8px;
+  color: var(--deep);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.help-popover a:hover,
+.help-popover a:focus-visible {
+  color: var(--amber-d);
+  text-decoration: underline;
+}
+
+.metric-help:hover .help-popover,
+.metric-help:focus-within .help-popover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+  visibility: visible;
 }
 
 .lab-layout {
@@ -769,9 +873,7 @@ input:focus-visible {
 
 @media (width <= 680px) {
   .site-head {
-    padding-right: 18px;
-    padding-bottom: 20px;
-    padding-left: 18px;
+    padding: 0 16px;
   }
 
   .nav-links {
@@ -784,7 +886,7 @@ input:focus-visible {
 
   .hero {
     gap: 14px;
-    padding-top: 16px;
+    padding: 20px 16px 14px;
   }
 
   h1 {
@@ -792,7 +894,6 @@ input:focus-visible {
   }
 
   .lede {
-    margin-top: 6px;
     font-size: 14px;
   }
 
@@ -821,6 +922,14 @@ input:focus-visible {
     padding: 10px 12px;
   }
 
+  .price-strip .metric-help {
+    gap: 4px;
+  }
+
+  .price-strip .metric-help > span {
+    font-size: 9px;
+  }
+
   .price-strip > div:nth-child(3n + 1) {
     border-right: 0;
   }
@@ -831,6 +940,17 @@ input:focus-visible {
 
   .price-strip .primary-price {
     grid-column: 1 / -1;
+    border-radius: 9px 9px 0 0;
+  }
+
+  .price-strip > div .help-popover {
+    right: auto;
+    left: -10px;
+  }
+
+  .price-strip > div:nth-child(3n + 1) .help-popover {
+    right: -10px;
+    left: auto;
   }
 
   .price-strip strong {

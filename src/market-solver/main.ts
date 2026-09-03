@@ -312,6 +312,65 @@ function renderHeadline(): void {
     $("#stat-b-label").textContent = headline.statBLabel;
     $("#stat-b").textContent = headline.statB;
   }
+  const help = {
+    autocall: {
+      headline:
+        "The annual coupon supported by the model after issuer margin. It is the investor-facing term for the current structure.",
+      headlineGlossary: ["coupon", "Coupon"],
+      secondary:
+        "The model’s break-even coupon before issuer margin. The gap to the offered coupon shows the margin’s effect.",
+      secondaryGlossary: ["fair-value", "Fair value"],
+      statA:
+        "The share of simulated paths that redeem early. It changes both expected life and the value of future coupons.",
+      statAGlossary: ["autocall", "Autocall"],
+      statB:
+        "The share of simulated paths ending with a principal loss. It is a model probability, not a forecast or worst-case loss.",
+      statBGlossary: ["knock-in", "Knock-in"],
+    },
+    rc: {
+      headline:
+        "The annual coupon supported by the bond and embedded short put after issuer margin. It is the investor-facing term.",
+      headlineGlossary: ["coupon", "Coupon"],
+      secondary:
+        "The model’s break-even coupon before issuer margin. The gap to the offered coupon shows the margin’s effect.",
+      secondaryGlossary: ["fair-value", "Fair value"],
+      statA:
+        "The present value of the embedded down-and-in put per 100 of notional. A more valuable short put should fund more coupon.",
+      statAGlossary: ["barrier-option", "Barrier option"],
+      statB:
+        "The implied volatility at the barrier strike used to value the put. It exposes how downside skew enters the price.",
+      statBGlossary: ["volatility-skew", "Volatility skew"],
+    },
+    protected: {
+      headline:
+        "The share of the index gain bought with the available option budget. 100% means matching the full positive return.",
+      headlineGlossary: ["participation", "Participation rate"],
+      secondary:
+        "The cash left to buy upside after funding the promised protection and deducting the upfront fee.",
+      secondaryGlossary: ["bond-floor", "Bond floor"],
+      statA:
+        "The present cost of the promised maturity repayment. What remains after buying this floor can fund options.",
+      statAGlossary: ["bond-floor", "Bond floor"],
+      statB:
+        "The present cost of one unit of upside participation. The option budget divided by this cost determines participation.",
+      statBGlossary: ["call-option", "Call option"],
+    },
+  }[state.product];
+  $("#headline-help-copy").textContent = help.headline;
+  $("#secondary-help-copy").textContent = help.secondary;
+  $("#stat-a-help-copy").textContent = help.statA;
+  $("#stat-b-help-copy").textContent = help.statB;
+  [
+    ["#headline-help-link", help.headlineGlossary],
+    ["#secondary-help-link", help.secondaryGlossary],
+    ["#stat-a-help-link", help.statAGlossary],
+    ["#stat-b-help-link", help.statBGlossary],
+  ].forEach(([selector, glossary]) => {
+    const [id, label] = glossary as string[];
+    const link = $(selector as string) as HTMLAnchorElement;
+    link.href = `glossary.html#${id}`;
+    link.textContent = `${label} in the glossary →`;
+  });
   const underlying = underlyingById(state.underlying);
   $("#valuation-title").textContent =
     `${underlying.name} · ${state.tenor.toFixed(state.tenor % 1 ? 1 : 0)}-year ${

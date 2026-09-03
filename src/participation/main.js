@@ -118,7 +118,7 @@ const controls = [
       ["flat", "Flat volatility"],
       ["downside-skew", "Downside skew"],
     ],
-    help: "The toggle changes the simulated distribution, not the separate illustrative option-budget calculation. Both path models retain zero drift; the comparison reuses the same random draws.",
+    help: "The toggle changes the simulated distribution, not the separate illustrative option-budget calculation. Both path models retain zero drift; the comparison reuses the same random draws. The curve is the implied-volatility shape applied directly as local volatility, which understates the effect: for a given implied skew, local-volatility skew is roughly twice as steep near the money.",
   },
   {
     key: "dividend",

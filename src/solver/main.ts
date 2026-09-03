@@ -132,7 +132,7 @@ const variableMeta = {
     axis: "Down barrier H",
     inputs: "S, K, T, r, q, σ, <mark>H</mark>",
     explanation:
-      "A higher down barrier makes a touch more likely. That raises knock-in value and lowers knock-out value, so switching activation style reverses the search direction.",
+      "A higher down barrier makes a touch more likely. That raises knock-in value and lowers knock-out value, so switching activation style reverses the search direction. For a call struck above the barrier the value is nearly flat in the barrier, so the solve is ill-conditioned: many barriers satisfy the tolerance.",
   },
 } as const;
 
@@ -200,8 +200,15 @@ function renderSummary(): void {
     $("#action-note").textContent =
       "The target is outside the current search range. Lower the target premium or raise spot.";
   } else if (complete) {
+    const [initialLower, initialUpper] = candidateBounds(state);
+    const finalStep = solution.steps.at(-1);
+    const bracketShare = finalStep
+      ? (finalStep.nextUpper - finalStep.nextLower) / (initialUpper - initialLower)
+      : 0;
     $("#action-note").textContent =
-      `The model price is within 0.005 of the ${format2(state.target)} target.`;
+      bracketShare > 0.05
+        ? `The model price is within 0.005 of the ${format2(state.target)} target, but the bracket is still wide: the price barely moves with this variable here, so many candidates pass the tolerance.`
+        : `The model price is within 0.005 of the ${format2(state.target)} target.`;
   } else if (!step) {
     $("#action-note").textContent =
       "Take one step to inspect each decision, or run the full solve.";

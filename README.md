@@ -8,7 +8,7 @@ An independent, generally useful short course in options and structured products
 - Downloadable PDF lesson decks and a searchable course glossary
 - An interactive payoff explorer covering eight product families
 - An Option Lab for value surfaces, Greeks and Monte Carlo paths
-- Seventeen path-by-path, strategy, design, valuation and specification labs for multi-leg vanilla and barrier options, participation products, accumulators, decumulators, reverse convertibles, step-down autocalls, baskets, conditional coupons, memory, lock-in features, early-exit value, structured-product Greeks, dynamic hedging, volatility skew, forward pricing and carry, cross-currency and quanto payoffs, issuer credit, liquidity, term-sheet analysis and a full requirements capstone
+- Eighteen path-by-path, strategy, design, valuation, solver and specification labs for multi-leg vanilla and barrier options, an inverse solver for strike, implied volatility, spot and barrier, participation products, accumulators, decumulators, reverse convertibles, step-down autocalls, baskets, conditional coupons, memory, lock-in features, early-exit value, structured-product Greeks, dynamic hedging, volatility skew, forward pricing and carry, cross-currency and quanto payoffs, issuer credit, liquidity, term-sheet analysis and a full requirements capstone
 - Flat-volatility and downside-skew path toggles across the six lifecycle labs, with same-seed comparison statistics for barrier, autocall and loss outcomes
 - Guided teaching scenarios and shareable setups
 - Three fictional specimen term sheets for discussion and practice

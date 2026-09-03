@@ -26,3 +26,11 @@ test("the solver recovers a down barrier from a closed-form target premium", asy
   await expect(page.locator("body")).not.toContainText("NaN");
   expect(errors).toEqual([]);
 });
+
+test("the structured-product hub links the solver lab", async ({ page }) => {
+  await page.goto("/structured-products.html");
+  await expect(page.getByRole("link", { name: /Watch a solver work/ })).toHaveAttribute(
+    "href",
+    "solver-lab.html",
+  );
+});

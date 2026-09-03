@@ -18,7 +18,7 @@ const volatilityModelControl = {
     ["flat", "Flat volatility"],
     ["downside-skew", "Downside skew"],
   ],
-  help: "The skew model uses the equity-skew curve from the Volatility Skew lab as illustrative local volatility: volatility rises below the initial level and falls above it. Both choices keep zero drift; skew results are compared with flat volatility using the same random draws.",
+  help: "The skew model uses the equity-skew curve from the Volatility Skew lab as illustrative local volatility: volatility rises below the initial level and falls above it. Both choices keep zero drift; skew results are compared with flat volatility using the same random draws. The curve is the implied-volatility shape applied directly as local volatility, which understates the effect: for a given implied skew, local-volatility skew is roughly twice as steep near the money.",
 };
 export const configs = {
   rc: {

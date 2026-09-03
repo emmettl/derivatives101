@@ -542,6 +542,11 @@ button:disabled {
   width: 100%;
   height: auto;
   overflow: visible;
+  transition: opacity 120ms ease-out;
+}
+
+#solver-chart.is-updating {
+  opacity: 0.5;
 }
 
 .grid-line {
@@ -567,8 +572,12 @@ button:disabled {
   text-transform: uppercase;
 }
 
+.tested-zone {
+  fill: rgb(15 53 74 / 5%);
+}
+
 .bracket-zone {
-  fill: rgb(228 163 64 / 13%);
+  fill: rgb(228 163 64 / 18%);
   transform-box: fill-box;
   transform-origin: center;
 }
@@ -595,9 +604,11 @@ button:disabled {
     sans-serif;
 }
 
-.bracket-line {
+.bracket-boundary {
+  opacity: 0.75;
   stroke: var(--amber-dark);
-  stroke-width: 3;
+  stroke-dasharray: 5 5;
+  stroke-width: 2;
 }
 
 .bracket-dot {

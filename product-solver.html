@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Price autocalls, barrier reverse convertibles and capital-protected notes on real indices from a market snapshot, then solve for the barrier, protection or cap behind a target coupon or participation."
+    />
+    <meta name="theme-color" content="#0b1e2d" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta property="og:title" content="Derivatives 101 — Market Solver" />
+    <meta
+      property="og:description"
+      content="Fair terms for real-index structured products from a stored market snapshot, with the solver's every step visible."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/product-solver.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Derivatives 101 — Market Solver" />
+    <meta
+      name="twitter:description"
+      content="Fair terms for real-index structured products from a stored market snapshot."
+    />
+    <meta
+      name="twitter:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <title>Derivatives 101 — Market Solver</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="solver-lab.css" />
+    <link rel="stylesheet" href="product-solver.css" />
+  </head>
+  <body>
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="solver-lab.html">Option solver</a>
+          <a href="structured-products.html">Structured Product Labs</a>
+          <a href="payoff-explorer.html">Payoff Explorer</a>
+        </div>
+      </nav>
+      <div class="intro">
+        <div>
+          <p class="eyebrow">Interactive pricing · market snapshot</p>
+          <h1>
+            Real indices. Fair terms.<br /><span
+              >Watch the solver find them.</span
+            >
+          </h1>
+        </div>
+        <p class="lede">
+          Price an autocall, a barrier reverse convertible or a
+          capital-protected note on a real index from a stored market snapshot.
+          Then name the coupon or participation you want and watch bisection
+          find the barrier, protection level or cap that pays for it.
+        </p>
+      </div>
+    </header>
+
+    <main>
+      <section class="answer-strip" aria-label="Current valuation">
+        <div class="answer-main">
+          <span id="headline-label">Offered coupon</span>
+          <strong id="headline-value">—</strong>
+        </div>
+        <div>
+          <span id="secondary-label">Fair coupon before margin</span>
+          <strong id="secondary-value">—</strong>
+        </div>
+        <div>
+          <span>Other volatility model</span>
+          <strong id="alt-value">—</strong>
+        </div>
+        <div>
+          <span id="stat-a-label">Autocalled</span>
+          <strong id="stat-a">—</strong>
+        </div>
+        <div>
+          <span id="stat-b-label">Loses principal</span>
+          <strong id="stat-b">—</strong>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <aside class="controls" aria-label="Product and market inputs">
+          <div class="control-head">
+            <div>
+              <p class="eyebrow dark">Market snapshot</p>
+              <h2 id="snapshot-heading">Euro Stoxx 50</h2>
+            </div>
+            <button type="button" class="quiet-button" id="reset">Reset</button>
+          </div>
+
+          <div class="mode-control">
+            <label class="group-label" for="underlying">Underlying</label>
+            <select id="underlying" class="select"></select>
+          </div>
+
+          <div class="mode-control">
+            <span class="group-label">Product</span>
+            <div
+              class="segmented"
+              id="product"
+              data-state="product"
+              role="group"
+              aria-label="Product"
+            >
+              <button
+                type="button"
+                class="on"
+                data-value="autocall"
+                aria-pressed="true"
+              >
+                Autocall
+              </button>
+              <button type="button" data-value="rc" aria-pressed="false">
+                Barrier RC
+              </button>
+              <button type="button" data-value="protected" aria-pressed="false">
+                Protected
+              </button>
+            </div>
+          </div>
+
+          <div class="mode-control">
+            <span class="group-label">Volatility</span>
+            <div
+              class="segmented"
+              id="vol-model"
+              data-state="volModel"
+              role="group"
+              aria-label="Volatility model"
+            >
+              <button
+                type="button"
+                class="on"
+                data-value="skew"
+                aria-pressed="true"
+              >
+                Market skew
+              </button>
+              <button type="button" data-value="flat" aria-pressed="false">
+                Flat ATM
+              </button>
+            </div>
+          </div>
+
+          <label class="slider-row" for="tenor">
+            <span>Tenor <output id="tenor-out">3.0y</output></span>
+            <input id="tenor" type="range" min="1" max="6" value="3" step="1" />
+          </label>
+
+          <div class="mode-control" data-product="autocall rc">
+            <label class="group-label" for="frequency"
+              >Coupon and observation frequency</label
+            >
+            <select id="frequency" class="select">
+              <option value="1">Annual</option>
+              <option value="2">Semi-annual</option>
+              <option value="4" selected>Quarterly</option>
+              <option value="12">Monthly</option>
+            </select>
+          </div>
+
+          <label class="slider-row" for="trigger" data-product="autocall">
+            <span>Autocall trigger <output id="trigger-out">100%</output></span>
+            <input
+              id="trigger"
+              type="range"
+              min="80"
+              max="110"
+              value="100"
+              step="1"
+            />
+          </label>
+
+          <label class="slider-row" for="strike" data-product="rc">
+            <span>Put strike <output id="strike-out">100%</output></span>
+            <input
+              id="strike"
+              type="range"
+              min="80"
+              max="100"
+              value="100"
+              step="1"
+            />
+          </label>
+
+          <label class="slider-row" for="barrier" data-product="autocall rc">
+            <span>Knock-in barrier <output id="barrier-out">60%</output></span>
+            <input
+              id="barrier"
+              type="range"
+              min="40"
+              max="90"
+              value="60"
+              step="1"
+            />
+          </label>
+
+          <div class="mode-control" data-product="autocall">
+            <span class="group-label">Barrier observation</span>
+            <div
+              class="segmented"
+              id="barrier-observation"
+              data-state="barrierObservation"
+              role="group"
+              aria-label="Barrier observation"
+            >
+              <button
+                type="button"
+                class="on"
+                data-value="maturity"
+                aria-pressed="true"
+              >
+                At maturity
+              </button>
+              <button
+                type="button"
+                data-value="continuous"
+                aria-pressed="false"
+              >
+                Continuous
+              </button>
+            </div>
+          </div>
+
+          <label class="slider-row" for="protection" data-product="protected">
+            <span
+              >Protection level <output id="protection-out">100%</output></span
+            >
+            <input
+              id="protection"
+              type="range"
+              min="70"
+              max="100"
+              value="100"
+              step="1"
+            />
+          </label>
+
+          <label class="check-row" for="cap-enabled" data-product="protected">
+            <input id="cap-enabled" type="checkbox" /> Cap the upside
+          </label>
+
+          <label class="slider-row is-hidden" for="cap" id="cap-row">
+            <span>Upside cap <output id="cap-out">150%</output></span>
+            <input
+              id="cap"
+              type="range"
+              min="105"
+              max="200"
+              value="150"
+              step="1"
+            />
+          </label>
+
+          <label class="slider-row" for="fee" data-product="protected">
+            <span>Upfront fee <output id="fee-out">1.0%</output></span>
+            <input id="fee" type="range" min="0" max="3" value="1" step="0.1" />
+          </label>
+
+          <label class="slider-row" for="spread">
+            <span
+              >Issuer funding spread <output id="spread-out">1.0%</output></span
+            >
+            <input
+              id="spread"
+              type="range"
+              min="0"
+              max="3"
+              value="1"
+              step="0.1"
+            />
+          </label>
+
+          <label class="slider-row" for="margin" data-product="autocall rc">
+            <span>Issuer margin <output id="margin-out">1.0%</output></span>
+            <input
+              id="margin"
+              type="range"
+              min="0"
+              max="3"
+              value="1"
+              step="0.1"
+            />
+          </label>
+
+          <p class="mode-note" id="model-note"></p>
+        </aside>
+
+        <div class="solver-view">
+          <section class="equation-card" aria-labelledby="valuation-title">
+            <div>
+              <p class="eyebrow dark">01 · Price the package</p>
+              <h2 id="valuation-title">Autocall</h2>
+            </div>
+            <table class="breakdown">
+              <tbody id="breakdown-body"></tbody>
+            </table>
+            <p id="valuation-copy"></p>
+          </section>
+
+          <section class="convergence-card" aria-labelledby="solve-heading">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow dark">02 · Ask the inverse question</p>
+                <h2 id="solve-heading">Solve for the knock-in barrier</h2>
+              </div>
+              <div class="status-pill" id="status-pill">Ready to solve</div>
+            </div>
+            <div class="solve-controls">
+              <label class="solve-field" for="solve-target">
+                <span>Unknown</span>
+                <select id="solve-target" class="select"></select>
+              </label>
+              <label class="solve-field" for="target-value">
+                <span>Target <em id="target-unit">% coupon p.a.</em></span>
+                <input id="target-value" type="number" value="0" step="0.25" />
+              </label>
+              <div class="solver-actions">
+                <button type="button" class="primary-action" id="solve">
+                  Solve automatically
+                </button>
+                <button type="button" class="secondary-action" id="step">
+                  Take one step
+                </button>
+              </div>
+            </div>
+            <p class="action-note" id="action-note" aria-live="polite">
+              Take one step to inspect each decision, or run the full solve.
+            </p>
+            <div class="solved-strip">
+              <div>
+                <span id="solved-label">Solved barrier</span>
+                <strong id="solved-value">—</strong>
+              </div>
+              <div>
+                <span>Result at candidate</span>
+                <strong id="candidate-result">—</strong>
+              </div>
+              <div>
+                <span>Iterations shown</span>
+                <strong id="iteration-summary">0</strong>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                id="solver-chart"
+                viewBox="0 0 900 350"
+                role="img"
+                aria-labelledby="chart-title"
+              >
+                <title id="chart-title">Result by candidate term</title>
+              </svg>
+            </div>
+            <div class="decision-grid" aria-live="polite">
+              <div>
+                <span id="lower-label">Lower</span
+                ><strong id="lower-value">—</strong>
+              </div>
+              <div class="candidate">
+                <span>Test midpoint</span><strong id="mid-value">—</strong>
+              </div>
+              <div>
+                <span id="upper-label">Upper</span
+                ><strong id="upper-value">—</strong>
+              </div>
+              <p id="decision-copy">
+                The first step will test the middle of the range.
+              </p>
+            </div>
+          </section>
+
+          <section class="iteration-card" aria-labelledby="iterations-title">
+            <div class="section-head">
+              <div>
+                <p class="eyebrow dark">03 · Read the trail</p>
+                <h2 id="iterations-title">Every guess earns information</h2>
+              </div>
+              <button type="button" class="text-button" id="restart">
+                Restart trail
+              </button>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Step</th>
+                    <th scope="col">Bracket</th>
+                    <th scope="col">Test</th>
+                    <th scope="col" id="result-heading">Coupon</th>
+                    <th scope="col">Error</th>
+                    <th scope="col">Decision</th>
+                  </tr>
+                </thead>
+                <tbody id="iteration-body">
+                  <tr class="empty-row">
+                    <td colspan="6">
+                      No guesses yet. Take the first step above.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="equation-card" aria-labelledby="snapshot-title">
+            <div>
+              <p class="eyebrow dark">Data</p>
+              <h2 id="snapshot-title">What the snapshot contains</h2>
+            </div>
+            <p id="snapshot-note"></p>
+            <div class="table-scroll">
+              <table class="snapshot-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Index</th>
+                    <th scope="col">Ccy</th>
+                    <th scope="col">Level</th>
+                    <th scope="col">Dividend yield</th>
+                    <th scope="col">Zero rate 1y / 3y</th>
+                    <th scope="col">ATM vol 1y / 3y</th>
+                    <th scope="col">90% strike vs ATM, 1y</th>
+                  </tr>
+                </thead>
+                <tbody id="snapshot-body"></tbody>
+              </table>
+            </div>
+            <p>
+              The snapshot lives in one file,
+              <a href="data/market-snapshot.json">data/market-snapshot.json</a>.
+              Replace any value with an observed one and the whole lab reprices.
+              Spot levels are cosmetic: every product is quoted as a percentage
+              of the initial level, so rates, dividend yields, volatilities and
+              skew are what move the answers.
+            </p>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>
+        Educational model only. Illustrative snapshot, simplified pricing and no
+        hedging, tax or liquidity costs. Not a price, a quote or investment
+        advice.
+      </p>
+      <a href="solver-lab.html">Back to the option solver →</a>
+    </footer>
+    <script type="module" src="/src/market-solver/main.ts"></script>
+  </body>
+</html>

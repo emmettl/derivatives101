@@ -1,0 +1,73 @@
+{
+  "asOf": "2026-06-30",
+  "status": "illustrative",
+  "note": "Approximate end-of-June 2026 market levels entered by hand from public sources (government bond yields, index dividend yields and listed-option implied volatilities). Values are rounded and are not a data feed. Replace any field with observed values; units are documented in the README.",
+  "currencies": {
+    "USD": {
+      "name": "US dollar",
+      "zeroRates": { "0.25": 0.039, "1": 0.037, "2": 0.036, "3": 0.036, "5": 0.037, "10": 0.041 },
+      "source": "US Treasury constant-maturity yields, approximate"
+    },
+    "EUR": {
+      "name": "Euro",
+      "zeroRates": { "0.25": 0.02, "1": 0.02, "2": 0.021, "3": 0.022, "5": 0.024, "10": 0.028 },
+      "source": "Euro-area government and swap rates, approximate"
+    },
+    "GBP": {
+      "name": "Pound sterling",
+      "zeroRates": { "0.25": 0.04, "1": 0.038, "2": 0.037, "3": 0.037, "5": 0.038, "10": 0.043 },
+      "source": "UK gilt yields, approximate"
+    },
+    "JPY": {
+      "name": "Japanese yen",
+      "zeroRates": { "0.25": 0.006, "1": 0.008, "2": 0.009, "3": 0.01, "5": 0.012, "10": 0.016 },
+      "source": "Japanese government bond yields, approximate"
+    }
+  },
+  "underlyings": [
+    {
+      "id": "SPX",
+      "name": "S&P 500",
+      "currency": "USD",
+      "spot": 6500,
+      "dividendYield": 0.013,
+      "atmVolatility": { "0.25": 0.16, "1": 0.175, "3": 0.19, "5": 0.2 },
+      "skewSlope": -0.32,
+      "skewCurvature": 0.12,
+      "source": "Index level, trailing dividend yield and listed index-option implied volatilities, approximate"
+    },
+    {
+      "id": "SX5E",
+      "name": "Euro Stoxx 50",
+      "currency": "EUR",
+      "spot": 5400,
+      "dividendYield": 0.03,
+      "atmVolatility": { "0.25": 0.17, "1": 0.185, "3": 0.195, "5": 0.2 },
+      "skewSlope": -0.3,
+      "skewCurvature": 0.12,
+      "source": "Index level, trailing dividend yield and listed index-option implied volatilities, approximate"
+    },
+    {
+      "id": "UKX",
+      "name": "FTSE 100",
+      "currency": "GBP",
+      "spot": 8800,
+      "dividendYield": 0.035,
+      "atmVolatility": { "0.25": 0.13, "1": 0.145, "3": 0.16, "5": 0.17 },
+      "skewSlope": -0.25,
+      "skewCurvature": 0.1,
+      "source": "Index level, trailing dividend yield and listed index-option implied volatilities, approximate"
+    },
+    {
+      "id": "NKY",
+      "name": "Nikkei 225",
+      "currency": "JPY",
+      "spot": 40000,
+      "dividendYield": 0.018,
+      "atmVolatility": { "0.25": 0.19, "1": 0.205, "3": 0.215, "5": 0.22 },
+      "skewSlope": -0.22,
+      "skewCurvature": 0.1,
+      "source": "Index level, trailing dividend yield and listed index-option implied volatilities, approximate"
+    }
+  ]
+}

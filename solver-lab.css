@@ -833,3 +833,27 @@ footer a {
     transition-duration: 0.01ms !important;
   }
 }
+
+@media (width <= 760px) {
+  .workspace {
+    align-items: stretch;
+  }
+
+  .controls,
+  .solver-view,
+  .solver-view > * {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .equation-card {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .equation {
+    flex-wrap: wrap;
+    white-space: normal;
+    font-size: 20px;
+  }
+}

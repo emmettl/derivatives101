@@ -8,7 +8,7 @@ An independent, generally useful short course in options and structured products
 - Downloadable PDF lesson decks and a searchable course glossary
 - An interactive payoff explorer covering eight product families
 - An Option Lab for value surfaces, Greeks and Monte Carlo paths
-- Eighteen path-by-path, strategy, design, valuation, solver and specification labs for multi-leg vanilla and barrier options, an inverse solver for strike, implied volatility, spot and barrier, participation products, accumulators, decumulators, reverse convertibles, step-down autocalls, baskets, conditional coupons, memory, lock-in features, early-exit value, structured-product Greeks, dynamic hedging, volatility skew, forward pricing and carry, cross-currency and quanto payoffs, issuer credit, liquidity, term-sheet analysis and a full requirements capstone
+- Nineteen path-by-path, strategy, design, valuation, solver and specification labs for multi-leg vanilla and barrier options, an inverse solver for strike, implied volatility, spot and barrier, a market solver that prices autocalls, barrier reverse convertibles and protected notes on real indices from a stored snapshot, participation products, accumulators, decumulators, reverse convertibles, step-down autocalls, baskets, conditional coupons, memory, lock-in features, early-exit value, structured-product Greeks, dynamic hedging, volatility skew, forward pricing and carry, cross-currency and quanto payoffs, issuer credit, liquidity, term-sheet analysis and a full requirements capstone
 - Flat-volatility and downside-skew path toggles across the six lifecycle labs, with same-seed comparison statistics for barrier, autocall and loss outcomes
 - Guided teaching scenarios and shareable setups
 - Three fictional specimen term sheets for discussion and practice
@@ -30,6 +30,7 @@ Run `npm install` once, followed by `npx playwright install chromium` to install
 - `src/structured/` shares one lifecycle engine and controller across reverse-convertible, coupon-memory and lock-in pages.
 - `src/basket/`, `src/participation/` and `src/koda-kodd/` keep each product engine independent from its page controller and worker.
 - `src/specification/` and `src/decoder/` separate contract rules and case data from presentation.
+- `src/market-solver/` prices real-index products from `data/market-snapshot.json`: closed-form protected notes and barrier reverse convertibles, a common-random-number Monte Carlo for autocalls, and a bisection solver for barrier, protection and cap. The snapshot holds continuously compounded zero rates by tenor (decimal), continuous dividend yields, at-the-money implied volatilities by tenor, and a one-year skew slope and curvature per unit of moneyness; its `status` field records that the values are hand-entered approximations until replaced by observed data.
 - `src/legacy/` contains the older standalone labs, now split into strict TypeScript calculation engines and JavaScript presentation modules without browser globals.
 - `src/shared/` contains deterministic simulation primitives and the shared flat-volatility/downside-skew local-volatility model used across product engines.
 

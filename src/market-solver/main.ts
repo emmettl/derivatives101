@@ -1,0 +1,876 @@
+import {
+  autocallBarrierSolve,
+  bisect,
+  capSolve,
+  priceAutocall,
+  priceProtectedNote,
+  priceReverseConvertible,
+  protectionSolve,
+  reverseConvertibleBarrierSolve,
+  simulatePathSummaries,
+  type AutocallTerms,
+  type BarrierObservation,
+  type MarketContext,
+  type PathSummaries,
+  type ProtectedNoteTerms,
+  type ReverseConvertibleTerms,
+  type SolveDefinition,
+  type SolveResult,
+  type SolveStep,
+  type SolveTarget,
+} from "./engine";
+import {
+  atmVolatility,
+  curveFor,
+  impliedVolatility,
+  snapshot,
+  underlyingById,
+  zeroRate,
+  type VolatilityModel,
+} from "./snapshot";
+
+type Product = "autocall" | "rc" | "protected";
+
+const $ = <T extends HTMLElement>(selector: string): T => {
+  const element = document.querySelector<T>(selector);
+  if (!element) throw new Error(`Missing element: ${selector}`);
+  return element;
+};
+
+const PATH_COUNT = 20_000;
+
+const tenorRanges: Record<Product, { min: number; max: number; step: number; value: number }> = {
+  autocall: { min: 1, max: 6, step: 1, value: 3 },
+  rc: { min: 0.5, max: 3, step: 0.5, value: 1 },
+  protected: { min: 1, max: 8, step: 1, value: 5 },
+};
+
+const defaultTargets: Record<Product, SolveTarget> = {
+  autocall: "autocall-barrier",
+  rc: "rc-barrier",
+  protected: "protection",
+};
+
+const targetOptions: Record<Product, Array<[SolveTarget, string]>> = {
+  autocall: [["autocall-barrier", "Knock-in barrier for a target coupon"]],
+  rc: [["rc-barrier", "Knock-in barrier for a target coupon"]],
+  protected: [
+    ["protection", "Protection level for a target participation"],
+    ["cap", "Upside cap for a target participation"],
+  ],
+};
+
+interface State {
+  underlying: string;
+  product: Product;
+  volModel: VolatilityModel;
+  tenor: number;
+  frequency: number;
+  trigger: number;
+  barrier: number;
+  barrierObservation: BarrierObservation;
+  strike: number;
+  protection: number;
+  capEnabled: boolean;
+  cap: number;
+  fee: number;
+  spread: number;
+  margin: number;
+  solveTarget: SolveTarget;
+  target: number;
+}
+
+const defaults: State = {
+  underlying: "SX5E",
+  product: "autocall",
+  volModel: "skew",
+  tenor: 3,
+  frequency: 4,
+  trigger: 100,
+  barrier: 60,
+  barrierObservation: "maturity",
+  strike: 100,
+  protection: 100,
+  capEnabled: false,
+  cap: 150,
+  fee: 1,
+  spread: 1,
+  margin: 1,
+  solveTarget: "autocall-barrier",
+  target: 0,
+};
+
+let state: State = { ...defaults };
+
+const controls = {
+  underlying: $("#underlying") as HTMLSelectElement,
+  tenor: $("#tenor") as HTMLInputElement,
+  frequency: $("#frequency") as HTMLSelectElement,
+  trigger: $("#trigger") as HTMLInputElement,
+  barrier: $("#barrier") as HTMLInputElement,
+  strike: $("#strike") as HTMLInputElement,
+  protection: $("#protection") as HTMLInputElement,
+  capEnabled: $("#cap-enabled") as HTMLInputElement,
+  cap: $("#cap") as HTMLInputElement,
+  fee: $("#fee") as HTMLInputElement,
+  spread: $("#spread") as HTMLInputElement,
+  margin: $("#margin") as HTMLInputElement,
+  solveTarget: $("#solve-target") as HTMLSelectElement,
+  target: $("#target-value") as HTMLInputElement,
+};
+
+const percent = (value: number, digits = 1) => `${value.toFixed(digits)}%`;
+const number2 = (value: number) => value.toFixed(2);
+
+function readState(): void {
+  state = {
+    ...state,
+    underlying: controls.underlying.value,
+    tenor: Number(controls.tenor.value),
+    frequency: Number(controls.frequency.value),
+    trigger: Number(controls.trigger.value),
+    barrier: Number(controls.barrier.value),
+    strike: Number(controls.strike.value),
+    protection: Number(controls.protection.value),
+    capEnabled: controls.capEnabled.checked,
+    cap: Number(controls.cap.value),
+    fee: Number(controls.fee.value),
+    spread: Number(controls.spread.value),
+    margin: Number(controls.margin.value),
+    solveTarget: controls.solveTarget.value as SolveTarget,
+    target: Number(controls.target.value),
+  };
+}
+
+function writeControls(): void {
+  controls.underlying.value = state.underlying;
+  const range = tenorRanges[state.product];
+  controls.tenor.min = String(range.min);
+  controls.tenor.max = String(range.max);
+  controls.tenor.step = String(range.step);
+  controls.tenor.value = String(state.tenor);
+  controls.frequency.value = String(state.frequency);
+  controls.trigger.value = String(state.trigger);
+  controls.barrier.value = String(state.barrier);
+  controls.strike.value = String(state.strike);
+  controls.protection.value = String(state.protection);
+  controls.capEnabled.checked = state.capEnabled;
+  controls.cap.value = String(state.cap);
+  controls.fee.value = String(state.fee);
+  controls.spread.value = String(state.spread);
+  controls.margin.value = String(state.margin);
+  controls.target.value = String(state.target);
+  setSegmented("#product", state.product);
+  setSegmented("#vol-model", state.volModel);
+  setSegmented("#barrier-observation", state.barrierObservation);
+}
+
+function setSegmented(selector: string, value: string): void {
+  document.querySelectorAll<HTMLButtonElement>(`${selector} button`).forEach((button) => {
+    const on = button.dataset.value === value;
+    button.classList.toggle("on", on);
+    button.setAttribute("aria-pressed", String(on));
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Market context and cached simulations.
+
+function contextFor(volModel: VolatilityModel): MarketContext {
+  const underlying = underlyingById(state.underlying);
+  return { underlying, curve: curveFor(underlying), fundingSpread: state.spread / 100, volModel };
+}
+
+const summaryCache = new Map<string, PathSummaries>();
+
+function summariesFor(volModel: VolatilityModel): PathSummaries {
+  const key = `${state.underlying}|${volModel}|${state.tenor}|${state.frequency}`;
+  let summaries = summaryCache.get(key);
+  if (!summaries) {
+    summaries = simulatePathSummaries(
+      contextFor(volModel),
+      state.tenor,
+      state.frequency,
+      PATH_COUNT,
+    );
+    if (summaryCache.size > 12) summaryCache.delete(summaryCache.keys().next().value as string);
+    summaryCache.set(key, summaries);
+  }
+  return summaries;
+}
+
+function autocallTerms(): AutocallTerms {
+  return {
+    tenor: state.tenor,
+    frequency: state.frequency,
+    trigger: state.trigger,
+    barrier: state.barrier,
+    barrierObservation: state.barrierObservation,
+    margin: state.margin,
+  };
+}
+
+function reverseConvertibleTerms(): ReverseConvertibleTerms {
+  return {
+    tenor: state.tenor,
+    strike: state.strike,
+    barrier: Math.min(state.barrier, state.strike - 1),
+    frequency: state.frequency,
+    margin: state.margin,
+  };
+}
+
+function protectedNoteTerms(): ProtectedNoteTerms {
+  return {
+    tenor: state.tenor,
+    protection: state.protection,
+    strike: 100,
+    cap: state.capEnabled ? state.cap : null,
+    fee: state.fee,
+  };
+}
+
+interface Headline {
+  label: string;
+  value: string;
+  secondaryLabel: string;
+  secondary: string;
+  alternative: string;
+  statALabel: string;
+  statA: string;
+  statBLabel: string;
+  statB: string;
+  rows: Array<[string, string]>;
+  copy: string;
+  result: number;
+}
+
+function valuation(): Headline {
+  const context = contextFor(state.volModel);
+  const other: VolatilityModel = state.volModel === "skew" ? "flat" : "skew";
+  const otherContext = contextFor(other);
+  const otherLabel = other === "flat" ? "Under flat volatility" : "With market skew";
+  const { underlying } = context;
+
+  if (state.product === "autocall") {
+    const terms = autocallTerms();
+    const result = priceAutocall(summariesFor(state.volModel), context, terms);
+    const alternative = priceAutocall(summariesFor(other), otherContext, terms);
+    return {
+      label: "Offered coupon (p.a.)",
+      value: percent(result.offeredCoupon, 2),
+      secondaryLabel: "Fair coupon before margin",
+      secondary: percent(result.fairCoupon, 2),
+      alternative: `${percent(alternative.offeredCoupon, 2)} · ${otherLabel.toLowerCase()}`,
+      statALabel: "Autocalled",
+      statA: percent(result.callProbability * 100, 0),
+      statBLabel: "Loses principal",
+      statB: percent(result.lossProbability * 100, 1),
+      rows: [
+        ["Paths", `${PATH_COUNT.toLocaleString()} · weekly steps · same draws for every candidate`],
+        [
+          "Drift",
+          `${percent(zeroRate(context.curve, state.tenor) * 100, 2)} rate − ${percent(underlying.dividendYield * 100, 2)} dividend yield`,
+        ],
+        [
+          "Volatility",
+          state.volModel === "flat"
+            ? `${percent(atmVolatility(underlying, state.tenor) * 100, 1)} flat`
+            : `${percent(atmVolatility(underlying, state.tenor) * 100, 1)} at the money · ${percent(impliedVolatility(underlying, state.tenor, state.barrier / 100) * 100, 1)} at the barrier`,
+        ],
+        ["PV of expected coupons per 1% p.a.", number2(result.annuity)],
+        ["PV of expected redemption", number2(result.redemptionPv)],
+        ["Issuer margin", number2(state.margin)],
+        ["Expected life", `${result.expectedLife.toFixed(2)} years`],
+        ...(state.barrierObservation === "continuous"
+          ? [
+              [
+                "Effective barrier (continuity correction)",
+                percent(result.effectiveBarrier, 1),
+              ] as [string, string],
+            ]
+          : []),
+      ],
+      copy: `Coupon = (100 − margin − redemption PV) ÷ coupon annuity. The paths are fixed, so the coupon is linear in nothing but the barrier's effect on redemption, and the solver can bisect it.`,
+      result: result.offeredCoupon,
+    };
+  }
+
+  if (state.product === "rc") {
+    const terms = reverseConvertibleTerms();
+    const result = priceReverseConvertible(context, terms);
+    const alternative = priceReverseConvertible(otherContext, terms);
+    return {
+      label: "Offered coupon (p.a.)",
+      value: percent(result.offeredCoupon, 2),
+      secondaryLabel: "Fair coupon before margin",
+      secondary: percent(result.fairCoupon, 2),
+      alternative: `${percent(alternative.offeredCoupon, 2)} · ${otherLabel.toLowerCase()}`,
+      statALabel: "Knock-in put value",
+      statA: number2(result.putValue),
+      statBLabel: "Volatility at the barrier",
+      statB: percent(result.putVolatility * 100, 1),
+      rows: [
+        ["Issuer bond PV (funding curve)", number2(result.bondPv)],
+        ["Down-and-in put, closed form", number2(result.putValue)],
+        ["Coupon annuity per 1% p.a.", number2(result.annuity)],
+        ["Issuer margin", number2(state.margin)],
+      ],
+      copy: `Coupon = (100 − margin − bond PV + put value) ÷ annuity. The put is priced with the volatility quoted at the barrier, the sticky-strike shortcut desks use for a first look.`,
+      result: result.offeredCoupon,
+    };
+  }
+
+  const terms = protectedNoteTerms();
+  const result = priceProtectedNote(context, terms);
+  const alternative = priceProtectedNote(otherContext, terms);
+  return {
+    label: "Participation",
+    value: percent(result.participation, 1),
+    secondaryLabel: "Option budget",
+    secondary: number2(result.budget),
+    alternative: `${percent(alternative.participation, 1)} · ${otherLabel.toLowerCase()}`,
+    statALabel: "Bond floor",
+    statA: number2(result.bondFloor),
+    statBLabel: terms.cap === null ? "Call cost" : "Call-spread cost",
+    statB: number2(result.optionCost),
+    rows: [
+      ["Funding rate", percent(result.fundingRate * 100, 2)],
+      ["Bond floor for the protected amount", number2(result.bondFloor)],
+      ["Upfront fee", number2(state.fee)],
+      ["Option budget", number2(result.budget)],
+      [
+        terms.cap === null ? "At-the-money call" : `Call spread ${terms.strike}–${terms.cap}`,
+        `${number2(result.optionCost)} at ${percent(result.strikeVolatility * 100, 1)}${result.capVolatility === null ? "" : ` / ${percent(result.capVolatility * 100, 1)}`}`,
+      ],
+    ],
+    copy: `Participation = budget ÷ option cost. Higher rates, lower protection, a longer tenor or a cap all leave more budget per unit of upside.`,
+    result: result.participation,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Solver.
+
+function definition(): SolveDefinition {
+  if (state.product === "autocall")
+    return autocallBarrierSolve(
+      summariesFor(state.volModel),
+      contextFor(state.volModel),
+      autocallTerms(),
+    );
+  if (state.product === "rc")
+    return reverseConvertibleBarrierSolve(contextFor(state.volModel), reverseConvertibleTerms());
+  return state.solveTarget === "cap"
+    ? capSolve(contextFor(state.volModel), { ...protectedNoteTerms(), cap: state.cap })
+    : protectionSolve(contextFor(state.volModel), protectedNoteTerms());
+}
+
+let currentHeadline: Headline = valuation();
+let currentDefinition: SolveDefinition = definition();
+let solution: SolveResult = bisect(
+  currentDefinition.evaluate,
+  currentDefinition.range,
+  state.target,
+  currentDefinition,
+);
+let visibleSteps = 0;
+let timer: number | undefined;
+let animateNextRender = false;
+
+function stopTimer(): void {
+  if (timer !== undefined) window.clearInterval(timer);
+  timer = undefined;
+  $("#solve").textContent = "Solve automatically";
+}
+
+function recompute(): void {
+  stopTimer();
+  currentHeadline = valuation();
+  currentDefinition = definition();
+  solution = bisect(
+    currentDefinition.evaluate,
+    currentDefinition.range,
+    state.target,
+    currentDefinition,
+  );
+  visibleSteps = 0;
+  animateNextRender = false;
+  render();
+}
+
+function currentStep(): SolveStep | undefined {
+  return solution.steps[Math.max(0, visibleSteps - 1)];
+}
+
+function formatCandidate(value: number): string {
+  return `${value.toFixed(1)}%`;
+}
+
+function formatResult(value: number): string {
+  return currentDefinition.resultLabel === "participation" ? percent(value, 1) : percent(value, 2);
+}
+
+// ---------------------------------------------------------------------------
+// Rendering.
+
+function renderControls(): void {
+  const underlying = underlyingById(state.underlying);
+  $("#snapshot-heading").textContent = `${underlying.name} · ${snapshot.asOf}`;
+  document.querySelectorAll<HTMLElement>("[data-product]").forEach((element) => {
+    const products = (element.dataset.product ?? "").split(" ");
+    element.classList.toggle("is-hidden", !products.includes(state.product));
+  });
+  $("#cap-row").classList.toggle("is-hidden", state.product !== "protected" || !state.capEnabled);
+  $("#tenor-out").textContent = `${state.tenor.toFixed(1)}y`;
+  $("#trigger-out").textContent = percent(state.trigger, 0);
+  $("#barrier-out").textContent = percent(state.barrier, 0);
+  $("#strike-out").textContent = percent(state.strike, 0);
+  $("#protection-out").textContent = percent(state.protection, 0);
+  $("#cap-out").textContent = percent(state.cap, 0);
+  $("#fee-out").textContent = percent(state.fee, 1);
+  $("#spread-out").textContent = percent(state.spread, 1);
+  $("#margin-out").textContent = percent(state.margin, 1);
+
+  const notes: Record<Product, string> = {
+    autocall:
+      "Autocallable reverse convertible: unconditional coupon, redemption at par on the first observation at or above the trigger, otherwise principal follows the index below the knock-in barrier. Monte Carlo with risk-neutral drift and the snapshot's smile applied as local volatility.",
+    rc: "Barrier reverse convertible: issuer bond plus a short down-and-in put, continuously monitored, priced in closed form with the volatility quoted at the barrier.",
+    protected:
+      "Capital-protected note: zero-coupon floor on the issuer's funding curve, and the residual buys an at-the-money call or a call spread.",
+  };
+  $("#model-note").textContent = notes[state.product];
+
+  const select = controls.solveTarget;
+  const options = targetOptions[state.product];
+  if (select.options.length !== options.length || select.options[0]?.value !== options[0][0]) {
+    select.replaceChildren(
+      ...options.map(([value, label]) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        return option;
+      }),
+    );
+  }
+  select.value = state.solveTarget;
+  $("#target-unit").textContent =
+    currentDefinition.resultLabel === "participation" ? "% participation" : "% coupon p.a.";
+  controls.target.step = currentDefinition.resultLabel === "participation" ? "1" : "0.25";
+}
+
+function renderHeadline(): void {
+  const headline = currentHeadline;
+  $("#headline-label").textContent = headline.label;
+  $("#headline-value").textContent = headline.value;
+  $("#secondary-label").textContent = headline.secondaryLabel;
+  $("#secondary-value").textContent = headline.secondary;
+  $("#alt-value").textContent = headline.alternative;
+  $("#stat-a-label").textContent = headline.statALabel;
+  $("#stat-a").textContent = headline.statA;
+  $("#stat-b-label").textContent = headline.statBLabel;
+  $("#stat-b").textContent = headline.statB;
+  const underlying = underlyingById(state.underlying);
+  $("#valuation-title").textContent =
+    `${underlying.name} · ${state.tenor.toFixed(state.tenor % 1 ? 1 : 0)}-year ${
+      state.product === "autocall"
+        ? "autocall"
+        : state.product === "rc"
+          ? "barrier reverse convertible"
+          : "capital-protected note"
+    }`;
+  ($("#breakdown-body") as HTMLTableSectionElement).innerHTML = headline.rows
+    .map(([label, value]) => `<tr><th scope="row">${label}</th><td>${value}</td></tr>`)
+    .join("");
+  $("#valuation-copy").textContent = headline.copy;
+}
+
+function renderSolveSummary(): void {
+  const step = currentStep();
+  const complete = visibleSteps >= solution.steps.length && solution.converged;
+  $("#solve-heading").textContent = `Solve for the ${currentDefinition.label}`;
+  $("#solved-label").textContent = `Solved ${currentDefinition.label}`;
+  $("#solved-value").textContent = complete
+    ? formatCandidate(solution.candidate)
+    : step
+      ? formatCandidate(step.candidate)
+      : "—";
+  $("#candidate-result").textContent = step ? formatResult(step.value) : "—";
+  $("#iteration-summary").textContent = String(visibleSteps);
+  $("#step").toggleAttribute(
+    "disabled",
+    visibleSteps >= solution.steps.length || !solution.steps.length,
+  );
+  $("#solve").toggleAttribute("disabled", !solution.steps.length);
+
+  const pill = $("#status-pill");
+  pill.classList.toggle("solved", complete);
+  pill.textContent = complete
+    ? `Solved in ${solution.steps.length} steps`
+    : visibleSteps
+      ? `Step ${visibleSteps} of ${solution.steps.length}`
+      : "Ready to solve";
+
+  const note = $("#action-note");
+  if (!solution.reachable) {
+    note.textContent = `No ${currentDefinition.label} between ${formatCandidate(solution.range[0])} and ${formatCandidate(solution.range[1])} gives ${formatResult(state.target)}. Reachable ${currentDefinition.resultLabel}: ${formatResult(solution.minimum)} to ${formatResult(solution.maximum)}.`;
+  } else if (complete) {
+    note.textContent = `${formatCandidate(solution.candidate)} gives ${formatResult(solution.value)}, within tolerance of the ${formatResult(state.target)} target.`;
+  } else if (!step) {
+    note.textContent = "Take one step to inspect each decision, or run the full solve.";
+  }
+
+  $("#lower-label").textContent = `Lower ${currentDefinition.label}`;
+  $("#upper-label").textContent = `Upper ${currentDefinition.label}`;
+  $("#lower-value").textContent = formatCandidate(step?.nextLower ?? solution.range[0]);
+  $("#upper-value").textContent = formatCandidate(step?.nextUpper ?? solution.range[1]);
+  $("#mid-value").textContent = formatCandidate(
+    step?.candidate ?? (solution.range[0] + solution.range[1]) / 2,
+  );
+  const copy = $("#decision-copy");
+  if (!solution.reachable)
+    copy.textContent = "Change the target or the terms to bring it within range.";
+  else if (!step) copy.textContent = "The first step will test the middle of the range.";
+  else if (step.converged)
+    copy.textContent = `${formatResult(step.value)} is close enough to ${formatResult(state.target)}. The search stops.`;
+  else {
+    const candidateTooLow = currentDefinition.increasing
+      ? step.value < state.target
+      : step.value > state.target;
+    copy.textContent = `${formatResult(step.value)} is ${step.value > state.target ? "above" : "below"} ${formatResult(state.target)}, so the ${currentDefinition.label} is too ${candidateTooLow ? "low" : "high"}: discard the ${candidateTooLow ? "lower" : "upper"} half.`;
+  }
+}
+
+function renderTable(): void {
+  const body = $("#iteration-body") as HTMLTableSectionElement;
+  const shown = solution.steps.slice(0, visibleSteps);
+  $("#result-heading").textContent =
+    currentDefinition.resultLabel === "participation" ? "Participation" : "Coupon";
+  if (!shown.length) {
+    body.innerHTML =
+      '<tr class="empty-row"><td colspan="6">No guesses yet. Take the first step above.</td></tr>';
+    return;
+  }
+  body.innerHTML = shown
+    .map(
+      (
+        step,
+        index,
+      ) => `<tr${animateNextRender && index === shown.length - 1 ? ' class="new-step"' : ""}>
+        <td>${step.iteration}</td>
+        <td>${formatCandidate(step.lower)} — ${formatCandidate(step.upper)}</td>
+        <td><strong>${formatCandidate(step.candidate)}</strong></td>
+        <td>${formatResult(step.value)}</td>
+        <td>${step.error >= 0 ? "+" : ""}${step.error.toFixed(3)}</td>
+        <td class="decision-keep">${step.decision}</td>
+      </tr>`,
+    )
+    .join("");
+}
+
+function svgElement<K extends keyof SVGElementTagNameMap>(
+  name: K,
+  attributes: Record<string, string | number>,
+): SVGElementTagNameMap[K] {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+  Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, String(value)));
+  return node;
+}
+
+function renderChart(): void {
+  const svg = $("#solver-chart") as unknown as SVGSVGElement;
+  const width = 900;
+  const height = 350;
+  const margin = { top: 22, right: 24, bottom: 46, left: 62 };
+  const plotW = width - margin.left - margin.right;
+  const plotH = height - margin.top - margin.bottom;
+  const [minCandidate, maxCandidate] = currentDefinition.range;
+  const samples = Array.from({ length: 61 }, (_, index) => {
+    const candidate = minCandidate + ((maxCandidate - minCandidate) * index) / 60;
+    return { candidate, value: currentDefinition.evaluate(candidate) };
+  });
+  const values = samples.map((point) => point.value).concat(state.target);
+  const minValue = Math.min(0, ...values);
+  const maxValue = Math.max(...values) * 1.05 || 1;
+  const x = (candidate: number) =>
+    margin.left + ((candidate - minCandidate) / (maxCandidate - minCandidate)) * plotW;
+  const y = (value: number) =>
+    margin.top + plotH - ((value - minValue) / (maxValue - minValue)) * plotH;
+  svg.replaceChildren();
+
+  const title = svgElement("title", { id: "chart-title" });
+  title.textContent = `${currentDefinition.resultLabel} by ${currentDefinition.label}`;
+  svg.append(title);
+
+  for (let index = 0; index <= 4; index += 1) {
+    const value = minValue + ((maxValue - minValue) * index) / 4;
+    svg.append(
+      svgElement("line", {
+        x1: margin.left,
+        x2: width - margin.right,
+        y1: y(value),
+        y2: y(value),
+        class: "grid-line",
+      }),
+    );
+    const label = svgElement("text", {
+      x: margin.left - 10,
+      y: y(value) + 4,
+      "text-anchor": "end",
+      class: "axis-label",
+    });
+    label.textContent = formatResult(value);
+    svg.append(label);
+  }
+  for (let index = 0; index <= 4; index += 1) {
+    const candidate = minCandidate + ((maxCandidate - minCandidate) * index) / 4;
+    const label = svgElement("text", {
+      x: x(candidate),
+      y: height - 18,
+      "text-anchor": "middle",
+      class: "axis-label",
+    });
+    label.textContent = formatCandidate(candidate);
+    svg.append(label);
+  }
+
+  const step = currentStep();
+  const lower = step?.nextLower ?? minCandidate;
+  const upper = step?.nextUpper ?? maxCandidate;
+  if (solution.reachable) {
+    svg.append(
+      svgElement("rect", {
+        x: x(lower),
+        y: margin.top,
+        width: Math.max(0, x(upper) - x(lower)),
+        height: plotH,
+        class: "bracket-zone",
+      }),
+    );
+  }
+  const pathData = samples
+    .map(
+      (point, index) =>
+        `${index ? "L" : "M"} ${x(point.candidate).toFixed(2)} ${y(point.value).toFixed(2)}`,
+    )
+    .join(" ");
+  svg.append(svgElement("path", { d: pathData, class: "price-curve" }));
+  svg.append(
+    svgElement("line", {
+      x1: margin.left,
+      x2: width - margin.right,
+      y1: y(state.target),
+      y2: y(state.target),
+      class: "target-line",
+    }),
+  );
+  const targetLabel = svgElement("text", {
+    x: width - margin.right - 4,
+    y: y(state.target) - 8,
+    "text-anchor": "end",
+    class: "target-label",
+  });
+  targetLabel.textContent = `TARGET ${formatResult(state.target)}`;
+  svg.append(targetLabel);
+
+  if (solution.reachable) {
+    const lowerPoint = { x: x(lower), y: y(currentDefinition.evaluate(lower)) };
+    const upperPoint = { x: x(upper), y: y(currentDefinition.evaluate(upper)) };
+    svg.append(
+      svgElement("line", {
+        x1: lowerPoint.x,
+        x2: upperPoint.x,
+        y1: lowerPoint.y,
+        y2: upperPoint.y,
+        class: "bracket-line",
+      }),
+      svgElement("circle", { cx: lowerPoint.x, cy: lowerPoint.y, r: 6, class: "bracket-dot" }),
+      svgElement("circle", { cx: upperPoint.x, cy: upperPoint.y, r: 6, class: "bracket-dot" }),
+    );
+    if (step) {
+      if (step.converged)
+        svg.append(
+          svgElement("circle", {
+            cx: x(step.candidate),
+            cy: y(step.value),
+            r: 9,
+            class: "candidate-ring",
+          }),
+        );
+      svg.append(
+        svgElement("circle", {
+          cx: x(step.candidate),
+          cy: y(step.value),
+          r: 8,
+          class: "candidate-dot",
+        }),
+      );
+    }
+  }
+
+  const xTitle = svgElement("text", {
+    x: margin.left + plotW / 2,
+    y: height - 1,
+    "text-anchor": "middle",
+    class: "axis-title",
+  });
+  xTitle.textContent = `${currentDefinition.label} (${currentDefinition.unit})`;
+  const yTitle = svgElement("text", {
+    x: 13,
+    y: margin.top + plotH / 2,
+    transform: `rotate(-90 13 ${margin.top + plotH / 2})`,
+    "text-anchor": "middle",
+    class: "axis-title",
+  });
+  yTitle.textContent =
+    currentDefinition.resultLabel === "participation" ? "Participation" : "Offered coupon p.a.";
+  svg.append(xTitle, yTitle);
+}
+
+function renderSnapshot(): void {
+  $("#snapshot-note").textContent = `${snapshot.note} Snapshot date ${snapshot.asOf}.`;
+  const body = $("#snapshot-body") as HTMLTableSectionElement;
+  body.innerHTML = snapshot.underlyings
+    .map((underlying) => {
+      const curve = curveFor(underlying);
+      return `<tr>
+        <th scope="row">${underlying.name}</th>
+        <td>${underlying.currency}</td>
+        <td>${underlying.spot.toLocaleString()}</td>
+        <td>${percent(underlying.dividendYield * 100, 1)}</td>
+        <td>${percent(zeroRate(curve, 1) * 100, 2)} / ${percent(zeroRate(curve, 3) * 100, 2)}</td>
+        <td>${percent(atmVolatility(underlying, 1) * 100, 1)} / ${percent(atmVolatility(underlying, 3) * 100, 1)}</td>
+        <td>${percent((impliedVolatility(underlying, 1, 0.9) - atmVolatility(underlying, 1)) * 100, 1)}</td>
+      </tr>`;
+    })
+    .join("");
+}
+
+function render(): void {
+  renderControls();
+  renderHeadline();
+  renderSolveSummary();
+  renderTable();
+  renderChart();
+  animateNextRender = false;
+}
+
+// ---------------------------------------------------------------------------
+// Events.
+
+function onInput(): void {
+  readState();
+  recompute();
+}
+
+Object.values(controls).forEach((control) => {
+  control.addEventListener(control instanceof HTMLSelectElement ? "change" : "input", onInput);
+});
+
+function seedTarget(): void {
+  const result = currentDefinition.evaluate(
+    state.product === "protected"
+      ? state.solveTarget === "cap"
+        ? state.cap
+        : state.protection
+      : state.barrier,
+  );
+  state.target =
+    currentDefinition.resultLabel === "participation"
+      ? Math.round(result)
+      : Math.round(result * 4) / 4;
+  controls.target.value = String(state.target);
+}
+
+function switchProduct(product: Product): void {
+  state.product = product;
+  state.tenor = tenorRanges[product].value;
+  state.solveTarget = defaultTargets[product];
+  if (product === "protected" && state.solveTarget === "cap") state.capEnabled = true;
+  writeControls();
+  currentDefinition = definition();
+  seedTarget();
+  recompute();
+}
+
+controls.solveTarget.addEventListener("change", () => {
+  readState();
+  if (state.solveTarget === "cap") {
+    state.capEnabled = true;
+    controls.capEnabled.checked = true;
+  }
+  currentDefinition = definition();
+  seedTarget();
+  recompute();
+});
+
+document.querySelectorAll<HTMLElement>(".segmented[data-state]").forEach((group) => {
+  group.addEventListener("click", (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-value]");
+    if (!button) return;
+    const key = group.dataset.state as "product" | "volModel" | "barrierObservation";
+    const value = button.dataset.value ?? "";
+    if (key === "product") {
+      switchProduct(value as Product);
+      return;
+    }
+    if (key === "volModel") state.volModel = value as VolatilityModel;
+    else state.barrierObservation = value as BarrierObservation;
+    setSegmented(`#${group.id}`, value);
+    recompute();
+  });
+});
+
+$("#step").addEventListener("click", () => {
+  stopTimer();
+  visibleSteps = Math.min(solution.steps.length, visibleSteps + 1);
+  animateNextRender = true;
+  render();
+});
+
+$("#solve").addEventListener("click", () => {
+  if (!solution.steps.length) return;
+  if (timer !== undefined) {
+    stopTimer();
+    return;
+  }
+  if (visibleSteps >= solution.steps.length) {
+    visibleSteps = 0;
+    render();
+  }
+  $("#solve").textContent = "Pause solve";
+  timer = window.setInterval(() => {
+    visibleSteps += 1;
+    animateNextRender = true;
+    render();
+    if (visibleSteps >= solution.steps.length) stopTimer();
+  }, 620);
+});
+
+$("#restart").addEventListener("click", () => {
+  stopTimer();
+  visibleSteps = 0;
+  render();
+});
+
+$("#reset").addEventListener("click", () => {
+  state = { ...defaults };
+  writeControls();
+  currentDefinition = definition();
+  seedTarget();
+  recompute();
+});
+
+controls.underlying.replaceChildren(
+  ...snapshot.underlyings.map((underlying) => {
+    const option = document.createElement("option");
+    option.value = underlying.id;
+    option.textContent = `${underlying.name} (${underlying.currency})`;
+    return option;
+  }),
+);
+writeControls();
+currentDefinition = definition();
+seedTarget();
+renderSnapshot();
+recompute();

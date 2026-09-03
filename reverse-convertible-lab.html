@@ -43,6 +43,7 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="structured-labs.css?v=18" />
     <link rel="stylesheet" href="chart-interactions.css?v=1" />
+    <link rel="stylesheet" href="predict.css" />
   </head>
   <body data-lab="rc">
     <header class="site-head">
@@ -161,6 +162,12 @@
               Calculating illustrative outcomes…
             </p>
           </section>
+          <section
+            id="predict"
+            class="panel"
+            aria-label="Predict before you move it"
+          ></section>
+
           <section class="panel" aria-labelledby="ledger-title">
             <div class="panel-head">
               <div>
@@ -251,5 +258,6 @@
       ><a href="structured-products.html">All structured labs</a>
     </footer>
     <script type="module" src="./src/structured/main.js"></script>
+    <script type="module" src="/src/shared/predict-mount.ts"></script>
   </body>
 </html>

@@ -37,6 +37,7 @@
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="solver-lab.css" />
     <link rel="stylesheet" href="product-solver.css" />
+    <link rel="stylesheet" href="predict.css" />
   </head>
   <body>
     <header class="site-head">
@@ -413,6 +414,11 @@
               </table>
             </div>
           </section>
+          <section
+            id="predict"
+            class="panel"
+            aria-label="Predict before you move it"
+          ></section>
 
           <section class="equation-card" aria-labelledby="snapshot-title">
             <div>
@@ -458,5 +464,6 @@
       <a href="solver-lab.html">Back to the option solver →</a>
     </footer>
     <script type="module" src="/src/market-solver/main.ts"></script>
+    <script type="module" src="/src/shared/predict-mount.ts"></script>
   </body>
 </html>

@@ -119,6 +119,26 @@ test("Payoff Explorer simulation histograms support direct bin inspection", asyn
   expect(errors).toEqual([]);
 });
 
+test("solver chart shades the bracket whose midpoint is being tested", async ({ page }) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/solver-lab.html");
+
+  await page.getByRole("button", { name: "Take one step" }).click();
+  const chart = page.locator("#solver-chart");
+  const bracket = chart.locator(".bracket-zone");
+  const candidate = chart.locator(".candidate-dot");
+  await expect(bracket).toHaveCount(1);
+  await expect(candidate).toHaveCount(1);
+
+  const [bracketX, bracketWidth, candidateX] = await Promise.all([
+    bracket.getAttribute("x"),
+    bracket.getAttribute("width"),
+    candidate.getAttribute("cx"),
+  ]);
+  expect(Number(candidateX)).toBeCloseTo(Number(bracketX) + Number(bracketWidth) / 2, 6);
+  expect(errors).toEqual([]);
+});
+
 test("simulation inspectors remain inside a narrow viewport", async ({ page }) => {
   const errors = monitorRuntimeErrors(page);
   await page.setViewportSize({ width: 390, height: 844 });

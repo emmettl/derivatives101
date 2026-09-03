@@ -38,22 +38,58 @@ export function candidateBounds(inputs: SolverInputs): [number, number] {
   return [Math.max(0.01, inputs.S * 0.2), inputs.S * 2.5];
 }
 
-export function downBarrierTouchProbability(
-  { S, T, r, q, v }: OptionParams,
+export function downBarrierPrice(
+  { S, K, T, r, q, v }: OptionParams,
+  type: OptionType,
   barrier: number,
+  style: BarrierStyle,
 ): number {
-  if (barrier >= S) return 1;
-  if (barrier <= 0 || T <= 0) return 0;
-  if (v <= 0) return S * Math.exp((r - q) * T) <= barrier ? 1 : 0;
+  const vanilla = optionMetrics({ S, K, T, r, q, v }, type).price;
+  const knockIn = downAndInPrice({ S, K, T, r, q, v }, type, barrier, vanilla);
+  return style === "knock-in" ? knockIn : Math.max(0, vanilla - knockIn);
+}
 
-  const distance = Math.log(S / barrier);
-  const logDrift = r - q - 0.5 * v * v;
+/**
+ * Reiner-Rubinstein closed form for a continuously monitored down-and-in option
+ * with no rebate. The knock-out value follows from in-out parity.
+ */
+function downAndInPrice(
+  { S, K, T, r, q, v }: OptionParams,
+  type: OptionType,
+  barrier: number,
+  vanilla: number,
+): number {
+  if (barrier >= S) return vanilla;
+  if (barrier <= 0 || T <= 0 || v <= 0) return 0;
+
+  const phi = type === "call" ? 1 : -1;
   const volatilityTime = v * Math.sqrt(T);
-  const reflectionWeight = Math.exp((-2 * logDrift * distance) / (v * v));
-  const probability =
-    normCdf((-distance - logDrift * T) / volatilityTime) +
-    reflectionWeight * normCdf((-distance + logDrift * T) / volatilityTime);
-  return Math.max(0, Math.min(1, probability));
+  const mu = (r - q - 0.5 * v * v) / (v * v);
+  const shift = (1 + mu) * volatilityTime;
+  const x1 = Math.log(S / K) / volatilityTime + shift;
+  const x2 = Math.log(S / barrier) / volatilityTime + shift;
+  const y1 = Math.log((barrier * barrier) / (S * K)) / volatilityTime + shift;
+  const y2 = Math.log(barrier / S) / volatilityTime + shift;
+  const discountedSpot = S * Math.exp(-q * T);
+  const discountedStrike = K * Math.exp(-r * T);
+  const spotWeight = Math.pow(barrier / S, 2 * (mu + 1));
+  const strikeWeight = Math.pow(barrier / S, 2 * mu);
+
+  const A =
+    phi * discountedSpot * normCdf(phi * x1) -
+    phi * discountedStrike * normCdf(phi * x1 - phi * volatilityTime);
+  const B =
+    phi * discountedSpot * normCdf(phi * x2) -
+    phi * discountedStrike * normCdf(phi * x2 - phi * volatilityTime);
+  const C =
+    phi * discountedSpot * spotWeight * normCdf(y1) -
+    phi * discountedStrike * strikeWeight * normCdf(y1 - volatilityTime);
+  const D =
+    phi * discountedSpot * spotWeight * normCdf(y2) -
+    phi * discountedStrike * strikeWeight * normCdf(y2 - volatilityTime);
+
+  const price = type === "call" ? (K > barrier ? C : A - B + D) : K > barrier ? B - C + D : A;
+  return Math.max(0, Math.min(vanilla, price));
 }
 
 export function priceAtCandidate(inputs: SolverInputs, candidate: number): number {
@@ -61,13 +97,8 @@ export function priceAtCandidate(inputs: SolverInputs, candidate: number): numbe
   if (solveFor === "strike") params.K = candidate;
   if (solveFor === "volatility") params.v = candidate;
   if (solveFor === "spot") params.S = candidate;
-  const vanillaPrice = optionMetrics(params, type).price;
-  if (solveFor !== "barrier") return vanillaPrice;
-
-  const touchProbability = downBarrierTouchProbability(params, candidate);
-  return barrierStyle === "knock-in"
-    ? vanillaPrice * touchProbability
-    : vanillaPrice * (1 - touchProbability);
+  if (solveFor !== "barrier") return optionMetrics(params, type).price;
+  return downBarrierPrice(params, type, candidate, barrierStyle);
 }
 
 export function priceIncreasesWithCandidate(inputs: SolverInputs): boolean {

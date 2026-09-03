@@ -9,6 +9,7 @@
     />
     <meta name="theme-color" content="#0b1e2d" />
     <title>KODA &amp; KODD — Derivatives 101</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="lesson.css" />
   </head>
   <body data-lesson="koda">
@@ -141,6 +142,12 @@
                   value="88"
                 />
               </div>
+              <div class="control check">
+                <label for="koda-skew"
+                  ><input id="koda-skew" type="checkbox" /> Downside skew</label
+                >
+                <small>Higher local volatility below the initial level.</small>
+              </div>
               <div class="control">
                 <label for="koda-gearing"
                   >Gearing · <span id="koda-gearing-value">2.0×</span></label
@@ -237,6 +244,36 @@
                 data-feedback="The knock-out normally sits on the favourable side and is less likely to trigger during a fall."
               >
                 The knock-out increases the daily quantity
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
+          <div class="quiz">
+            <h3>
+              A one-year accumulator has 250 fixings, a base quantity of 1,000
+              shares, gearing of 2× and a strike of 90. What is the maximum
+              exposure?
+            </h3>
+            <p>Use the three numbers from the term-sheet anatomy.</p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="That ignores gearing. Below the strike every fixing buys the geared quantity."
+              >
+                22,500,000: fixings × base quantity × strike
+              </button>
+              <button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. 250 fixings × 2,000 shares × 90 is the largest position the contract can create. It is far larger than the margin posted."
+              >
+                45,000,000: fixings × geared quantity × strike
+              </button>
+              <button
+                type="button"
+                data-feedback="Margin is a fraction of the economic notional, which is why margin calls often end the position first."
+              >
+                The margin the client posted
               </button>
             </div>
             <p class="quiz-feedback" aria-live="polite"></p>

@@ -9,6 +9,7 @@
     />
     <meta name="theme-color" content="#0b1e2d" />
     <title>Reverse convertibles — Derivatives 101</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="lesson.css" />
   </head>
   <body data-lesson="reverse-convertibles">
@@ -128,6 +129,12 @@
                   value="60"
                 />
               </div>
+              <div class="control check">
+                <label for="rc-skew"
+                  ><input id="rc-skew" type="checkbox" /> Downside skew</label
+                >
+                <small>Higher local volatility below the initial level.</small>
+              </div>
               <div class="control">
                 <label for="rc-coupon"
                   >Annual coupon · <span id="rc-coupon-value">8%</span></label
@@ -237,6 +244,37 @@
                 data-feedback="The product does not generally reset its strike after a breach."
               >
                 The strike resets to the barrier level
+              </button>
+            </div>
+            <p class="quiz-feedback" aria-live="polite"></p>
+          </div>
+          <div class="quiz">
+            <h3>
+              A worst-of reverse convertible on three names offers a higher
+              coupon than the same note on any single one of them. Why?
+            </h3>
+            <p>Think about what the investor has sold.</p>
+            <div class="quiz-options">
+              <button
+                type="button"
+                data-feedback="Diversification helps a long basket. A worst-of note is the opposite: it pays out on the weakest name."
+              >
+                Three names diversify the risk, so the issuer can afford to pay
+                more
+              </button>
+              <button
+                type="button"
+                data-correct="true"
+                data-feedback="Correct. Selling a put on the worst of three is selling a more valuable option, and the extra premium is paid as coupon. More names and lower correlation both raise it."
+              >
+                The worst performer drives every test, so the put the investor
+                sold is worth more
+              </button>
+              <button
+                type="button"
+                data-feedback="There is one coupon on one notional. The names change the probability of loss, not the number of coupons."
+              >
+                Each name contributes its own coupon
               </button>
             </div>
             <p class="quiz-feedback" aria-live="polite"></p>

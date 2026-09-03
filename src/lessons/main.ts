@@ -17,6 +17,7 @@ import {
   type ReverseConvertibleParams,
   type StructuredScenario,
 } from "../structured/engine";
+import type { PathVolatilityModel } from "../shared/simulation";
 import { strategyCurve, vanillaPrice } from "../strategy/engine";
 import type { Market, OptionLeg, Side } from "../strategy/types";
 
@@ -38,6 +39,14 @@ function byId<T extends Element = HTMLElement>(id: string): T {
 
 function value(id: string): number {
   return Number(byId<HTMLInputElement>(id).value);
+}
+
+function checked(id: string): boolean {
+  return byId<HTMLInputElement>(id).checked;
+}
+
+function volatilityModel(id: string): PathVolatilityModel {
+  return checked(id) ? "downside-skew" : "flat";
 }
 
 function setText(id: string, content: string): void {
@@ -246,6 +255,7 @@ function initKoda(): void {
       frequency: 1,
       guaranteed: 0,
       vol: 30,
+      volModel: volatilityModel("koda-skew"),
     };
     const pathValues = generateKodaPath({ ...params, scenario, seed: 5197 });
     const result = evaluateKoda(pathValues, params);
@@ -270,7 +280,7 @@ function initKoda(): void {
     setText("stat-3", result.totalUnits.toLocaleString());
     setText("stat-4", `${result.pnlPercent.toFixed(1)}%`);
   };
-  onInputs(["koda-scenario", "koda-strike", "koda-gearing"], render);
+  onInputs(["koda-scenario", "koda-strike", "koda-gearing", "koda-skew"], render);
   render();
 }
 
@@ -286,8 +296,14 @@ function initReverseConvertible(): void {
       tenor: 3,
       frequency: 4,
       vol: 30,
+      volModel: volatilityModel("rc-skew"),
     };
-    const pathValues = generateStructuredPath({ scenario, tenor: params.tenor, vol: params.vol });
+    const pathValues = generateStructuredPath({
+      scenario,
+      tenor: params.tenor,
+      vol: params.vol,
+      volModel: params.volModel,
+    });
     const result = evaluateStructured("rc", pathValues, params);
     const step = Math.max(1, Math.round(pathValues.length / 180));
     const points: Point[] = [];
@@ -307,7 +323,7 @@ function initReverseConvertible(): void {
     setText("stat-3", result.coupons.toFixed(1));
     setText("stat-4", `${result.totalReturn.toFixed(1)}%`);
   };
-  onInputs(["rc-scenario", "rc-barrier", "rc-coupon"], render);
+  onInputs(["rc-scenario", "rc-barrier", "rc-coupon", "rc-skew"], render);
   render();
 }
 
@@ -316,6 +332,10 @@ function initBasket(): void {
   const render = () => {
     const scenario = byId<HTMLSelectElement>("basket-scenario").value as BasketScenario;
     const correlation = value("basket-correlation");
+    const correlationControl = byId<HTMLInputElement>("basket-correlation");
+    correlationControl.disabled = scenario !== "random";
+    correlationControl.title =
+      scenario === "random" ? "" : "Correlation only shapes the random path.";
     const params: BasketParams = {
       basis: "worst",
       coupon: 12,
@@ -327,6 +347,7 @@ function initBasket(): void {
       tenor: 0.5,
       frequency: 12,
       vol: 34,
+      volModel: volatilityModel("basket-skew"),
       correlation,
     };
     const paths = generateBasketPaths({
@@ -334,6 +355,7 @@ function initBasket(): void {
       correlation,
       tenor: params.tenor,
       vol: params.vol,
+      volModel: params.volModel,
       seed,
     });
     const result = evaluateBasket(paths, params);
@@ -358,7 +380,7 @@ function initBasket(): void {
     setText("stat-3", result.coupons.toFixed(1));
     setText("stat-4", `${result.totalReturn.toFixed(1)}%`);
   };
-  onInputs(["basket-scenario", "basket-correlation", "basket-barrier"], render);
+  onInputs(["basket-scenario", "basket-correlation", "basket-barrier", "basket-skew"], render);
   const resample = document.getElementById("basket-resample");
   resample?.addEventListener("click", () => {
     seed = (seed * 1664525 + 1013904223) >>> 0;
@@ -450,24 +472,54 @@ function initProtection(): void {
   render();
 }
 
+function quizStorageKey(index: number): string {
+  return `derivatives101:quiz:${document.body.dataset.lesson ?? location.pathname}:${index}`;
+}
+
+function readStoredAnswer(index: number): number | undefined {
+  try {
+    const stored = localStorage.getItem(quizStorageKey(index));
+    return stored === null ? undefined : Number(stored);
+  } catch {
+    return undefined;
+  }
+}
+
+function storeAnswer(index: number, choice: number): void {
+  try {
+    localStorage.setItem(quizStorageKey(index), String(choice));
+  } catch {
+    // Storage can be unavailable in private windows; the quiz still works.
+  }
+}
+
 function initQuizzes(): void {
-  document.querySelectorAll<HTMLElement>(".quiz").forEach((quiz) => {
+  document.querySelectorAll<HTMLElement>(".quiz").forEach((quiz, quizIndex) => {
     const feedback = quiz.querySelector<HTMLElement>(".quiz-feedback");
-    quiz.querySelectorAll<HTMLButtonElement>(".quiz-options button").forEach((button) => {
+    const options = [...quiz.querySelectorAll<HTMLButtonElement>(".quiz-options button")];
+    const select = (button: HTMLButtonElement, remembered: boolean) => {
+      options.forEach((option) => {
+        option.classList.remove("correct", "incorrect");
+        option.removeAttribute("aria-pressed");
+      });
+      const correct = button.dataset.correct === "true";
+      button.classList.add(correct ? "correct" : "incorrect");
+      button.setAttribute("aria-pressed", "true");
+      if (feedback) {
+        const message = correct
+          ? (button.dataset.feedback ?? "Correct.")
+          : (button.dataset.feedback ?? "Not quite. Try the chart, then choose again.");
+        feedback.textContent = remembered ? `${message} (Your earlier answer.)` : message;
+      }
+    };
+    options.forEach((button, choice) => {
       button.addEventListener("click", () => {
-        quiz.querySelectorAll<HTMLButtonElement>(".quiz-options button").forEach((option) => {
-          option.classList.remove("correct", "incorrect");
-          option.removeAttribute("aria-pressed");
-        });
-        const correct = button.dataset.correct === "true";
-        button.classList.add(correct ? "correct" : "incorrect");
-        button.setAttribute("aria-pressed", "true");
-        if (feedback)
-          feedback.textContent = correct
-            ? (button.dataset.feedback ?? "Correct.")
-            : (button.dataset.feedback ?? "Not quite. Try the chart, then choose again.");
+        select(button, false);
+        storeAnswer(quizIndex, choice);
       });
     });
+    const stored = readStoredAnswer(quizIndex);
+    if (stored !== undefined && options[stored]) select(options[stored], true);
   });
 }
 

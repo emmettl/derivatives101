@@ -29,10 +29,33 @@ test("lesson chart responds to the shared engine and quiz gives feedback", async
   await expect(premium).not.toHaveText(before ?? "");
   await expect(page.locator("#lesson-chart .chart-line")).toHaveCount(1);
 
-  await page
-    .getByRole("button", { name: "An obligation to absorb downside below the strike" })
-    .click();
-  await expect(page.locator(".quiz-feedback")).toContainText("Correct");
+  const answer = page.getByRole("button", {
+    name: "An obligation to absorb downside below the strike",
+  });
+  await answer.click();
+  await expect(page.locator(".quiz-feedback").first()).toContainText("Correct");
+  await expect(page.locator(".quiz")).toHaveCount(2);
+
+  await page.reload();
+  await expect(answer).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".quiz-feedback").first()).toContainText("earlier answer");
+  expect(errors).toEqual([]);
+});
+
+test("lesson experiments expose the downside-skew toggle and gate correlation to random paths", async ({
+  page,
+}) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/lesson-03-fcn-eln.html");
+  const correlation = page.locator("#basket-correlation");
+  await expect(correlation).toBeDisabled();
+  await page.locator("#basket-scenario").selectOption("random");
+  await expect(correlation).toBeEnabled();
+
+  const worstLevel = page.locator("#stat-2");
+  const before = await worstLevel.textContent();
+  await page.getByLabel("Downside skew").check();
+  await expect(worstLevel).not.toHaveText(before ?? "");
   expect(errors).toEqual([]);
 });
 
@@ -50,6 +73,7 @@ test("every web lesson renders an engine-driven chart without runtime errors", a
     await page.goto(`/${lesson}`);
     await expect(page.locator("#lesson-chart .chart-line")).not.toHaveCount(0);
     await expect(page.locator("#stat-1")).not.toHaveText("–");
+    await expect(page.locator(".quiz")).toHaveCount(2);
     await expect(page.getByRole("link", { name: /PDF/ })).toBeVisible();
   }
   expect(errors).toEqual([]);

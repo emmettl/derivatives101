@@ -140,7 +140,7 @@ const config = {
         ["flat", "Flat volatility"],
         ["downside-skew", "Downside skew"],
       ],
-      help: "Downside skew raises each name's local volatility below its initial level and lowers it above. Both models retain zero drift and the selected correlation; the comparison reuses the same random draws.",
+      help: "Downside skew raises each name's local volatility below its initial level and lowers it above. Both models retain zero drift and the selected correlation; the comparison reuses the same random draws. The curve is the implied-volatility shape applied directly as local volatility, which understates the effect: for a given implied skew, local-volatility skew is roughly twice as steep near the money.",
     },
     {
       key: "correlation",

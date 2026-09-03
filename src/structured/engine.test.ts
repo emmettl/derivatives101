@@ -76,8 +76,24 @@ describe("structured product lifecycle engine", () => {
     const flat = simulate("rc", { ...params, volModel: "flat" }, 904271, 4000);
     const skewed = simulate("rc", { ...params, volModel: "downside-skew" }, 904271, 4000);
 
-    expect(Math.abs(skewed.stats.barrier - flat.stats.barrier)).toBeGreaterThan(0.005);
-    expect(Math.abs(skewed.stats.called - flat.stats.called)).toBeGreaterThan(0.005);
+    // Downside skew keeps the mean fixed but moves the median above it, so more
+    // paths autocall early and fewer finish below the strike. The losses that
+    // remain happen in a higher-volatility regime and are deeper, so the average
+    // return still falls: the short put is worth more under skew.
+    expect(skewed.stats.called).toBeGreaterThan(flat.stats.called + 0.005);
+    expect(skewed.stats.loss).toBeLessThan(flat.stats.loss - 0.005);
+    expect(skewed.stats.averageReturn).toBeLessThan(flat.stats.averageReturn);
+    expect(Math.abs(skewed.stats.barrier - flat.stats.barrier)).toBeGreaterThan(0.001);
+
+    const plainFlat = simulate("rc", { ...params, variant: "barrier", volModel: "flat" }, 42, 4000);
+    const plainSkewed = simulate(
+      "rc",
+      { ...params, variant: "barrier", volModel: "downside-skew" },
+      42,
+      4000,
+    );
+    expect(plainSkewed.stats.loss).toBeLessThan(plainFlat.stats.loss);
+    expect(plainSkewed.stats.averageReturn).toBeLessThan(plainFlat.stats.averageReturn);
     expect(skewed.returns).not.toEqual(flat.returns);
   });
 });

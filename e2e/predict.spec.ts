@@ -42,5 +42,11 @@ test("a closed-form lab reveals immediately and remembers the outcome", async ({
 
   await page.reload();
   await expect(page.locator("#predict .predict-remembered")).toContainText("earlier visit");
+
+  await page.goto("/");
+  await expect(page.locator("#learner-progress")).toBeVisible();
+  await expect(page.locator("#progress-predictions")).toHaveText("1");
+  await expect(page.locator("#resume-link")).toHaveText("Continue Option Lab");
+  await expect(page.locator("#resume-link")).toHaveAttribute("href", "/option-lab.html");
   expect(errors).toEqual([]);
 });

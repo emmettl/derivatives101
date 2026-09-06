@@ -75,7 +75,10 @@
             products—without hiding the risk behind product names.
           </p>
           <div class="hero-actions">
-            <a class="button primary" href="lesson-00-foundations.html"
+            <a
+              class="button primary"
+              id="resume-link"
+              href="lesson-00-foundations.html"
               >Start with foundations</a
             >
             <a class="button secondary" href="#learning-path"
@@ -84,6 +87,33 @@
           </div>
         </div>
         <aside class="hero-card" aria-label="Course overview">
+          <div id="learner-progress" hidden>
+            <p class="card-label">Your progress</p>
+            <div class="progress-summary">
+              <strong id="progress-lessons">0 of 6</strong>
+              <span>lessons complete</span>
+            </div>
+            <div
+              class="progress-track"
+              id="progress-track"
+              role="progressbar"
+              aria-label="Lessons complete"
+              aria-valuemin="0"
+              aria-valuemax="6"
+            >
+              <span id="progress-bar"></span>
+            </div>
+            <div class="progress-details">
+              <span
+                ><strong id="progress-quizzes">0</strong> checks correct</span
+              >
+              <span
+                ><strong id="progress-predictions">0</strong> predictions
+                tried</span
+              >
+            </div>
+            <p class="progress-next" id="progress-next"></p>
+          </div>
           <p class="card-label">Course at a glance</p>
           <div class="metric"><strong>6</strong><span>short lessons</span></div>
           <div class="metric">
@@ -155,7 +185,7 @@
         </div>
 
         <ol class="lesson-grid">
-          <li class="lesson-card featured">
+          <li class="lesson-card featured" data-lesson-id="foundations">
             <div class="lesson-number">00</div>
             <p class="lesson-kicker">Foundations</p>
             <h3>Payoffs before product names</h3>
@@ -169,7 +199,7 @@
               <a href="payoff-explorer.html#blocks">Run experiment</a>
             </div>
           </li>
-          <li class="lesson-card">
+          <li class="lesson-card" data-lesson-id="koda">
             <div class="lesson-number">01</div>
             <p class="lesson-kicker">Path dependency</p>
             <h3>KODA &amp; KODD</h3>
@@ -183,7 +213,7 @@
               <a href="koda-kodd-lab.html">Lifecycle lab</a>
             </div>
           </li>
-          <li class="lesson-card">
+          <li class="lesson-card" data-lesson-id="reverse-convertibles">
             <div class="lesson-number">02</div>
             <p class="lesson-kicker">Yield enhancement</p>
             <h3>Reverse convertibles</h3>
@@ -197,7 +227,7 @@
               <a href="reverse-convertible-lab.html">Lifecycle lab</a>
             </div>
           </li>
-          <li class="lesson-card">
+          <li class="lesson-card" data-lesson-id="fcn">
             <div class="lesson-number">03</div>
             <p class="lesson-kicker">Baskets</p>
             <h3>Worst-of fixed coupon notes</h3>
@@ -213,7 +243,7 @@
               <a href="basket-lab.html">Basket lab</a>
             </div>
           </li>
-          <li class="lesson-card">
+          <li class="lesson-card" data-lesson-id="discount-bonus">
             <div class="lesson-number">04</div>
             <p class="lesson-kicker">Conditional protection</p>
             <h3>Discount &amp; bonus certificates</h3>
@@ -227,7 +257,7 @@
               <a href="participation-lab.html">Participation lab</a>
             </div>
           </li>
-          <li class="lesson-card">
+          <li class="lesson-card" data-lesson-id="protection-leverage">
             <div class="lesson-number">05</div>
             <p class="lesson-kicker">Protection &amp; leverage</p>
             <h3>Capital protection &amp; mini futures</h3>
@@ -315,5 +345,6 @@
         >View source on GitHub</a
       >
     </footer>
+    <script type="module" src="/src/progress/main.ts"></script>
   </body>
 </html>

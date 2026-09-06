@@ -11,6 +11,7 @@ An independent, generally useful short course in options and structured products
 - Nineteen path-by-path, strategy, design, valuation, solver and specification labs for multi-leg vanilla and barrier options, an inverse solver for strike, implied volatility, spot and barrier, a market solver that prices autocalls, barrier reverse convertibles and protected notes on real indices from a stored snapshot, participation products, accumulators, decumulators, reverse convertibles, step-down autocalls, baskets, conditional coupons, memory, lock-in features, early-exit value, structured-product Greeks, dynamic hedging, volatility skew, forward pricing and carry, cross-currency and quanto payoffs, issuer credit, liquidity, term-sheet analysis and a full requirements capstone
 - Flat-volatility and downside-skew path toggles across the six lifecycle labs, with same-seed comparison statistics for barrier, autocall and loss outcomes
 - Predict-then-reveal prompts on twelve labs: the learner commits to a prediction, the lab applies the change and grades the prediction against its own live numbers
+- Device-local learner progress that marks completed lessons, counts mastered checks and lab predictions, and resumes at the latest activity or next unfinished lesson
 - Guided teaching scenarios and shareable setups
 - Three fictional specimen term sheets for discussion and practice
 - A single PDF containing the full lesson series

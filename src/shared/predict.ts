@@ -8,6 +8,8 @@
  * page's own numbers rather than stored, so it stays right when models change.
  */
 
+import { markLastLocation } from "./progress";
+
 export interface PredictChoice {
   id: string;
   label: string;
@@ -146,6 +148,17 @@ function recall(key: string): string | null {
   }
 }
 
+function rememberLabLocation(): void {
+  const titleParts = document.title.split(" — ");
+  const label =
+    titleParts[0] === "Derivatives 101" ? titleParts.slice(1).join(" — ") : titleParts[0];
+  markLastLocation({
+    kind: "lab",
+    href: `${location.pathname}${location.hash}`,
+    label: label || "interactive lab",
+  });
+}
+
 function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,
@@ -240,6 +253,7 @@ export function mountPredictions(
       const after = readValue(prompt);
       reveal.dataset.done = "true";
       reveal.textContent = "Revealed";
+      rememberLabLocation();
       if (before.value === undefined || after.value === undefined) {
         feedback.textContent = `It went from ${before.text || "—"} to ${after.text || "—"}.`;
         restore.hidden = previous === undefined;

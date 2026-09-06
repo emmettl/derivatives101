@@ -6,6 +6,7 @@ import { defineConfig } from "vitest/config";
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 const bundledEntries = [
+  "index.html",
   "options-a-la-carte.html",
   "payoff-explorer.html",
   "option-lab.html",

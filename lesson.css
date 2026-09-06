@@ -180,6 +180,12 @@ select {
   color: var(--ink);
 }
 
+.lesson-progress a.is-complete::after {
+  content: " \2713";
+  color: var(--jade);
+  font-weight: 900;
+}
+
 .lesson-layout {
   display: grid;
   grid-template-columns: minmax(0, 760px) 250px;
@@ -557,6 +563,45 @@ select {
   color: var(--deep);
   font-size: 14px;
   font-weight: 750;
+}
+
+.lesson-completion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--tint);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.lesson-completion::before {
+  content: "";
+  display: grid;
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: white;
+  box-shadow: inset 0 0 0 2px #bac6ce;
+}
+
+.lesson-completion.complete {
+  border-color: #a9d8ce;
+  background: #edf8f5;
+  color: #22695c;
+}
+
+.lesson-completion.complete::before {
+  content: "\2713";
+  background: var(--jade);
+  box-shadow: none;
+  color: white;
 }
 
 .lesson-next {

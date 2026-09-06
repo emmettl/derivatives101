@@ -18,6 +18,14 @@ import {
   type StructuredScenario,
 } from "../structured/engine";
 import type { PathVolatilityModel } from "../shared/simulation";
+import {
+  COURSE_LESSONS,
+  lessonForHref,
+  markLastLocation,
+  markLessonComplete,
+  readProgress,
+  recordQuizOutcome,
+} from "../shared/progress";
 import { strategyCurve, vanillaPrice } from "../strategy/engine";
 import type { Market, OptionLeg, Side } from "../strategy/types";
 
@@ -493,6 +501,60 @@ function storeAnswer(index: number, choice: number): void {
   }
 }
 
+function renderLessonProgress(): void {
+  const lessonId = document.body.dataset.lesson;
+  if (!lessonId) return;
+  const quizzes = [...document.querySelectorAll<HTMLElement>(".quiz")];
+  const correct = quizzes.filter(
+    (quiz) =>
+      quiz.querySelector<HTMLButtonElement>('.quiz-options button[aria-pressed="true"]')?.dataset
+        .correct === "true",
+  ).length;
+  let progress = readProgress();
+  if (
+    quizzes.length > 0 &&
+    correct === quizzes.length &&
+    !progress.completedLessonIds.has(lessonId)
+  ) {
+    markLessonComplete(lessonId);
+    progress = readProgress();
+  }
+
+  document.querySelectorAll<HTMLAnchorElement>(".lesson-progress a").forEach((link) => {
+    const lesson = lessonForHref(link.getAttribute("href") ?? "");
+    const isComplete = lesson !== undefined && progress.completedLessonIds.has(lesson.id);
+    link.classList.toggle("is-complete", isComplete);
+    if (isComplete) link.setAttribute("aria-label", `${link.textContent?.trim()}, completed`);
+  });
+
+  const checkSection = quizzes[0]?.parentElement;
+  if (!checkSection) return;
+  let status = checkSection.querySelector<HTMLElement>(".lesson-completion");
+  if (!status) {
+    status = document.createElement("p");
+    status.className = "lesson-completion";
+    status.setAttribute("aria-live", "polite");
+    checkSection.append(status);
+  }
+  const isComplete = progress.completedLessonIds.has(lessonId);
+  status.classList.toggle("complete", isComplete);
+  status.textContent = isComplete
+    ? "Lesson complete. Your progress is saved on this device."
+    : `${correct} of ${quizzes.length} checks correct. Complete both to finish this lesson.`;
+}
+
+function rememberCurrentLesson(): void {
+  const lessonId = document.body.dataset.lesson;
+  const lesson = COURSE_LESSONS.find((entry) => entry.id === lessonId);
+  if (!lesson) return;
+  markLastLocation({
+    kind: "lesson",
+    href: location.pathname,
+    label: lesson.title,
+    lessonId: lesson.id,
+  });
+}
+
 function initQuizzes(): void {
   document.querySelectorAll<HTMLElement>(".quiz").forEach((quiz, quizIndex) => {
     const feedback = quiz.querySelector<HTMLElement>(".quiz-feedback");
@@ -511,6 +573,9 @@ function initQuizzes(): void {
           : (button.dataset.feedback ?? "Not quite. Try the chart, then choose again.");
         feedback.textContent = remembered ? `${message} (Your earlier answer.)` : message;
       }
+      const lessonId = document.body.dataset.lesson;
+      if (lessonId) recordQuizOutcome(lessonId, quizIndex, correct);
+      renderLessonProgress();
     };
     options.forEach((button, choice) => {
       button.addEventListener("click", () => {
@@ -521,6 +586,7 @@ function initQuizzes(): void {
     const stored = readStoredAnswer(quizIndex);
     if (stored !== undefined && options[stored]) select(options[stored], true);
   });
+  renderLessonProgress();
 }
 
 function initGlossary(): void {
@@ -544,6 +610,7 @@ function initGlossary(): void {
 
 initQuizzes();
 initGlossary();
+rememberCurrentLesson();
 
 switch (document.body.dataset.lesson) {
   case "foundations":

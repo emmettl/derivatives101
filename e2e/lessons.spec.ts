@@ -42,6 +42,30 @@ test("lesson chart responds to the shared engine and quiz gives feedback", async
   expect(errors).toEqual([]);
 });
 
+test("completed lessons appear on the homepage and advance the resume action", async ({ page }) => {
+  const errors = monitorRuntimeErrors(page);
+  await page.goto("/lesson-00-foundations.html");
+  const correctAnswers = page.locator('.quiz-options button[data-correct="true"]');
+  await expect(correctAnswers).toHaveCount(2);
+  await correctAnswers.nth(0).click();
+  await correctAnswers.nth(1).click();
+  await expect(page.locator(".lesson-completion")).toContainText("Lesson complete");
+
+  await page.goto("/");
+  await expect(page.locator("#learner-progress")).toBeVisible();
+  await expect(page.locator("#progress-lessons")).toHaveText("1 of 6");
+  await expect(page.locator("#progress-quizzes")).toHaveText("2");
+  await expect(page.locator('[data-lesson-id="foundations"] .lesson-status')).toHaveText(
+    "Completed",
+  );
+  await expect(page.locator("#resume-link")).toHaveText("Continue with KODA & KODD");
+  await expect(page.locator("#resume-link")).toHaveAttribute("href", "lesson-01-koda-kodd.html");
+
+  await page.reload();
+  await expect(page.locator("#progress-lessons")).toHaveText("1 of 6");
+  expect(errors).toEqual([]);
+});
+
 test("lesson experiments expose the downside-skew toggle and gate correlation to random paths", async ({
   page,
 }) => {

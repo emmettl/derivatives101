@@ -1,15 +1,21 @@
 import { CpuPricer } from "./cpu";
 import {
   addSums,
+  AUTOCALL_TRIGGERS,
   closedFormReference,
+  DEFAULT_LOCK_IN,
   DEFAULT_PARAMS,
   emptySums,
   estimate,
+  hasFeatures,
+  OBSERVATIONS,
   samplePaths,
+  type Autocall,
   type BatchSums,
   type Estimate,
   type McParams,
   type Monitoring,
+  type PathFate,
 } from "./engine";
 import { GpuPricer, kernelSource, MAX_GPU_BATCH } from "./gpu";
 
@@ -39,6 +45,8 @@ const state = {
   params: { ...DEFAULT_PARAMS } as McParams,
   target: DEFAULT_TARGET.cpu,
   backend: "cpu" as Backend,
+  /** Lock-in level remembered while the feature is switched off. */
+  lockLevel: DEFAULT_LOCK_IN,
 };
 
 let gpu: GpuPricer | null = null;
@@ -143,7 +151,8 @@ function renderConvergence(): void {
   const chart = $<SVGSVGElement>("#converge-chart");
   chart.replaceChildren();
   const frame: Frame = { width: 900, height: 320, left: 64, right: 26, top: 22, bottom: 44 };
-  const reference = closedFormReference(state.params);
+  // The closed form prices the plain note, so it is only a target without features.
+  const reference = hasFeatures(state.params) ? null : closedFormReference(state.params);
   const minPaths = FIRST_BATCH;
   const maxPaths = Math.max(state.target, minPaths * 4);
   const x = (paths: number) =>
@@ -226,15 +235,27 @@ function renderConvergence(): void {
   }
 }
 
+const FATE_CLASS: Record<PathFate, string> = {
+  plain: "mc-path",
+  knocked: "mc-path touched",
+  locked: "mc-path locked",
+  called: "mc-path called",
+};
+
+/** Draw order: ordinary paths underneath, the ones with a story on top. */
+const FATE_ORDER: Record<PathFate, number> = { plain: 0, called: 1, locked: 2, knocked: 3 };
+
 function renderPaths(): void {
   const chart = $<SVGSVGElement>("#paths-chart");
   chart.replaceChildren();
   const frame: Frame = { width: 900, height: 300, left: 52, right: 26, top: 16, bottom: 34 };
-  const paths = samplePaths(state.params, SAMPLE_PATHS);
+  const { params } = state;
+  const paths = samplePaths(params, SAMPLE_PATHS);
   const all = paths.flatMap((path) => path.levels);
-  const low = Math.max(0, Math.min(state.params.barrier - 10, ...all) - 5);
-  const high = Math.max(130, ...all) + 5;
-  const steps = state.params.steps;
+  const low = Math.max(0, Math.min(params.barrier - 10, ...all) - 5);
+  const high = Math.max(130, params.lockIn + 10, ...all) + 5;
+  const steps = params.steps;
+  const callEvery = Math.round(steps / OBSERVATIONS);
   const x = (step: number) => frame.left + (step / steps) * plotWidth(frame);
   const y = (value: number) => frame.top + ((high - value) / (high - low)) * plotHeight(frame);
 
@@ -254,27 +275,11 @@ function renderPaths(): void {
     ),
   );
 
-  // Untouched paths first so the knocked-in ones sit on top.
-  [...paths]
-    .sort((a, b) => Number(a.touched) - Number(b.touched))
-    .forEach((path) => {
-      const stride = 2;
-      const points: string[] = [];
-      for (let step = 0; step <= steps; step += stride)
-        points.push(`${x(step).toFixed(1)},${y(path.levels[step]).toFixed(1)}`);
-      if (steps % stride) points.push(`${x(steps)},${y(path.levels[steps])}`);
-      chart.append(
-        svg("polyline", {
-          points: points.join(" "),
-          class: path.touched ? "mc-path touched" : "mc-path",
-        }),
-      );
-    });
-
   const lines: [number, string, string][] = [
-    [state.params.strike, `Strike ${state.params.strike}%`, "mc-strike"],
-    [state.params.barrier, `Barrier ${state.params.barrier}%`, "mc-barrier"],
+    [params.strike, `Strike ${params.strike}%`, "mc-strike"],
+    [params.barrier, `Barrier ${params.barrier}%`, "mc-barrier"],
   ];
+  if (params.lockIn > 0) lines.push([params.lockIn, `Lock-in ${params.lockIn}%`, "mc-lock"]);
   lines.forEach(([level, label, className]) =>
     chart.append(
       svg("line", {
@@ -284,24 +289,78 @@ function renderPaths(): void {
         y2: y(level),
         class: className,
       }),
-      svg(
-        "text",
-        {
-          x: frame.left + 8,
-          y: y(level) - 6,
-          class: `${className}-label`,
-        },
-        label,
-      ),
+      svg("text", { x: frame.left + 8, y: y(level) - 6, class: `${className}-label` }, label),
     ),
   );
 
-  const touched = paths.filter((path) => path.touched).length;
-  const below = paths.filter((path) => path.touched && path.worst < state.params.strike).length;
+  [...paths]
+    .sort((a, b) => FATE_ORDER[a.fate] - FATE_ORDER[b.fate])
+    .forEach((path) => {
+      const end = path.callStep || steps;
+      const stride = 2;
+      const points: string[] = [];
+      for (let step = 0; step <= end; step += stride)
+        points.push(`${x(step).toFixed(1)},${y(path.levels[step]).toFixed(1)}`);
+      if (end % stride) points.push(`${x(end)},${y(path.levels[end])}`);
+      chart.append(svg("polyline", { points: points.join(" "), class: FATE_CLASS[path.fate] }));
+      if (path.fate === "called")
+        chart.append(
+          svg("circle", {
+            cx: x(end),
+            cy: y(path.levels[end]),
+            r: 3.5,
+            class: "mc-event called",
+          }),
+        );
+      if (path.fate === "locked")
+        chart.append(
+          svg("circle", {
+            cx: x(path.lockStep),
+            cy: y(path.levels[path.lockStep]),
+            r: 3.5,
+            class: "mc-event locked",
+          }),
+        );
+    });
+
+  // Autocall triggers on top: a short bar at each quarterly observation.
+  if (params.autocall !== "off") {
+    const levels = AUTOCALL_TRIGGERS[params.autocall];
+    levels.forEach((level, index) => {
+      const cx = x((index + 1) * callEvery);
+      chart.append(
+        svg("line", {
+          x1: cx - 14,
+          x2: cx + 14,
+          y1: y(level),
+          y2: y(level),
+          class: "mc-trigger",
+        }),
+      );
+    });
+    chart.append(
+      svg(
+        "text",
+        { x: x(callEvery) + 20, y: y(levels[0]) + 4, class: "mc-trigger-label" },
+        params.autocall === "flat" ? "Autocall 100%" : "Autocall 100 → 97%",
+      ),
+    );
+  }
+
+  const count = (fate: PathFate) => paths.filter((path) => path.fate === fate).length;
+  const knocked = paths.filter((path) => path.fate === "knocked");
+  const below = knocked.filter((path) => path.worst < params.strike).length;
+  const parts: string[] = [];
+  if (params.autocall !== "off")
+    parts.push(`${count("called")} were called early and stop at the call date (blue)`);
+  if (params.lockIn > 0)
+    parts.push(`${count("locked")} locked in and are repaid at par whatever happens next (green)`);
+  const knockText =
+    `${knocked.length} closed at or below the barrier while still exposed (red), ` +
+    `and ${below} of those finished below the strike and would deliver a loss`;
   $("#paths-caption").textContent =
-    `${touched} of ${SAMPLE_PATHS} paths closed at or below the barrier; ` +
-    `${below} of those finished below the strike and would deliver a loss. ` +
-    `These are the first ${SAMPLE_PATHS} paths of the run above, recomputed in the page from the same random numbers.`;
+    `Of these ${SAMPLE_PATHS} paths, ${[...parts, knockText].join("; ")}. ` +
+    `They are the first ${SAMPLE_PATHS} paths of the run above, recomputed in the page from the same random numbers.`;
 }
 
 function renderSweep(): void {
@@ -399,22 +458,160 @@ function renderSweep(): void {
 
 function renderStats(): void {
   const latest = history.at(-1);
+  const featured = hasFeatures(state.params);
   const reference = closedFormReference(state.params);
   $("#stat-put").textContent = latest ? fixed(latest.put, 3) : "–";
   $("#stat-put-ci").textContent = latest
     ? `± ${fixed(1.96 * latest.standardError, 3)} (95%)`
     : "% of notional";
   $("#stat-ki").textContent = latest ? percent(latest.knockInProbability) : "–";
+  $("#stat-ki-note").textContent = featured ? "breached while still exposed" : "barrier breached";
   $("#stat-coupon").textContent = latest ? `${fixed(latest.coupon, 2)}%` : "–";
   if (reference) {
     $("#stat-ref").textContent = fixed(reference.put, 3);
-    $("#stat-ref-note").textContent = reference.corrected
-      ? `KI ${percent(reference.knockInProbability)} · BGK-corrected`
-      : `KI ${percent(reference.knockInProbability)} · Reiner-Rubinstein`;
+    $("#stat-ref-note").textContent = featured
+      ? "plain note, no lock-in or autocall"
+      : reference.corrected
+        ? `KI ${percent(reference.knockInProbability)} · BGK-corrected`
+        : `KI ${percent(reference.knockInProbability)} · Reiner-Rubinstein`;
   } else {
     $("#stat-ref").textContent = "None";
     $("#stat-ref-note").textContent = "worst-of needs simulation";
   }
+}
+
+function signed(value: number, digits: number, suffix: string): string {
+  if (!Number.isFinite(value)) return "–";
+  const rounded = Number(value.toFixed(digits));
+  return `${rounded > 0 ? "+" : rounded < 0 ? "−" : "±"}${fixed(Math.abs(value), digits)}${suffix}`;
+}
+
+function renderFeatures(): void {
+  const latest = history.at(-1);
+  const { params } = state;
+  const featured = hasFeatures(params);
+  const panel = $("#features-panel");
+  panel.dataset.active = String(featured);
+  const put = (value: number) => fixed(value, 2);
+  const rows: [string, string, string, string][] = latest
+    ? [
+        [
+          "Fair coupon p.a.",
+          `${fixed(latest.base.coupon, 2)}%`,
+          `${fixed(latest.coupon, 2)}%`,
+          signed(latest.coupon - latest.base.coupon, 2, " pts"),
+        ],
+        [
+          "Knock-in probability",
+          percent(latest.base.knockInProbability),
+          percent(latest.knockInProbability),
+          signed(100 * (latest.knockInProbability - latest.base.knockInProbability), 1, " pts"),
+        ],
+        [
+          "Knock-in put sold",
+          put(latest.base.put),
+          put(latest.put),
+          signed(latest.put - latest.base.put, 2, ""),
+        ],
+        [
+          "Expected life",
+          `${fixed(params.tenor * 12, 1)} months`,
+          `${fixed(latest.expectedLife * 12, 1)} months`,
+          signed(12 * (latest.expectedLife - params.tenor), 1, " months"),
+        ],
+      ]
+    : [];
+  $("#features-table").replaceChildren(
+    ...rows.map((cells) => {
+      const row = document.createElement("tr");
+      cells.forEach((text, index) => {
+        const cell = document.createElement(index === 0 ? "th" : "td");
+        if (index === 0) cell.setAttribute("scope", "row");
+        cell.textContent = text;
+        row.append(cell);
+      });
+      return row;
+    }),
+  );
+
+  // Where the paths end up, as one stacked bar.
+  const segments: { key: string; label: string; share: number }[] = [];
+  if (latest) {
+    latest.callProbabilities.forEach((share, index) => {
+      if (params.autocall !== "off")
+        segments.push({ key: "called", label: `Called at ${3 * (index + 1)} months`, share });
+    });
+    if (params.lockIn > 0)
+      segments.push({
+        key: "locked",
+        label: "Locked in, par at maturity",
+        share: latest.lockProbability,
+      });
+    segments.push({
+      key: "knocked",
+      label: "Knocked in, exposed at maturity",
+      share: latest.knockInProbability,
+    });
+    const used = segments.reduce((total, segment) => total + segment.share, 0);
+    segments.push({
+      key: "plain",
+      label: "Barrier intact at maturity",
+      share: Math.max(0, 1 - used),
+    });
+  }
+  $("#features-bar").replaceChildren(
+    ...segments.map((segment, index) => {
+      const bar = document.createElement("i");
+      bar.className = `fate-${segment.key}`;
+      bar.style.width = `${(segment.share * 100).toFixed(2)}%`;
+      if (segment.key === "called") bar.style.opacity = String(1 - index * 0.22);
+      bar.title = `${segment.label}: ${percent(segment.share)}`;
+      return bar;
+    }),
+  );
+  $("#features-legend").replaceChildren(
+    ...segments.map((segment, index) => {
+      const item = document.createElement("li");
+      const swatch = document.createElement("i");
+      swatch.className = `fate-${segment.key}`;
+      if (segment.key === "called") swatch.style.opacity = String(1 - index * 0.22);
+      item.append(swatch, `${segment.label} ${percent(segment.share)}`);
+      return item;
+    }),
+  );
+
+  let summary: string;
+  if (!latest) summary = "Waiting for the first batch of paths…";
+  else if (!featured)
+    summary =
+      "Switch on a lock-in or an autocall in the terms panel. The same paths are priced with and " +
+      "without the feature, so every difference here is the feature itself, not sampling noise.";
+  else {
+    const notes: string[] = [];
+    if (params.lockIn > 0)
+      notes.push(
+        params.autocall === "off"
+          ? `the lock-in hands back the barrier risk on the ${percent(latest.lockProbability, 0)} of paths ` +
+              `whose worst performer closes at ${params.lockIn}% or above`
+          : `the lock-in hands back the barrier risk on the ${percent(latest.lockProbability, 0)} of notes ` +
+              `that reach ${params.lockIn}% without being called first`,
+      );
+    if (params.autocall !== "off") {
+      const called = latest.callProbabilities.reduce((total, p) => total + p, 0);
+      notes.push(
+        `the autocall ends ${percent(called, 0)} of notes early, mostly in the good states where the put ` +
+          "was worth least, so the client earns the coupon for less time",
+      );
+    }
+    const change = latest.coupon - latest.base.coupon;
+    summary =
+      `Here ${notes.join(", and ")}. The fair coupon ${change >= 0 ? "rises" : "falls"} by ` +
+      `${fixed(Math.abs(change), 2)} points to ${fixed(latest.coupon, 2)}% p.a.` +
+      (params.autocall !== "off"
+        ? " The put shrinks, but it is now earned over a shorter expected life, so the annual rate can still go up."
+        : " A lock-in is protection the client buys back, so it is paid for out of the coupon.");
+  }
+  $("#features-summary").textContent = summary;
 }
 
 function renderControls(): void {
@@ -429,10 +626,44 @@ function renderControls(): void {
     button.classList.toggle("on", on);
     button.setAttribute("aria-pressed", String(on));
   });
+  document.querySelectorAll<HTMLButtonElement>("[data-lock]").forEach((button) => {
+    const on = (button.dataset.lock === "on") === params.lockIn > 0;
+    button.classList.toggle("on", on);
+    button.setAttribute("aria-pressed", String(on));
+  });
+  document.querySelectorAll<HTMLButtonElement>("[data-autocall]").forEach((button) => {
+    const on = button.dataset.autocall === params.autocall;
+    button.classList.toggle("on", on);
+    button.setAttribute("aria-pressed", String(on));
+  });
+  document.querySelectorAll<HTMLButtonElement>("[data-lock]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const previous = { ...state.params };
+      state.params.lockIn = button.dataset.lock === "on" ? state.lockLevel : 0;
+      paramsChanged(previous);
+    }),
+  );
+  $<HTMLInputElement>("#mc-lock").addEventListener("input", (event) => {
+    const previous = { ...state.params };
+    state.lockLevel = Number((event.target as HTMLInputElement).value);
+    if (state.params.lockIn > 0) state.params.lockIn = state.lockLevel;
+    paramsChanged(previous);
+  });
+  document.querySelectorAll<HTMLButtonElement>("[data-autocall]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const previous = { ...state.params };
+      state.params.autocall = button.dataset.autocall as Autocall;
+      paramsChanged(previous);
+    }),
+  );
   document.querySelectorAll<HTMLInputElement>("input[data-param]").forEach((input) => {
     const key = input.dataset.param as "vol" | "corr" | "barrier" | "rate";
     input.value = String(params[key]);
   });
+  const lock = $<HTMLInputElement>("#mc-lock");
+  lock.value = String(state.lockLevel);
+  lock.disabled = params.lockIn === 0;
+  $("#mc-lock-out").textContent = params.lockIn > 0 ? `${state.lockLevel}%` : "off";
   const corr = $<HTMLInputElement>("#mc-corr");
   corr.disabled = params.assets === 1;
   $("#mc-vol-out").textContent = percent(params.vol, 0);
@@ -490,6 +721,7 @@ async function runSimulation(): Promise<void> {
   const maxBatch = MAX_BATCH[backend];
   history = [];
   renderStats();
+  renderFeatures();
   renderConvergence();
   renderPaths();
   const status = $("#mc-status");
@@ -506,6 +738,7 @@ async function runSimulation(): Promise<void> {
       sums = addSums(sums, result);
       history.push(estimate(sums, params));
       renderStats();
+      renderFeatures();
       renderConvergence();
       status.textContent = `Simulating… ${integer.format(sums.paths)} of ${integer.format(target)} paths`;
       // Double the running total while batches are small, so points are evenly spaced in log paths.
@@ -643,6 +876,26 @@ function wire(): void {
       paramsChanged(previous);
     }),
   );
+  document.querySelectorAll<HTMLButtonElement>("[data-lock]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const previous = { ...state.params };
+      state.params.lockIn = button.dataset.lock === "on" ? state.lockLevel : 0;
+      paramsChanged(previous);
+    }),
+  );
+  $<HTMLInputElement>("#mc-lock").addEventListener("input", (event) => {
+    const previous = { ...state.params };
+    state.lockLevel = Number((event.target as HTMLInputElement).value);
+    if (state.params.lockIn > 0) state.params.lockIn = state.lockLevel;
+    paramsChanged(previous);
+  });
+  document.querySelectorAll<HTMLButtonElement>("[data-autocall]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const previous = { ...state.params };
+      state.params.autocall = button.dataset.autocall as Autocall;
+      paramsChanged(previous);
+    }),
+  );
   document.querySelectorAll<HTMLInputElement>("input[data-param]").forEach((input) =>
     input.addEventListener("input", () => {
       const previous = { ...state.params };
@@ -663,6 +916,7 @@ function wire(): void {
   $("#reset").addEventListener("click", () => {
     const previous = { ...state.params };
     state.params = { ...DEFAULT_PARAMS };
+    state.lockLevel = DEFAULT_LOCK_IN;
     state.target = DEFAULT_TARGET[state.backend];
     paramsChanged(previous);
   });
@@ -674,6 +928,7 @@ async function start(): Promise<void> {
   $("#kernel-source").textContent = kernelSource;
   wire();
   renderControls();
+  renderFeatures();
   renderSweep();
   gpu = await GpuPricer.create();
   state.backend = gpu ? "gpu" : "cpu";

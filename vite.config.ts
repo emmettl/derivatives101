@@ -29,6 +29,7 @@ const bundledEntries = [
   "stepdown-autocall.html",
   "value-before-maturity.html",
   "volatility-skew.html",
+  "gpu-monte-carlo.html",
   "lesson-00-foundations.html",
   "lesson-01-koda-kodd.html",
   "lesson-02-reverse-convertibles.html",

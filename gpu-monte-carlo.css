@@ -1,0 +1,272 @@
+.backend-banner {
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--muted);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.backend-banner[data-backend="gpu"] {
+  border-left-color: var(--jade);
+}
+
+.backend-banner[data-backend="cpu"] {
+  border-left-color: var(--amber);
+  background: #fff8ec;
+}
+
+.backend-banner strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.backend-banner p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rerun {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.range-control input:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.resample:disabled {
+  background: var(--tint2);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.stat small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.mc-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.mc-grid {
+  stroke: var(--tint2);
+  stroke-width: 1;
+}
+
+.mc-axis {
+  fill: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mc-band {
+  fill: rgb(228 163 64 / 22%);
+}
+
+.mc-line {
+  fill: none;
+  stroke: var(--deep);
+  stroke-width: 2;
+}
+
+.mc-dot {
+  fill: var(--deep);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.mc-reference {
+  stroke: var(--jade);
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+}
+
+.mc-reference-label {
+  fill: var(--jade);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mc-path {
+  fill: none;
+  stroke: rgb(18 59 84 / 28%);
+  stroke-width: 1.2;
+}
+
+.mc-path.touched {
+  stroke: rgb(181 68 58 / 75%);
+  stroke-width: 1.4;
+}
+
+.mc-barrier {
+  stroke: var(--brick);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+.mc-barrier-label {
+  fill: var(--brick);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mc-strike {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.mc-strike-label {
+  fill: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mc-marker {
+  stroke: var(--amber-d);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 4;
+}
+
+.mc-whisker {
+  stroke: var(--amber-d);
+  stroke-width: 2;
+}
+
+.mc-note {
+  fill: var(--deep);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.race-grid {
+  display: grid;
+  gap: 12px;
+  margin: 0 22px 14px;
+}
+
+.race-lane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  align-items: baseline;
+}
+
+.race-lane span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.race-lane strong {
+  font:
+    700 18px Cambria,
+    Georgia,
+    serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.race-bar {
+  overflow: hidden;
+  grid-column: 1 / -1;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--tint);
+}
+
+.race-bar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 6px;
+  background: var(--jade);
+  transition: width 0.6s ease;
+}
+
+.race-lane[data-lane="cpu"] .race-bar i {
+  background: var(--amber);
+}
+
+.kernel-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 22px 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.kernel-steps li {
+  padding: 10px 12px;
+  border-top: 3px solid var(--deep);
+  background: var(--tint);
+}
+
+.kernel-steps b {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.kernel-steps span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.kernel-source {
+  margin: 0 22px 20px;
+}
+
+.kernel-source summary {
+  color: var(--deep);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.kernel-source pre {
+  overflow: auto;
+  max-height: 480px;
+  margin: 10px 0 0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--night);
+  color: #dfe8ee;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (width <= 980px) {
+  .kernel-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 680px) {
+  #mc-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  #mc-stats .stat:nth-child(2) {
+    border-right: 0;
+  }
+
+  #mc-stats .stat:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .kernel-steps {
+    grid-template-columns: 1fr;
+  }
+}

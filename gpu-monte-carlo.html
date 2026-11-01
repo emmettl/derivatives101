@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Price a worst-of barrier reverse convertible with millions of Monte Carlo paths on your GPU through WebGPU, and watch the estimate converge."
+    />
+    <meta name="theme-color" content="#f7f9fa" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta property="og:title" content="Derivatives 101 — GPU Monte Carlo Lab" />
+    <meta
+      property="og:description"
+      content="Millions of correlated paths on the GPU: watch a worst-of knock-in put price converge, and see why worst-of is short correlation."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/gpu-monte-carlo.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>Derivatives 101 — GPU Monte Carlo Lab</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b1e2d'/%3E%3Cpath d='M5 22 L14 22 L25 9' fill='none' stroke='%23e9c46a' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5 22 L25 22' stroke='%236b8797' stroke-width='1.4' stroke-linecap='round' opacity='.7'/%3E%3C/svg%3E"
+      type="image/svg+xml"
+      sizes="any"
+    />
+    <link rel="stylesheet" href="structured-labs.css?v=18" />
+    <link rel="stylesheet" href="gpu-monte-carlo.css" />
+  </head>
+  <body>
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="structured-products.html">Structured Product Labs</a
+          ><a href="basket-lab.html">Basket Lab</a>
+        </div>
+      </nav>
+    </header>
+    <div class="hero">
+      <p class="eyebrow">Lab 20 · Pricing by simulation</p>
+      <h1>GPU Monte Carlo</h1>
+      <p class="lede">
+        A worst-of barrier reverse convertible has no pricing formula. The desk
+        simulates the market instead: millions of possible years, each one a
+        day-by-day path for every underlying. Here your graphics card runs those
+        paths in parallel and the price settles in front of you.
+      </p>
+    </div>
+    <p class="scope-note">
+      <b>Scope:</b
+      ><span
+        >One-year note, strike 100%, knock-in put on the worst of one to three
+        underlyings with equal volatility and equal pairwise correlation.
+        Lognormal paths with 252 daily steps, no dividends, no skew, no issuer
+        funding spread or margin. Continuous monitoring uses a Brownian-bridge
+        correction per underlying, which is exact for one name and a close
+        approximation for a basket. Illustrative only.</span
+      >
+    </p>
+    <main>
+      <section
+        class="backend-banner"
+        id="backend-banner"
+        data-backend="pending"
+        aria-live="polite"
+      >
+        <strong id="backend-name">Looking for a GPU…</strong>
+        <p id="backend-detail">
+          Checking whether this browser supports WebGPU.
+        </p>
+      </section>
+      <div class="lab-grid">
+        <aside class="controls" aria-label="Simulation inputs">
+          <div class="controls-head">
+            <h2>Terms</h2>
+            <button type="button" class="reset-button" id="reset">Reset</button>
+          </div>
+          <div class="controls-body">
+            <div class="control-block">
+              <span class="control-title">Underlyings</span>
+              <div class="radio-set" role="group" aria-label="Underlyings">
+                <button type="button" data-assets="1">
+                  One stock · closed form exists
+                </button>
+                <button type="button" data-assets="2">Worst of two</button>
+                <button type="button" data-assets="3">Worst of three</button>
+              </div>
+            </div>
+            <div class="control-block">
+              <label class="range-control" for="mc-vol"
+                ><span><b>Volatility</b><output id="mc-vol-out"></output></span
+                ><input
+                  type="range"
+                  id="mc-vol"
+                  data-param="vol"
+                  min="0.1"
+                  max="0.6"
+                  step="0.01"
+              /></label>
+              <label class="range-control" for="mc-corr"
+                ><span
+                  ><b>Correlation</b><output id="mc-corr-out"></output></span
+                ><input
+                  type="range"
+                  id="mc-corr"
+                  data-param="corr"
+                  min="0"
+                  max="0.95"
+                  step="0.05"
+              /></label>
+              <label class="range-control" for="mc-barrier"
+                ><span
+                  ><b>Knock-in barrier</b
+                  ><output id="mc-barrier-out"></output></span
+                ><input
+                  type="range"
+                  id="mc-barrier"
+                  data-param="barrier"
+                  min="50"
+                  max="95"
+                  step="1"
+              /></label>
+              <label class="range-control" for="mc-rate"
+                ><span
+                  ><b>Interest rate</b><output id="mc-rate-out"></output></span
+                ><input
+                  type="range"
+                  id="mc-rate"
+                  data-param="rate"
+                  min="0"
+                  max="0.05"
+                  step="0.0025"
+              /></label>
+            </div>
+            <div class="control-block">
+              <span class="control-title">Barrier observation</span>
+              <div
+                class="radio-set"
+                role="group"
+                aria-label="Barrier observation"
+              >
+                <button type="button" data-monitoring="continuous">
+                  Continuous · any time
+                </button>
+                <button type="button" data-monitoring="close">
+                  Daily close only
+                </button>
+              </div>
+            </div>
+            <div class="control-block">
+              <label for="mc-target">Paths to simulate</label>
+              <select id="mc-target"></select>
+              <p class="control-help" id="mc-target-help"></p>
+              <button type="button" class="resample rerun" id="mc-rerun">
+                Re-run with new random numbers
+              </button>
+            </div>
+          </div>
+        </aside>
+        <div class="content">
+          <section class="panel" aria-labelledby="converge-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">The estimate, batch by batch</p>
+                <h2 id="converge-title">Watch the price converge</h2>
+                <p id="converge-caption">
+                  Each dot is the running average after another batch of paths.
+                  The shaded band is the 95% confidence interval: four times the
+                  paths halves its width.
+                </p>
+              </div>
+            </div>
+            <div class="stats" id="mc-stats">
+              <div class="stat">
+                <span>Knock-in put</span><strong id="stat-put">–</strong
+                ><small id="stat-put-ci">% of notional</small>
+              </div>
+              <div class="stat">
+                <span>Knock-in probability</span><strong id="stat-ki">–</strong
+                ><small>barrier breached</small>
+              </div>
+              <div class="stat">
+                <span>Fair coupon</span><strong id="stat-coupon">–</strong
+                ><small>p.a., before margin</small>
+              </div>
+              <div class="stat">
+                <span>Closed form</span><strong id="stat-ref">–</strong
+                ><small id="stat-ref-note">one stock only</small>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                class="mc-chart"
+                id="converge-chart"
+                viewBox="0 0 900 320"
+                role="img"
+                aria-label="Monte Carlo estimate of the knock-in put against the number of simulated paths"
+              ></svg>
+            </div>
+            <p
+              class="simulation-status"
+              id="mc-status"
+              role="status"
+              aria-live="polite"
+            >
+              Preparing the simulation…
+            </p>
+          </section>
+
+          <section class="panel" aria-labelledby="paths-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Inside the simulation</p>
+                <h2 id="paths-title">Forty of those paths</h2>
+                <p>
+                  Each line is the worst performer on one simulated path, day by
+                  day. Red lines closed at or below the barrier at least once,
+                  so the client would carry the loss below the strike at
+                  maturity.
+                </p>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                class="mc-chart"
+                id="paths-chart"
+                viewBox="0 0 900 300"
+                role="img"
+                aria-label="Forty simulated worst-of paths with the barrier and strike"
+              ></svg>
+            </div>
+            <p class="simulation-status" id="paths-caption"></p>
+          </section>
+
+          <section class="panel" aria-labelledby="sweep-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Worst-of is short correlation</p>
+                <h2 id="sweep-title">Sweep the correlation</h2>
+                <p>
+                  Reprice the note at ten correlations on the same random
+                  numbers. Lower correlation means the names drift apart, so the
+                  worst one falls further and the put the client has sold is
+                  worth more.
+                </p>
+              </div>
+              <div class="path-actions">
+                <button type="button" class="resample" id="sweep-run">
+                  Sweep 0% to 90%
+                </button>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                class="mc-chart"
+                id="sweep-chart"
+                viewBox="0 0 900 260"
+                role="img"
+                aria-label="Knock-in put value against correlation"
+              ></svg>
+            </div>
+            <p class="simulation-status" id="sweep-status">
+              Press the button to run the sweep.
+            </p>
+          </section>
+
+          <section class="panel" aria-labelledby="race-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Why the GPU</p>
+                <h2 id="race-title">Race the CPU</h2>
+                <p>
+                  Every path is independent, so thousands of GPU threads can
+                  each take one. The CPU version runs the identical algorithm in
+                  a background thread. Both use the same random numbers, so on
+                  the same paths they must give the same answer.
+                </p>
+              </div>
+              <div class="path-actions">
+                <button type="button" class="resample" id="race-run">
+                  Start the race
+                </button>
+              </div>
+            </div>
+            <div class="race-grid" id="race-grid">
+              <div class="race-lane" data-lane="gpu">
+                <span>GPU · WebGPU compute shader</span>
+                <strong id="race-gpu">–</strong>
+                <div class="race-bar"><i id="race-gpu-bar"></i></div>
+              </div>
+              <div class="race-lane" data-lane="cpu">
+                <span>CPU · one background thread</span>
+                <strong id="race-cpu">–</strong>
+                <div class="race-bar"><i id="race-cpu-bar"></i></div>
+              </div>
+            </div>
+            <p class="simulation-status" id="race-status">
+              The race times both back ends on the same paths.
+            </p>
+          </section>
+
+          <section class="panel" aria-labelledby="kernel-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">For developers</p>
+                <h2 id="kernel-title">What runs on the GPU</h2>
+                <p>
+                  One compute shader, written in WGSL. Each thread owns one
+                  path: it seeds its own random-number generator from its path
+                  number, steps every underlying through 252 days, then the 256
+                  threads in a workgroup add their results together on chip. The
+                  browser reads back one small sum per 256 paths.
+                </p>
+              </div>
+            </div>
+            <ol class="kernel-steps">
+              <li>
+                <b>Seed</b
+                ><span>Hash the path number into a PCG generator</span>
+              </li>
+              <li>
+                <b>Shock</b
+                ><span
+                  >Box-Muller normals, correlated by a Cholesky factor</span
+                >
+              </li>
+              <li>
+                <b>Step</b
+                ><span
+                  >Advance log prices; test the barrier; bridge between
+                  closes</span
+                >
+              </li>
+              <li>
+                <b>Pay</b
+                ><span>Worst-of put payoff, weighted by knock-in odds</span>
+              </li>
+              <li>
+                <b>Reduce</b><span>Tree-sum 256 paths in workgroup memory</span>
+              </li>
+            </ol>
+            <details class="kernel-source">
+              <summary>Show the WGSL kernel</summary>
+              <pre><code id="kernel-source"></code></pre>
+            </details>
+          </section>
+        </div>
+      </div>
+      <section class="explain">
+        <article>
+          <h3>Why simulate at all?</h3>
+          <p>
+            With one stock, a continuously monitored knock-in put has a
+            closed-form price, and the simulation lands on it. Add a second or
+            third stock and the worst-of has no formula, so desks price it by
+            averaging over simulated paths.
+          </p>
+        </article>
+        <article>
+          <h3>What the client has sold</h3>
+          <p>
+            The coupon is the interest on the money plus the premium for the
+            knock-in put the client has written. More names, lower correlation,
+            higher volatility or a higher barrier all make that put dearer, and
+            the coupon rises with it.
+          </p>
+        </article>
+        <article>
+          <h3>Observation matters</h3>
+          <p>
+            Checking the barrier only at the daily close misses intraday dips,
+            so the put is cheaper and the coupon a little lower. The one-stock
+            closed form adjusts for this by shifting the barrier down slightly.
+          </p>
+        </article>
+      </section>
+      <section class="sources">
+        <h2>Method references</h2>
+        <p>
+          The one-stock reference is the Reiner-Rubinstein formula for a
+          continuously monitored down-and-in put. For daily-close monitoring the
+          barrier is shifted by the Broadie-Glasserman-Kou continuity
+          correction, B·exp(−0.5826·σ·√Δt). Between closes, the chance that a
+          lognormal path touched the barrier is the Brownian-bridge probability
+          exp(−2·ln(S₀/B)·ln(S₁/B) / (σ²Δt)). Random numbers come from the
+          32-bit PCG hash described by Jarzynski and Olano (2020), and the
+          kernel follows the
+          <a href="https://www.w3.org/TR/webgpu/">W3C WebGPU</a> and
+          <a href="https://www.w3.org/TR/WGSL/">WGSL</a> specifications.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <strong>Derivatives 101</strong
+      ><span>Independent educational project · illustrative models only</span
+      ><a href="structured-products.html">All structured labs</a>
+    </footer>
+    <script type="module" src="/src/gpu-monte-carlo/main.ts"></script>
+  </body>
+</html>

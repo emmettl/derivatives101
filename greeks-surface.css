@@ -1,0 +1,272 @@
+.backend-banner[data-renderer="webgpu"] {
+  border-left-color: var(--jade);
+}
+
+.backend-banner[data-renderer="webgl"],
+.backend-banner[data-renderer="canvas"],
+.backend-banner[data-renderer="none"] {
+  border-left-color: var(--amber);
+  background: #fff8ec;
+}
+
+.gs-pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gs-pair button {
+  text-align: center;
+}
+
+.radio-set button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.camera-actions {
+  flex-flow: row wrap;
+  justify-content: flex-end;
+}
+
+.camera-actions[hidden] {
+  display: none;
+}
+
+.camera-actions .resample {
+  background: var(--tint2);
+}
+
+.camera-actions .resample:hover {
+  background: var(--amber);
+}
+
+.surface-wrap {
+  position: relative;
+  overflow: hidden;
+  height: min(62vh, 520px);
+  min-height: 300px;
+  margin: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.surface-wrap canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.surface-wrap canvas:active {
+  cursor: grabbing;
+}
+
+.surface-wrap canvas:focus-visible {
+  outline: 2px solid var(--amber-d);
+  outline-offset: -2px;
+}
+
+.surface-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.surface-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.surface-label.axis {
+  color: var(--deep);
+  font-weight: 800;
+}
+
+.surface-legend {
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+  margin: 10px 22px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.legend-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--legend, var(--tint2));
+}
+
+.legend-scale {
+  display: flex;
+  justify-content: space-between;
+  font-variant-numeric: tabular-nums;
+}
+
+.readout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 8px 20px;
+  align-items: end;
+  margin: 14px 22px;
+}
+
+.readout .resample {
+  margin-bottom: 6px;
+}
+
+#gs-stats .stat {
+  transition: background 0.2s ease;
+}
+
+#gs-stats .stat.shown {
+  background: #fff;
+  box-shadow: inset 0 3px 0 var(--amber);
+}
+
+.gs-grid {
+  stroke: var(--tint2);
+  stroke-width: 1;
+}
+
+.gs-zero {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.gs-axis {
+  fill: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gs-current {
+  fill: none;
+  stroke: var(--amber-d);
+  stroke-width: 2.4;
+}
+
+.gs-issue {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.6;
+  stroke-dasharray: 6 4;
+}
+
+.gs-barrier {
+  stroke: var(--brick);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+.gs-barrier-label {
+  fill: var(--brick);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.gs-strike {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+
+.gs-strike-label {
+  fill: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.gs-marker {
+  fill: #fff;
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.slice-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  margin: 8px 22px 16px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.slice-key .key-current,
+.slice-key .key-issue {
+  display: inline-block;
+  width: 22px;
+  height: 0;
+  border-top: 2.4px solid var(--amber-d);
+}
+
+.slice-key .key-issue {
+  margin-left: 8px;
+  border-top: 1.6px dashed var(--muted);
+}
+
+.tour-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 22px 20px;
+}
+
+.tour-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--amber);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tour-card:hover,
+.tour-card.on {
+  border-color: var(--amber-d);
+  background: #fff8ec;
+}
+
+.tour-card b {
+  font-size: 13px;
+}
+
+.tour-card span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+@media (width <= 680px) {
+  .surface-wrap {
+    height: 340px;
+  }
+
+  .readout {
+    grid-template-columns: 1fr;
+  }
+
+  .tour-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #gs-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  #gs-stats .stat:nth-child(2) {
+    border-right: 0;
+  }
+
+  #gs-stats .stat:nth-child(-n + 2) {
+    border-bottom: 1px solid var(--line);
+  }
+}

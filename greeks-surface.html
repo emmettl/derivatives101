@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Rotate a GPU-drawn 3D surface of a barrier reverse convertible's value, delta, gamma and vega against spot and time, and watch gamma pile up at the barrier as maturity nears."
+    />
+    <meta name="theme-color" content="#f7f9fa" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Derivatives 101" />
+    <meta
+      property="og:title"
+      content="Derivatives 101 — Greeks Surface Explorer"
+    />
+    <meta
+      property="og:description"
+      content="A WebGPU surface of barrier reverse convertible Greeks: see delta jump and gamma spike at the barrier as maturity approaches."
+    />
+    <meta
+      property="og:url"
+      content="https://emmettl.github.io/derivatives101/greeks-surface.html"
+    />
+    <meta
+      property="og:image"
+      content="https://emmettl.github.io/derivatives101/og.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <title>Derivatives 101 — Greeks Surface Explorer</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b1e2d'/%3E%3Cpath d='M5 22 L14 22 L25 9' fill='none' stroke='%23e9c46a' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5 22 L25 22' stroke='%236b8797' stroke-width='1.4' stroke-linecap='round' opacity='.7'/%3E%3C/svg%3E"
+      type="image/svg+xml"
+      sizes="any"
+    />
+    <link rel="stylesheet" href="structured-labs.css?v=18" />
+    <link rel="stylesheet" href="gpu-monte-carlo.css" />
+    <link rel="stylesheet" href="greeks-surface.css" />
+  </head>
+  <body>
+    <header class="site-head">
+      <nav aria-label="Course navigation">
+        <a class="brand" href="./">Derivatives 101</a>
+        <div class="nav-links">
+          <a href="structured-products.html">Structured Product Labs</a
+          ><a href="gpu-monte-carlo.html">GPU Monte Carlo</a>
+        </div>
+      </nav>
+    </header>
+    <div class="hero">
+      <p class="eyebrow">Lab 21 · Risk you can see</p>
+      <h1>Greeks Surface Explorer</h1>
+      <p class="lede">
+        A barrier reverse convertible looks calm for most of its life. Near the
+        barrier, close to maturity, its risk numbers stop behaving: delta jumps,
+        gamma spikes and vega can change sign. Here the whole map of those
+        numbers is drawn as one surface you can turn around, against where the
+        stock is and how long the note has left to run.
+      </p>
+    </div>
+    <p class="scope-note">
+      <b>Scope:</b
+      ><span
+        >One-year note on a single stock, strike 100%, knock-in put with no
+        rebate. Black-Scholes with flat volatility, no dividends, no skew, no
+        issuer funding spread or margin; the coupon is paid at maturity and set
+        so the note is worth par at issue. Greeks are closed-form prices bumped
+        by finite differences. The surface stops one trading day before
+        maturity. Illustrative only.</span
+      >
+    </p>
+    <main>
+      <section
+        class="backend-banner"
+        id="backend-banner"
+        data-renderer="pending"
+        aria-live="polite"
+      >
+        <strong id="backend-name">Looking for a GPU…</strong>
+        <p id="backend-detail">
+          Checking whether this browser supports WebGPU.
+        </p>
+      </section>
+      <div class="lab-grid">
+        <aside class="controls" aria-label="Surface inputs">
+          <div class="controls-head">
+            <h2>Surface</h2>
+            <button type="button" class="reset-button" id="reset">Reset</button>
+          </div>
+          <div class="controls-body">
+            <div class="control-block">
+              <span class="control-title">Show</span>
+              <div class="radio-set gs-pair" role="group" aria-label="Metric">
+                <button type="button" data-metric="value">Value</button>
+                <button type="button" data-metric="delta">Delta</button>
+                <button type="button" data-metric="gamma">Gamma</button>
+                <button type="button" data-metric="vega">Vega</button>
+              </div>
+            </div>
+            <div class="control-block">
+              <span class="control-title">Whose book</span>
+              <div class="radio-set" role="group" aria-label="Whose book">
+                <button type="button" data-view="note">
+                  Investor · holds the note
+                </button>
+                <button type="button" data-view="desk">
+                  Issuer · long the put it bought
+                </button>
+              </div>
+            </div>
+            <div class="control-block">
+              <span class="control-title">Barrier observation</span>
+              <div
+                class="radio-set"
+                role="group"
+                aria-label="Barrier observation"
+              >
+                <button type="button" data-observation="continuous">
+                  Continuous · any time
+                </button>
+                <button type="button" data-observation="close">
+                  Daily close
+                </button>
+                <button type="button" data-observation="maturity">
+                  At maturity only · European
+                </button>
+              </div>
+            </div>
+            <div class="control-block">
+              <label class="range-control" for="gs-vol"
+                ><span><b>Volatility</b><output id="gs-vol-out"></output></span
+                ><input
+                  type="range"
+                  id="gs-vol"
+                  data-param="vol"
+                  min="0.1"
+                  max="0.6"
+                  step="0.01"
+              /></label>
+              <label class="range-control" for="gs-barrier"
+                ><span
+                  ><b>Knock-in barrier</b
+                  ><output id="gs-barrier-out"></output></span
+                ><input
+                  type="range"
+                  id="gs-barrier"
+                  data-param="barrier"
+                  min="50"
+                  max="95"
+                  step="1"
+              /></label>
+              <label class="range-control" for="gs-rate"
+                ><span
+                  ><b>Interest rate</b><output id="gs-rate-out"></output></span
+                ><input
+                  type="range"
+                  id="gs-rate"
+                  data-param="rate"
+                  min="0"
+                  max="0.05"
+                  step="0.0025"
+              /></label>
+              <p class="control-help" id="coupon-note"></p>
+            </div>
+            <div class="control-block">
+              <span class="control-title">Surface height</span>
+              <div class="radio-set gs-pair" role="group" aria-label="Height">
+                <button
+                  type="button"
+                  data-scale="compressed"
+                  id="gs-scale-compressed"
+                >
+                  Compressed
+                </button>
+                <button type="button" data-scale="linear" id="gs-scale-linear">
+                  Linear
+                </button>
+              </div>
+              <p class="control-help">
+                Compressed heights keep the barrier spike and the quiet regions
+                both readable. Linear is the honest scale.
+              </p>
+            </div>
+          </div>
+        </aside>
+        <div class="content">
+          <section
+            class="panel"
+            id="surface-panel"
+            aria-labelledby="surface-title"
+          >
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">The whole map at once</p>
+                <h2 id="surface-title">The surface</h2>
+                <p>
+                  Spot runs left to right, time to maturity runs from twelve
+                  months at the back to maturity at the front. The red line is
+                  the barrier, the dark line the strike, the amber line the time
+                  you have picked.
+                </p>
+              </div>
+              <div class="path-actions camera-actions" id="camera-actions">
+                <button type="button" class="resample" data-camera="default">
+                  Angled
+                </button>
+                <button type="button" class="resample" data-camera="front">
+                  Front
+                </button>
+                <button type="button" class="resample" data-camera="side">
+                  Side
+                </button>
+                <button type="button" class="resample" data-camera="above">
+                  Above
+                </button>
+              </div>
+            </div>
+            <div class="surface-wrap" id="surface-wrap">
+              <canvas
+                id="surface-canvas"
+                tabindex="0"
+                role="img"
+                aria-label="Three-dimensional surface of the selected Greek against spot and time to maturity"
+              ></canvas>
+              <div
+                class="surface-labels"
+                id="surface-labels"
+                aria-hidden="true"
+              ></div>
+            </div>
+            <div class="surface-legend" id="surface-legend">
+              <span id="legend-title"></span>
+              <div class="legend-bar"></div>
+              <div class="legend-scale">
+                <span id="legend-low"></span><span id="legend-mid"></span
+                ><span id="legend-high"></span>
+              </div>
+            </div>
+            <div class="readout">
+              <label class="range-control" for="gs-spot"
+                ><span><b>Spot</b><output id="gs-spot-out"></output></span
+                ><input type="range" id="gs-spot" min="40" max="140" step="0.5"
+              /></label>
+              <label class="range-control" for="gs-days"
+                ><span
+                  ><b>Time to maturity</b
+                  ><output id="gs-days-out"></output></span
+                ><input type="range" id="gs-days" min="1" max="252" step="1"
+              /></label>
+              <button type="button" class="resample" id="gs-play">
+                Run the clock to maturity
+              </button>
+            </div>
+            <div class="stats" id="gs-stats">
+              <div class="stat">
+                <span>Value</span><strong id="stat-value">–</strong
+                ><small id="stat-value-note">note, % of notional</small>
+              </div>
+              <div class="stat">
+                <span>Delta</span><strong id="stat-delta">–</strong
+                ><small>per 1% move in the stock</small>
+              </div>
+              <div class="stat">
+                <span>Gamma</span><strong id="stat-gamma">–</strong
+                ><small>delta change per 1% move</small>
+              </div>
+              <div class="stat">
+                <span>Vega</span><strong id="stat-vega">–</strong
+                ><small>per volatility point</small>
+              </div>
+            </div>
+            <p
+              class="simulation-status"
+              id="readout-point"
+              aria-live="polite"
+            ></p>
+          </section>
+
+          <section class="panel" aria-labelledby="slice-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">One slice through the surface</p>
+                <h2 id="slice-title">Read it off in two dimensions</h2>
+                <p>
+                  The amber line is the slice at the time you picked, the grey
+                  dashed line is the same Greek on the day the note was issued.
+                  In continuous monitoring the line breaks at the barrier: below
+                  it the put has already knocked in.
+                </p>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <svg
+                class="mc-chart"
+                id="slice-chart"
+                viewBox="0 0 900 300"
+                role="img"
+                aria-label="Selected Greek against spot at the chosen time to maturity, with the issue-date slice for comparison"
+              ></svg>
+            </div>
+            <p class="slice-key">
+              <span class="key-current"></span
+              ><span id="slice-key-current">12 months to maturity</span>
+              <span class="key-issue"></span><span>At issue, 12 months</span>
+            </p>
+          </section>
+
+          <section class="panel" aria-labelledby="tour-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Four things to find</p>
+                <h2 id="tour-title">What to look for</h2>
+                <p>
+                  Each button sets up the surface and moves the camera. Then
+                  drag the time slider, or run the clock, and watch what
+                  happens.
+                </p>
+              </div>
+            </div>
+            <div class="tour-grid">
+              <button type="button" class="tour-card" data-tour="gamma">
+                <b>1 · Gamma piles up at the barrier</b>
+                <span
+                  >Three days out, spot just above the barrier. A 1% fall could
+                  turn a worthless put into one worth thirty points, so the
+                  issuer's hedge has to change violently with every tick.</span
+                >
+              </button>
+              <button type="button" class="tour-card" data-tour="cliff">
+                <b>2 · The European cliff</b>
+                <span
+                  >Barrier checked only at the final fixing. The payoff jumps at
+                  the barrier, so gamma is a tall positive ridge on one side and
+                  a deep negative trench on the other.</span
+                >
+              </button>
+              <button type="button" class="tour-card" data-tour="delta">
+                <b>3 · Delta above one</b>
+                <span
+                  >Close to the barrier the investor's note moves more than the
+                  stock: a 1% fall can cost several percent of notional because
+                  it also brings the knock-in closer.</span
+                >
+              </button>
+              <button type="button" class="tour-card" data-tour="vega">
+                <b>4 · Short volatility, mostly</b>
+                <span
+                  >The investor sold the put, so vega is negative across most of
+                  the surface. Switch to the European barrier and look below it
+                  near maturity: there vega turns positive.</span
+                >
+              </button>
+            </div>
+          </section>
+
+          <section class="panel" aria-labelledby="shader-title">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">For developers</p>
+                <h2 id="shader-title">How the surface is drawn</h2>
+                <p>
+                  The numbers are computed once per change, in double precision
+                  on the CPU, on a 321 by 97 grid with time rows bunched towards
+                  maturity. The GPU then draws about 61,000 triangles: the
+                  vertex shader places each grid point, and the fragment shader
+                  lights it and draws the grid, barrier, strike, time slice and
+                  marker per pixel, so those lines stay sharp at any angle.
+                </p>
+              </div>
+            </div>
+            <ol class="kernel-steps">
+              <li>
+                <b>Price</b
+                ><span>Closed form per grid point, both branches</span>
+              </li>
+              <li>
+                <b>Bump</b
+                ><span>Central differences for delta, gamma and vega</span>
+              </li>
+              <li>
+                <b>Mesh</b
+                ><span>Heights, normals and colours into one buffer</span>
+              </li>
+              <li>
+                <b>Draw</b><span>WebGPU render pass, 4× multisampled</span>
+              </li>
+              <li>
+                <b>Fall back</b
+                ><span>Same mesh through WebGL, then a heat map</span>
+              </li>
+            </ol>
+            <details class="kernel-source">
+              <summary>Show the WGSL shader</summary>
+              <pre><code id="shader-source"></code></pre>
+            </details>
+          </section>
+        </div>
+      </div>
+      <section class="explain">
+        <article>
+          <h3>Why the barrier is not a floor</h3>
+          <p>
+            Far from maturity the surface is smooth: the market prices the
+            chance of a knock-in, not the knock-in itself. As time runs out that
+            chance becomes all or nothing, and all of the note's risk crowds
+            into a narrow band just above the barrier.
+          </p>
+        </article>
+        <article>
+          <h3>Why the desk cares</h3>
+          <p>
+            The issuer hedges the put it bought by trading the stock in
+            proportion to delta. Where gamma spikes, that hedge has to be
+            rebalanced in large size on small moves, which is costly and is why
+            barrier levels and observation styles are priced carefully.
+          </p>
+        </article>
+        <article>
+          <h3>Observation changes the shape</h3>
+          <p>
+            A continuously monitored barrier knocks in the moment it is touched,
+            so its risk sits just above it. A barrier checked only at maturity
+            leaves a cliff in the payoff, and the cliff's risk straddles the
+            barrier on both sides.
+          </p>
+        </article>
+      </section>
+      <section class="sources">
+        <h2>Method references</h2>
+        <p>
+          The continuously monitored put is the Reiner-Rubinstein down-and-in
+          formula; once spot is at or below the barrier it is the Black-Scholes
+          put. Daily-close monitoring shifts the barrier by the
+          Broadie-Glasserman-Kou correction, B·exp(−0.5826·σ·√Δt). The
+          at-maturity barrier is a put struck at the barrier plus a
+          cash-or-nothing digital paying strike minus barrier. The normal
+          distribution uses Hart's double-precision algorithm as given by West
+          (2005), so second differences stay clean. Drawing follows the
+          <a href="https://www.w3.org/TR/webgpu/">W3C WebGPU</a> and
+          <a href="https://www.w3.org/TR/WGSL/">WGSL</a> specifications.
+        </p>
+      </section>
+    </main>
+    <footer>
+      <strong>Derivatives 101</strong
+      ><span>Independent educational project · illustrative models only</span
+      ><a href="structured-products.html">All structured labs</a>
+    </footer>
+    <script type="module" src="/src/greeks-surface/main.ts"></script>
+  </body>
+</html>

@@ -62,7 +62,10 @@
         Lognormal paths with 252 daily steps, no dividends, no skew, no issuer
         funding spread or margin. Continuous monitoring uses a Brownian-bridge
         correction per underlying, which is exact for one name and a close
-        approximation for a basket. Illustrative only.</span
+        approximation for a basket. Lock-in is tested on every daily close of
+        the worst performer and, once hit, repays par at maturity. Autocall is
+        tested on the quarterly closes and repays par; the coupon accrues and is
+        paid on redemption in both cases. Illustrative only.</span
       >
     </p>
     <main>
@@ -156,6 +159,34 @@
               </div>
             </div>
             <div class="control-block">
+              <span class="control-title">Lock-in</span>
+              <div class="radio-set" role="group" aria-label="Lock-in">
+                <button type="button" data-lock="off">No lock-in</button>
+                <button type="button" data-lock="on">Par lock-in</button>
+              </div>
+              <label class="range-control" for="mc-lock"
+                ><span
+                  ><b>Lock-in level</b><output id="mc-lock-out"></output></span
+                ><input type="range" id="mc-lock" min="100" max="130" step="1"
+              /></label>
+              <p class="control-help">
+                If every name closes at or above this level on any day, the
+                barrier can no longer cost the client anything.
+              </p>
+            </div>
+            <div class="control-block">
+              <span class="control-title">Autocall</span>
+              <div class="radio-set" role="group" aria-label="Autocall">
+                <button type="button" data-autocall="off">No autocall</button>
+                <button type="button" data-autocall="flat">
+                  Quarterly at 100%
+                </button>
+                <button type="button" data-autocall="stepdown">
+                  Step-down 100 / 99 / 98 / 97
+                </button>
+              </div>
+            </div>
+            <div class="control-block">
               <label for="mc-target">Paths to simulate</label>
               <select id="mc-target"></select>
               <p class="control-help" id="mc-target-help"></p>
@@ -185,7 +216,7 @@
               </div>
               <div class="stat">
                 <span>Knock-in probability</span><strong id="stat-ki">–</strong
-                ><small>barrier breached</small>
+                ><small id="stat-ki-note">barrier breached</small>
               </div>
               <div class="stat">
                 <span>Fair coupon</span><strong id="stat-coupon">–</strong
@@ -215,6 +246,48 @@
             </p>
           </section>
 
+          <section
+            class="panel"
+            id="features-panel"
+            data-active="false"
+            aria-labelledby="features-title"
+          >
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Same paths, two notes</p>
+                <h2 id="features-title">What lock-in and autocall change</h2>
+                <p>
+                  Every path is priced twice in the same pass: as the plain
+                  barrier reverse convertible and with the features you have
+                  switched on. The numbers update with each batch.
+                </p>
+              </div>
+            </div>
+            <div class="features-body">
+              <table class="features-table">
+                <thead>
+                  <tr>
+                    <th scope="col"><span class="sr-only">Measure</span></th>
+                    <th scope="col">Plain BRC</th>
+                    <th scope="col">With features</th>
+                    <th scope="col">Change</th>
+                  </tr>
+                </thead>
+                <tbody id="features-table"></tbody>
+              </table>
+              <div class="features-fate">
+                <span class="control-title">How the notes end</span>
+                <div
+                  class="fate-bar"
+                  id="features-bar"
+                  aria-hidden="true"
+                ></div>
+                <ul class="fate-legend" id="features-legend"></ul>
+              </div>
+            </div>
+            <p class="simulation-status" id="features-summary"></p>
+          </section>
+
           <section class="panel" aria-labelledby="paths-title">
             <div class="panel-head">
               <div>
@@ -222,9 +295,10 @@
                 <h2 id="paths-title">Forty of those paths</h2>
                 <p>
                   Each line is the worst performer on one simulated path, day by
-                  day. Red lines closed at or below the barrier at least once,
-                  so the client would carry the loss below the strike at
-                  maturity.
+                  day. Red lines closed at or below the barrier at least once
+                  while still exposed, so the client would carry the loss below
+                  the strike at maturity. With the features on, green paths have
+                  locked in and blue paths stop where the note was called.
                 </p>
               </div>
             </div>
@@ -371,6 +445,18 @@
             knock-in put the client has written. More names, lower correlation,
             higher volatility or a higher barrier all make that put dearer, and
             the coupon rises with it.
+          </p>
+        </article>
+        <article>
+          <h3>Lock-in and autocall</h3>
+          <p>
+            A lock-in gives protection back to the client after a rally, so it
+            costs coupon. An autocall takes the note away in the same good
+            states. The put the client has sold shrinks a little, but the coupon
+            is now earned over a shorter life, so the annual rate usually rises.
+            That matches the direction on the desk&rsquo;s own feature price
+            list, though without funding spread or margin the size here is
+            larger.
           </p>
         </article>
         <article>

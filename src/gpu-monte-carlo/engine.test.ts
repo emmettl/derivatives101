@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cholesky,
   closedFormReference,
+  couponWithCalls,
   DEFAULT_PARAMS,
   estimate,
   fairCoupon,
@@ -89,10 +90,77 @@ describe("GPU Monte Carlo engine", () => {
     const buffer = packParams(DEFAULT_PARAMS, 5, 7);
     const u32 = new Uint32Array(buffer);
     const f32 = new Float32Array(buffer);
-    expect(buffer.byteLength).toBe(112);
-    expect([u32[0], u32[1], u32[2], u32[3], u32[5]]).toEqual([5, 7, 3, 252, 1]);
+    expect(buffer.byteLength).toBe(128);
+    expect([u32[0], u32[1], u32[2], u32[3], u32[5], u32[6]]).toEqual([5, 7, 3, 252, 1, 63]);
     expect(f32[11]).toBe(100);
+    expect(f32[13]).toBe(1e9);
     expect(f32[16]).toBe(1);
     expect(f32[20]).toBeCloseTo(0.5, 6);
+    expect(f32[28]).toBe(1e9);
+    const featured = new Float32Array(
+      packParams({ ...DEFAULT_PARAMS, lockIn: 110, autocall: "stepdown" }, 0, 1),
+    );
+    expect(featured[13]).toBeCloseTo(Math.log(1.1), 6);
+    expect(featured[28]).toBeCloseTo(0, 6);
+    expect(featured[31]).toBeCloseTo(Math.log(0.97), 6);
+  });
+});
+
+describe("Lock-in and autocall", () => {
+  const paths = 12_000;
+  const run = (params: McParams) => estimate(simulateBatch(params, 0, paths), params);
+
+  it("leaves the plain note unchanged when both features are off", () => {
+    const result = run(DEFAULT_PARAMS);
+    expect(result.put).toBe(result.base.put);
+    expect(result.knockInProbability).toBe(result.base.knockInProbability);
+    expect(result.coupon).toBeCloseTo(result.base.coupon, 12);
+    expect(result.lockProbability).toBe(0);
+    expect(result.expectedLife).toBe(1);
+  });
+
+  it("prices the plain note identically whichever features are switched on", () => {
+    const plain = run(DEFAULT_PARAMS);
+    const featured = run({ ...DEFAULT_PARAMS, lockIn: 110, autocall: "flat" });
+    expect(featured.base.put).toBe(plain.base.put);
+    expect(featured.base.coupon).toBe(plain.base.coupon);
+  });
+
+  it("makes the put cheaper and the coupon lower with a lock-in, more so for a lower level", () => {
+    const plain = run(DEFAULT_PARAMS);
+    const high = run({ ...DEFAULT_PARAMS, lockIn: 125 });
+    const low = run({ ...DEFAULT_PARAMS, lockIn: 105 });
+    expect(high.put).toBeLessThan(plain.put);
+    expect(low.put).toBeLessThan(high.put);
+    expect(low.coupon).toBeLessThan(high.coupon);
+    expect(low.lockProbability).toBeGreaterThan(high.lockProbability);
+    expect(low.knockInProbability).toBeLessThan(plain.knockInProbability);
+  });
+
+  it("calls the note early, shortens its life and raises the coupon p.a.", () => {
+    const plain = run(DEFAULT_PARAMS);
+    const called = run({ ...DEFAULT_PARAMS, autocall: "flat" });
+    const total = called.callProbabilities.reduce((sum, p) => sum + p, 0);
+    expect(called.callProbabilities[0]).toBeGreaterThan(called.callProbabilities[1]);
+    expect(total).toBeGreaterThan(0.2);
+    expect(called.expectedLife).toBeLessThan(1);
+    expect(called.put).toBeLessThan(plain.put);
+    expect(called.coupon).toBeGreaterThan(plain.coupon);
+  });
+
+  it("calls more often with a step-down schedule", () => {
+    const flat = run({ ...DEFAULT_PARAMS, autocall: "flat" });
+    const step = run({ ...DEFAULT_PARAMS, autocall: "stepdown" });
+    expect(step.callProbabilities[2]).toBeGreaterThan(flat.callProbabilities[2]);
+    expect(step.put).toBeLessThan(flat.put);
+  });
+
+  it("solves the coupon from the redemption timing", () => {
+    const params = { rate: 0.02, tenor: 1 };
+    expect(couponWithCalls(4, [0, 0, 0], params)).toBeCloseTo(fairCoupon(4, params), 12);
+    // Certain call at three months: par plus a quarter of the coupon, discounted 3 months.
+    const df = Math.exp(-0.02 * 0.25);
+    const c = couponWithCalls(0, [1, 0, 0], params);
+    expect(df * (100 + c * 0.25)).toBeCloseTo(100, 10);
   });
 });

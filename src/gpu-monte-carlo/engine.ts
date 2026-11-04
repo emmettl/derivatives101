@@ -13,6 +13,22 @@ import { downBarrierPrice } from "../solver/engine";
 
 export type Monitoring = "continuous" | "close";
 
+/**
+ * Early-redemption schedule. "flat" calls the note at par on each quarterly
+ * observation if every underlying is at or above 100%. "stepdown" uses the
+ * gentle Swiss schedule 100 / 99 / 98 / 97, the last one at final fixing.
+ */
+export type Autocall = "off" | "flat" | "stepdown";
+
+/** Autocall trigger, % of initial, on each of the four quarterly observations. */
+export const AUTOCALL_TRIGGERS: Record<Exclude<Autocall, "off">, number[]> = {
+  flat: [100, 100, 100, 100],
+  stepdown: [100, 99, 98, 97],
+};
+
+/** Quarterly observations in a one-year note; the fourth is the final fixing. */
+export const OBSERVATIONS = 4;
+
 export interface McParams {
   /** Number of underlyings, 1 to 3. */
   assets: number;
@@ -31,6 +47,13 @@ export interface McParams {
   /** Simulation steps (one per trading day). */
   steps: number;
   monitoring: Monitoring;
+  /**
+   * Par lock-in level, % of initial, or 0 for none. If every underlying closes
+   * at or above it on any day, redemption at par is locked in and the knock-in
+   * can no longer cost the client anything.
+   */
+  lockIn: number;
+  autocall: Autocall;
   seed: number;
 }
 
@@ -44,15 +67,35 @@ export const DEFAULT_PARAMS: McParams = {
   tenor: 1,
   steps: 252,
   monitoring: "continuous",
+  lockIn: 0,
+  autocall: "off",
   seed: 1,
 };
 
-/** Accumulated per-path sums: payoff, payoff squared, knock-in weight, paths. */
+/** Lock-in level the page offers when the feature is switched on. */
+export const DEFAULT_LOCK_IN = 110;
+
+export const hasFeatures = (params: Pick<McParams, "lockIn" | "autocall">): boolean =>
+  params.lockIn > 0 || params.autocall !== "off";
+
+/**
+ * Accumulated per-path sums. Every path is priced twice in the same loop: once
+ * with the lock-in and autocall terms ("payoff", "knockIn") and once as the
+ * plain barrier reverse convertible ("base..."), so the two differ only by the
+ * features and not by sampling noise.
+ */
 export interface BatchSums {
   sumPayoff: number;
   sumPayoffSq: number;
   sumKnockIn: number;
   paths: number;
+  baseSumPayoff: number;
+  baseSumPayoffSq: number;
+  baseSumKnockIn: number;
+  /** Paths that locked in before any autocall. */
+  sumLocked: number;
+  /** Paths called early at the first, second and third quarterly observation. */
+  sumCalled: [number, number, number];
 }
 
 export interface Estimate {
@@ -61,10 +104,21 @@ export interface Estimate {
   put: number;
   /** Standard error of the put value. */
   standardError: number;
-  /** Probability that the barrier is breached, decimal. */
+  /**
+   * Probability that the barrier is breached while the note is still live and
+   * not locked in, decimal: the knock-in that can still cost the client.
+   */
   knockInProbability: number;
-  /** Fair coupon for a note paying it at maturity, % of notional. */
+  /** Fair coupon p.a., accrued and paid on redemption, % of notional. */
   coupon: number;
+  /** Probability the note locks in, decimal. */
+  lockProbability: number;
+  /** Probability of an early call at each of the three quarterly observations. */
+  callProbabilities: [number, number, number];
+  /** Expected life of the note in years. */
+  expectedLife: number;
+  /** The same paths priced as a plain barrier reverse convertible. */
+  base: { put: number; standardError: number; knockInProbability: number; coupon: number };
 }
 
 export const emptySums = (): BatchSums => ({
@@ -72,6 +126,11 @@ export const emptySums = (): BatchSums => ({
   sumPayoffSq: 0,
   sumKnockIn: 0,
   paths: 0,
+  baseSumPayoff: 0,
+  baseSumPayoffSq: 0,
+  baseSumKnockIn: 0,
+  sumLocked: 0,
+  sumCalled: [0, 0, 0],
 });
 
 export function addSums(total: BatchSums, batch: BatchSums): BatchSums {
@@ -80,6 +139,15 @@ export function addSums(total: BatchSums, batch: BatchSums): BatchSums {
     sumPayoffSq: total.sumPayoffSq + batch.sumPayoffSq,
     sumKnockIn: total.sumKnockIn + batch.sumKnockIn,
     paths: total.paths + batch.paths,
+    baseSumPayoff: total.baseSumPayoff + batch.baseSumPayoff,
+    baseSumPayoffSq: total.baseSumPayoffSq + batch.baseSumPayoffSq,
+    baseSumKnockIn: total.baseSumKnockIn + batch.baseSumKnockIn,
+    sumLocked: total.sumLocked + batch.sumLocked,
+    sumCalled: [
+      total.sumCalled[0] + batch.sumCalled[0],
+      total.sumCalled[1] + batch.sumCalled[1],
+      total.sumCalled[2] + batch.sumCalled[2],
+    ],
   };
 }
 
@@ -97,18 +165,65 @@ export function fairCoupon(put: number, params: Pick<McParams, "rate" | "tenor">
   return (100 - 100 * df + put) / df / params.tenor;
 }
 
+/**
+ * Coupon p.a. for a note that may end early. The coupon accrues and is paid on
+ * redemption, so with redemption time tau the note is worth
+ * E[DF(tau) * (100 + c * tau)] - put, and setting that to par gives
+ * c = (100 - 100 * E[DF(tau)] + put) / E[tau * DF(tau)].
+ * Without early calls tau is the tenor and this is fairCoupon.
+ */
+export function couponWithCalls(
+  put: number,
+  callProbabilities: readonly number[],
+  params: Pick<McParams, "rate" | "tenor">,
+): number {
+  let survive = 1;
+  let expectedDf = 0;
+  let expectedTauDf = 0;
+  callProbabilities.forEach((probability, index) => {
+    const tau = ((index + 1) / OBSERVATIONS) * params.tenor;
+    const df = Math.exp(-params.rate * tau);
+    expectedDf += probability * df;
+    expectedTauDf += probability * tau * df;
+    survive -= probability;
+  });
+  const df = discountFactor(params);
+  expectedDf += survive * df;
+  expectedTauDf += survive * params.tenor * df;
+  return (100 - 100 * expectedDf + put) / expectedTauDf;
+}
+
 export function estimate(sums: BatchSums, params: McParams): Estimate {
   const n = Math.max(1, sums.paths);
   const df = discountFactor(params);
-  const mean = sums.sumPayoff / n;
-  const variance = Math.max(0, sums.sumPayoffSq / n - mean * mean);
-  const put = df * mean;
+  const priced = (sum: number, sumSq: number) => {
+    const mean = sum / n;
+    const variance = Math.max(0, sumSq / n - mean * mean);
+    return { put: df * mean, standardError: (df * Math.sqrt(variance)) / Math.sqrt(n) };
+  };
+  const featured = priced(sums.sumPayoff, sums.sumPayoffSq);
+  const base = priced(sums.baseSumPayoff, sums.baseSumPayoffSq);
+  const callProbabilities = sums.sumCalled.map((count) => count / n) as [number, number, number];
+  const called = callProbabilities.reduce((total, p) => total + p, 0);
+  const expectedLife =
+    callProbabilities.reduce(
+      (total, p, index) => total + p * ((index + 1) / OBSERVATIONS) * params.tenor,
+      0,
+    ) +
+    (1 - called) * params.tenor;
   return {
     paths: sums.paths,
-    put,
-    standardError: (df * Math.sqrt(variance)) / Math.sqrt(n),
+    ...featured,
     knockInProbability: sums.sumKnockIn / n,
-    coupon: fairCoupon(put, params),
+    coupon: couponWithCalls(featured.put, callProbabilities, params),
+    lockProbability: sums.sumLocked / n,
+    callProbabilities,
+    expectedLife,
+    base: {
+      ...base,
+      knockInProbability: sums.baseSumKnockIn / n,
+      coupon: fairCoupon(base.put, params),
+    },
   };
 }
 
@@ -140,7 +255,19 @@ export interface KernelConstants {
   /** 2 / (sigma^2 dt): scales the Brownian-bridge crossing probability. */
   bridgeScale: number;
   chol: number[];
+  /** ln(lock-in level), or NEVER when there is no lock-in. */
+  logLock: number;
+  /** ln(autocall trigger) at each quarterly observation; NEVER when off. */
+  logTriggers: number[];
+  /** Simulation steps between quarterly observations. */
+  callEvery: number;
 }
+
+/**
+ * A log level no path reaches. Finite, because WGSL lets the GPU assume that
+ * floating-point values are never infinite.
+ */
+export const NEVER = 1e9;
 
 export function kernelConstants(params: McParams): KernelConstants {
   const dt = params.tenor / params.steps;
@@ -150,6 +277,12 @@ export function kernelConstants(params: McParams): KernelConstants {
     logBarrier: Math.log(params.barrier / 100),
     bridgeScale: 2 / (params.vol * params.vol * dt),
     chol: cholesky(params.assets, params.corr),
+    logLock: params.lockIn > 0 ? Math.log(params.lockIn / 100) : NEVER,
+    logTriggers:
+      params.autocall === "off"
+        ? [NEVER, NEVER, NEVER, NEVER]
+        : AUTOCALL_TRIGGERS[params.autocall].map((level) => Math.log(level / 100)),
+    callEvery: Math.round(params.steps / OBSERVATIONS),
   };
 }
 
@@ -195,12 +328,22 @@ export class PathRng {
 // The path loop.
 
 export interface PathOutcome {
-  /** Undiscounted knock-in put payoff, % of notional. */
+  /** Undiscounted knock-in put payoff with lock-in and autocall, % of notional. */
   payoff: number;
-  /** Probability the path breached the barrier, given its daily closes. */
+  /** Chance the barrier was breached and still bites: not locked, not called. */
   knockIn: number;
+  /** Plain barrier reverse convertible payoff on the same path. */
+  basePayoff: number;
+  /** Probability the path breached the barrier, given its daily closes. */
+  baseKnockIn: number;
   /** Worst-of performance at maturity, % of initial. */
   worst: number;
+  /** Step at which every underlying first closed at or above the lock-in, or 0. */
+  lockStep: number;
+  /** Quarterly observation (1 to 3) at which the note was called early, or 0. */
+  calledAt: number;
+  /** True if the final observation redeemed the note at par through the trigger. */
+  finalTrigger: boolean;
 }
 
 /**
@@ -210,6 +353,11 @@ export interface PathOutcome {
  * exact for one underlying and lowers variance. For a basket the per-name
  * bridges are combined as if independent, a close approximation below very
  * high correlation.
+ *
+ * The path always runs to maturity so the plain note can be priced alongside.
+ * Lock-in is tested on every daily close of the worst performer. An autocall
+ * is tested on the quarterly closes, and once the note is called nothing that
+ * happens later on the path matters to it.
  */
 export function simulatePath(
   params: McParams,
@@ -218,11 +366,14 @@ export function simulatePath(
   trace?: (step: number, worst: number) => void,
 ): PathOutcome {
   const rng = new PathRng(path, params.seed);
-  const { drift, volSqrtDt, logBarrier, bridgeScale, chol } = constants;
+  const { drift, volSqrtDt, logBarrier, bridgeScale, chol, logLock, logTriggers, callEvery } =
+    constants;
   const x = [0, 0, 0];
   const next = [0, 0, 0];
   const z = [0, 0, 0];
   let survive = 1;
+  let lockStep = 0;
+  let calledAt = 0;
   for (let step = 0; step < params.steps; step += 1) {
     const [a, b] = rng.normalPair();
     z[0] = a;
@@ -241,13 +392,36 @@ export function simulatePath(
       x[asset] = next[asset];
       worst = Math.min(worst, x[asset]);
     }
-    trace?.(step + 1, 100 * Math.exp(worst));
+    const day = step + 1;
+    if (!calledAt) {
+      if (!lockStep && worst >= logLock) lockStep = day;
+      const observation = day / callEvery;
+      if (
+        day % callEvery === 0 &&
+        observation < OBSERVATIONS &&
+        worst >= logTriggers[observation - 1]
+      )
+        calledAt = observation;
+    }
+    trace?.(day, 100 * Math.exp(worst));
   }
   let worstLog = x[0];
   for (let asset = 1; asset < params.assets; asset += 1) worstLog = Math.min(worstLog, x[asset]);
   const worst = 100 * Math.exp(worstLog);
-  const knockIn = 1 - survive;
-  return { payoff: Math.max(params.strike - worst, 0) * knockIn, knockIn, worst };
+  const baseKnockIn = 1 - survive;
+  const basePayoff = Math.max(params.strike - worst, 0) * baseKnockIn;
+  const live = calledAt === 0 && lockStep === 0;
+  const finalTrigger = calledAt === 0 && worstLog >= logTriggers[OBSERVATIONS - 1];
+  return {
+    payoff: live && !finalTrigger ? basePayoff : 0,
+    knockIn: live ? baseKnockIn : 0,
+    basePayoff,
+    baseKnockIn,
+    worst,
+    lockStep,
+    calledAt,
+    finalTrigger,
+  };
 }
 
 export function simulateBatch(params: McParams, offset: number, count: number): BatchSums {
@@ -258,10 +432,18 @@ export function simulateBatch(params: McParams, offset: number, count: number): 
     sums.sumPayoff += outcome.payoff;
     sums.sumPayoffSq += outcome.payoff * outcome.payoff;
     sums.sumKnockIn += outcome.knockIn;
+    sums.baseSumPayoff += outcome.basePayoff;
+    sums.baseSumPayoffSq += outcome.basePayoff * outcome.basePayoff;
+    sums.baseSumKnockIn += outcome.baseKnockIn;
+    if (outcome.calledAt) sums.sumCalled[outcome.calledAt - 1] += 1;
+    else if (outcome.lockStep) sums.sumLocked += 1;
   }
   sums.paths = count;
   return sums;
 }
+
+/** How a sample path ends for the note with its features. */
+export type PathFate = "called" | "locked" | "knocked" | "plain";
 
 export interface SamplePath {
   /** Worst-of level, % of initial, at each step including the start. */
@@ -269,18 +451,38 @@ export interface SamplePath {
   /** True if a daily close of the worst-of reached the barrier. */
   touched: boolean;
   worst: number;
+  /** Step of the lock-in, or 0. */
+  lockStep: number;
+  /** Step of the early call, or 0. */
+  callStep: number;
+  fate: PathFate;
 }
 
 export function samplePaths(params: McParams, count: number): SamplePath[] {
   const constants = kernelConstants(params);
   return Array.from({ length: count }, (_, path) => {
     const levels = [100];
-    let touched = false;
-    const outcome = simulatePath(params, constants, path, (_step, worst) => {
+    let touchedStep = 0;
+    const outcome = simulatePath(params, constants, path, (step, worst) => {
       levels.push(worst);
-      if (worst <= params.barrier) touched = true;
+      if (!touchedStep && worst <= params.barrier) touchedStep = step;
     });
-    return { levels, touched, worst: outcome.worst };
+    const callStep = outcome.calledAt * constants.callEvery;
+    const fate: PathFate = outcome.calledAt
+      ? "called"
+      : outcome.lockStep
+        ? "locked"
+        : touchedStep
+          ? "knocked"
+          : "plain";
+    return {
+      levels,
+      touched: touchedStep > 0 && (!callStep || touchedStep <= callStep),
+      worst: outcome.worst,
+      lockStep: outcome.lockStep,
+      callStep,
+      fate,
+    };
   });
 }
 
@@ -322,6 +524,10 @@ export interface ClosedFormReference {
   corrected: boolean;
 }
 
+/**
+ * Closed form for the plain one-stock note. With lock-in or autocall switched on
+ * it still describes the plain note, which the page shows alongside.
+ */
 export function closedFormReference(params: McParams): ClosedFormReference | null {
   if (params.assets !== 1) return null;
   const barrier = effectiveBarrier(params);

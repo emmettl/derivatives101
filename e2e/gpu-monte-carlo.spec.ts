@@ -20,3 +20,23 @@ test("falls back to the CPU without WebGPU and converges on the one-stock closed
   );
   expect(Math.abs(put - reference)).toBeLessThan(2 * halfWidth);
 });
+
+test("prices lock-in and autocall against the plain note on the same paths", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/gpu-monte-carlo.html");
+  await expect(page.locator("#backend-banner")).not.toHaveAttribute("data-backend", "pending");
+  await page.locator('[data-autocall="flat"]').click();
+  await page.locator('[data-lock="on"]').click();
+  await expect(page.locator(status)).toContainText(/current/i, { timeout: 60_000 });
+  await expect(page.locator("#features-panel")).toHaveAttribute("data-active", "true");
+  const rows = page.locator("#features-table tr");
+  await expect(rows).toHaveCount(4);
+  const coupon = rows.first().locator("td");
+  const plain = Number((await coupon.nth(0).textContent())?.replace("%", ""));
+  const featured = Number((await coupon.nth(1).textContent())?.replace("%", ""));
+  expect(featured).toBeGreaterThan(plain);
+  await expect(page.locator("#features-legend")).toContainText("Called at 3 months");
+  await expect(page.locator("#features-legend")).toContainText("Locked in");
+  await expect(page.locator("#paths-chart .mc-path.called").first()).toBeVisible();
+  await expect(page.locator("#paths-chart .mc-lock")).toHaveCount(1);
+});
